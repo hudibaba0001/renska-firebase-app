@@ -1,0 +1,68 @@
+{
+  "name": "swedprime-saas",
+  "version": "1.0.0",
+  "description": "SwedPrime SaaS - Multi-tenant booking calculator platform for cleaning companies",
+  "main": "index.js",
+  "scripts": {
+    "dev": "cd webapp && npm run dev",
+    "build": "cd webapp && npm run build",
+    "preview": "cd webapp && npm run preview",
+    "lint": "npm run lint:webapp && npm run lint:functions",
+    "lint:webapp": "cd webapp && npm run lint",
+    "lint:functions": "cd functions && npm run lint",
+    "test": "cd webapp && npm run test",
+    "type-check": "cd webapp && npm run type-check",
+    "deploy": "node scripts/deploy.js",
+    "deploy:staging": "node scripts/deploy.js --staging",
+    "deploy:production": "node scripts/deploy.js --production",
+    "deploy:local": "node scripts/deploy.js --local",
+    "firebase:login": "firebase login",
+    "firebase:init": "firebase init",
+    "firebase:deploy": "firebase deploy",
+    "firebase:serve": "firebase serve",
+    "firebase:functions:logs": "firebase functions:log",
+    "setup:stripe": "node scripts/setup-stripe.js",
+    "setup:firebase": "cd webapp && npm run setup:firebase",
+    "install:all": "npm install && cd webapp && npm install && cd ../functions && npm install",
+    "clean": "rm -rf webapp/dist webapp/node_modules functions/node_modules node_modules",
+    "health-check": "curl -f $(firebase use --current).web.app/api/health",
+    "postinstall": "echo 'Run npm run install:all to install all dependencies'"
+  },
+  "keywords": [
+    "saas",
+    "booking",
+    "calculator",
+    "cleaning",
+    "multi-tenant",
+    "firebase",
+    "stripe",
+    "react",
+    "vite"
+  ],
+  "author": "SwedPrime",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/swedprime-saas.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/swedprime-saas/issues"
+  },
+  "homepage": "https://github.com/yourusername/swedprime-saas#readme",
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
+  },
+  "devDependencies": {
+    "firebase-tools": "^13.0.0",
+    "tailwindcss": "^3.3.7"
+  },
+  "workspaces": [
+    "webapp",
+    "functions"
+  ],
+  "dependencies": {
+    "firebase": "^11.10.0",
+    "firebase-admin": "^13.4.0"
+  }
+}

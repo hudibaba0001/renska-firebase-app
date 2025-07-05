@@ -1,0 +1,128 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // =============================================================================
+    // SUPER-ADMIN RULES
+    // =============================================================================
+    
+    // Super-admin users can access everything
+    match /tenants/{tenantId} {
+      // Super-admin can read/write all tenant data
+      allow read, write: if request.auth != null && request.auth.token.superAdmin == true;
+      
+      // Tenant admins can read/write their own tenant data
+      allow read, write: if request.auth != null && 
+        request.auth.token.adminOf != null && 
+        request.auth.token.adminOf == tenantId;
+      
+      // All subcollections under tenants
+      match /{subcollection=**} {
+        allow read, write: if request.auth != null && request.auth.token.superAdmin == true;
+        allow read, write: if request.auth != null && 
+          request.auth.token.adminOf != null && 
+          request.auth.token.adminOf == tenantId;
+      }
+    }
+    
+    // Global configuration (super-admin only)
+    match /globalConfig/{document} {
+      allow read, write: if request.auth != null && request.auth.token.superAdmin == true;
+    }
+    
+    // Plans and billing configuration (super-admin only)
+    match /plans/{planId} {
+      allow read: if request.auth != null; // All authenticated users can read plans
+      allow write: if request.auth != null && request.auth.token.superAdmin == true;
+    }
+    
+    // Audit logs (super-admin read-only)
+    match /auditLogs/{logId} {
+      allow read: if request.auth != null && request.auth.token.superAdmin == true;
+      allow write: if false; // Only server-side writes
+    }
+    
+    // User management (super-admin only)
+    match /superAdminUsers/{userId} {
+      allow read, write: if request.auth != null && request.auth.token.superAdmin == true;
+    }
+    
+    // =============================================================================
+    // EXISTING COMPANY RULES (BACKWARD COMPATIBILITY)
+    // =============================================================================
+    
+    // Companies collection - for backward compatibility and existing functionality
+    match /companies/{companyId} {
+      // SECURE: Only allow reading public data or authorized access
+      allow read: if resource.data.isPublic == true || 
+                     (request.auth != null && 
+                      (request.auth.token.superAdmin == true || 
+                       request.auth.token.adminOf == companyId));
+      
+      // Super-admins can do everything (create, read, write, update, delete)
+      allow read, write, create, update, delete: if request.auth != null && request.auth.token.superAdmin == true;
+      
+      // Only admins of the specific company can write (but not create new companies)
+      allow write, update: if request.auth != null && 
+        request.auth.token.adminOf != null && 
+        request.auth.token.adminOf == companyId;
+      
+      // Bookings subcollection
+      match /bookings/{bookingId} {
+        // Anyone can create bookings (for public forms)
+        allow create: if true;
+        
+        // Company admins can read/write their bookings
+        allow read, write: if request.auth != null && 
+          request.auth.token.adminOf != null && 
+          request.auth.token.adminOf == companyId;
+        
+        // Super-admins can read/write all bookings
+        allow read, write: if request.auth != null && request.auth.token.superAdmin == true;
+      }
+      
+      // Analytics and reports
+      match /analytics/{analyticsId} {
+        allow read, write: if request.auth != null && 
+          request.auth.token.adminOf != null && 
+          request.auth.token.adminOf == companyId;
+        allow read, write: if request.auth != null && request.auth.token.superAdmin == true;
+      }
+    }
+    
+    // =============================================================================
+    // USER AUTHENTICATION & PROFILES
+    // =============================================================================
+    
+    // User profiles
+    match /users/{userId} {
+      // Users can read/write their own profile
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      
+      // Super-admins can read all user profiles
+      allow read: if request.auth != null && request.auth.token.superAdmin == true;
+    }
+    
+    // =============================================================================
+    // SYSTEM DATA
+    // =============================================================================
+    
+    // Feature flags (super-admin write, everyone read)
+    match /featureFlags/{flagId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.token.superAdmin == true;
+    }
+    
+    // RUT/ZIP codes (super-admin write, everyone read)
+    match /rutZipCodes/{zipCode} {
+      allow read: if true; // Public data for pricing calculations
+      allow write: if request.auth != null && request.auth.token.superAdmin == true;
+    }
+    
+    // Service catalog templates (super-admin write, everyone read)
+    match /serviceCatalog/{serviceId} {
+      allow read: if true; // Public templates for new tenants
+      allow write: if request.auth != null && request.auth.token.superAdmin == true;
+    }
+  }
+} 

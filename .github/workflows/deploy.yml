@@ -1,0 +1,216 @@
+name: 🚀 SwedPrime SaaS - CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  NODE_VERSION: '22'
+  FIREBASE_PROJECT_ID: 'your-firebase-project-id'
+
+jobs:
+  # Test and lint job
+  test:
+    name: 🧪 Test & Lint
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🏗️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: 'webapp/package-lock.json'
+
+      - name: 📦 Install webapp dependencies
+        working-directory: webapp
+        run: npm ci
+
+      - name: 🔍 Lint webapp
+        working-directory: webapp
+        run: npm run lint
+
+      - name: 📦 Install functions dependencies
+        working-directory: functions
+        run: npm ci
+
+      - name: 🔍 Lint functions
+        working-directory: functions
+        run: npm run lint
+
+      - name: 🧪 Run tests (if any)
+        working-directory: webapp
+        run: |
+          if [ -f package.json ] && npm run | grep -q "test"; then
+            npm run test
+          else
+            echo "No tests found, skipping..."
+          fi
+
+  # Build job
+  build:
+    name: 🏗️ Build Application
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🏗️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: 'webapp/package-lock.json'
+
+      - name: 📦 Install dependencies
+        working-directory: webapp
+        run: npm ci
+
+      - name: 🏗️ Build application
+        working-directory: webapp
+        env:
+          # Add your production environment variables here
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
+          VITE_STRIPE_PUBLISHABLE_KEY: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY }}
+        run: npm run build
+
+      - name: 📤 Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-files
+          path: webapp/dist/
+          retention-days: 1
+
+  # Deploy to staging (develop branch)
+  deploy-staging:
+    name: 🚀 Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [test, build]
+    if: github.ref == 'refs/heads/develop'
+    environment: staging
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📥 Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist-files
+          path: webapp/dist/
+
+      - name: 🏗️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: 📦 Install Firebase CLI
+        run: npm install -g firebase-tools
+
+      - name: 🚀 Deploy to Firebase Staging
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_DEPLOY_TOKEN }}
+        run: |
+          firebase use staging --token $FIREBASE_TOKEN
+          firebase deploy --only hosting --token $FIREBASE_TOKEN
+          echo "🎉 Staging deployment complete!"
+
+  # Deploy to production (main branch)
+  deploy-production:
+    name: 🎯 Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [test, build]
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📥 Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist-files
+          path: webapp/dist/
+
+      - name: 🏗️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: 📦 Install Firebase CLI
+        run: npm install -g firebase-tools
+
+      - name: 📦 Install Functions dependencies (for deployment)
+        working-directory: functions
+        run: npm ci --only=production
+
+      - name: 🚀 Deploy to Firebase Production
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_DEPLOY_TOKEN }}
+        run: |
+          firebase use production --token $FIREBASE_TOKEN
+          firebase deploy --token $FIREBASE_TOKEN
+          echo "🎉 Production deployment complete!"
+
+      - name: 🏥 Health Check
+        run: |
+          sleep 30
+          response=$(curl -s -o /dev/null -w "%{http_code}" https://${{ env.FIREBASE_PROJECT_ID }}.web.app/api/health)
+          if [ $response -eq 200 ]; then
+            echo "✅ Health check passed!"
+          else
+            echo "❌ Health check failed with status: $response"
+            exit 1
+          fi
+
+      - name: 🔔 Notify deployment success
+        if: success()
+        run: |
+          echo "🎉 SwedPrime SaaS deployed successfully to production!"
+          echo "🌐 Live URL: https://${{ env.FIREBASE_PROJECT_ID }}.web.app"
+          echo "📊 Admin: https://${{ env.FIREBASE_PROJECT_ID }}.web.app/admin/demo-company"
+          echo "💳 Pricing: https://${{ env.FIREBASE_PROJECT_ID }}.web.app/pricing"
+
+      - name: 🚨 Notify deployment failure
+        if: failure()
+        run: |
+          echo "❌ SwedPrime SaaS deployment failed!"
+          echo "Check the logs above for details."
+          exit 1
+
+  # Security audit job
+  security-audit:
+    name: 🔒 Security Audit
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🏗️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: 🔒 Run security audit (webapp)
+        working-directory: webapp
+        run: |
+          npm audit --audit-level moderate
+          
+      - name: 🔒 Run security audit (functions)
+        working-directory: functions
+        run: |
+          npm audit --audit-level moderate 

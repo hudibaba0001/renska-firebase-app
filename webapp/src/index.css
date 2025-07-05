@@ -1,0 +1,24 @@
+@import "@fontsource/ubuntu-mono/index.css";
+@import 'flowbite';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Ubuntu Mono Font from @fontsource */
+/* Flowbite Styles - imported above before Tailwind */
+
+/* Custom CSS Variables for Flowbite integration */
+:root {
+  --flowbite-navbar-bg: #005659;
+  --flowbite-navbar-text: #ffffff;
+  --flowbite-sidebar-bg: #005659;
+  --flowbite-sidebar-text: #ffffff;
+}
+
+/* Base font family override */
+@layer base {
+  body {
+    font-family: 'Ubuntu Mono', ui-monospace, Menlo, Consolas, 'Liberation Mono', monospace;
+    background-color: #e6f2f2;
+  }
+}
