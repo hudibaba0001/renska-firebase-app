@@ -1,3 +1,5 @@
+// SwedPrime SaaS Platform - Professional Multi-Tenant Cleaning Business Management
+// Updated: January 2025 - Added GitHub version control integration
 import React from 'react'
 import { Link } from 'react-router-dom'
 
