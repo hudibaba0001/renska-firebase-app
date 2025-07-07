@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { db }                           from '../firebase/init'
 import { doc, getDoc, collection, query, where, getDocs, orderBy } from 'firebase/firestore'
-import BookingForm from '../components/BookingForm'
+import BookingCalculator from '../components/BookingCalculator'
 import { signOut } from 'firebase/auth'
 import { auth } from '../firebase/init'
 
@@ -56,7 +56,7 @@ export default function BookingPage() {
         <h1 className="text-2xl font-semibold mb-4">
           Booking for: <span className="capitalize">{companyId}</span>
         </h1>
-        <BookingForm config={config} />
+        <BookingCalculator />
       </div>
     </div>
   )
