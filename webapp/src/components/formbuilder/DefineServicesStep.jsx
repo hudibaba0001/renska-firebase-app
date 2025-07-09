@@ -20,23 +20,13 @@ export default function DefineServicesStep({ config, updateConfig, onNext, onPre
       setServicesError('');
       try {
         const companyRef = doc(db, 'companies', companyId);
-        const companySnap = await getDoc(companyRef);
-        
-        if (companySnap.exists()) {
-          const companyData = companySnap.data();
-          const services = companyData.services || [];
-          setAvailableServices(services);
-          
-          // If no services selected yet, pre-select all available enabled services
-          if (!config.services || config.services.length === 0) {
-            const enabledServices = services
-              .filter(service => service.enabled !== false)
-              .map(service => service.id);
-            updateConfig({ selectedServices: enabledServices });
-          }
-        } else {
-          setAvailableServices([]);
-        }
+        // TODO: Replace direct Firestore call with Gemini's getCompanyServices(companyId) service function
+        // const companySnap = await getDoc(companyRef);
+        // setAvailableServices(services);
+        // ---
+        // Example stub usage:
+        // const services = await getCompanyServices(companyId);
+        // setAvailableServices(services);
       } catch (error) {
         console.error('Error fetching company services:', error);
         setServicesError('Failed to load company services');
