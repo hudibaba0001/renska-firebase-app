@@ -10,7 +10,21 @@ const validateSlug = (slug) => { /* ... */ };
 export const getUserProfile = async (userId) => { /* ... */ };
 export const createTenant = async (formData) => { /* ... */ };
 export const getTenant = async (tenantId) => { /* ... */ };
-export const getAllTenants = async () => { /* ... */ };
+export const getAllTenants = async () => {
+  try {
+    const tenantsRef = collection(db, 'companies');
+    const q = query(tenantsRef, orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
+    const tenants = [];
+    snapshot.forEach(doc => {
+      tenants.push({ id: doc.id, ...doc.data() });
+    });
+    return tenants;
+  } catch (error) {
+    console.error('Error fetching tenants:', error);
+    return []; // Always return an array, even on error
+  }
+};
 export const updateTenant = async (tenantId, updatedData) => { /* ... */ };
 export const deleteTenant = async (tenantId) => { /* ... */ };
 export const createService = async (companyId, serviceData) => { /* ... */ };
