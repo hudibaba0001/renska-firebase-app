@@ -3,31 +3,69 @@ import React, { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { db }                           from '../firebase/init'
 import { doc, getDoc, collection, query, where, getDocs, orderBy } from 'firebase/firestore'
+import BookingCalculator from '../components/BookingCalculator'
 import BookingForm from '../components/BookingForm'
 import { signOut } from 'firebase/auth'
 import { auth } from '../firebase/init'
 
 export default function BookingPage() {
-  const { companyId } = useParams()
+  const { companyId, formId } = useParams() // Added formId to support form builder
   const [config, setConfig] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState('')
 
-  console.log('🔧 BookingPage rendered with companyId:', companyId)
+  console.log('🔧 BookingPage rendered with companyId:', companyId, 'formId:', formId)
 
   useEffect(() => {
-    console.log('🔧 useEffect triggered for companyId:', companyId)
+    console.log('🔧 useEffect triggered for companyId:', companyId, 'formId:', formId)
     async function loadConfig() {
       try {
         console.log('🔧 Loading config for companyId:', companyId)
-        const ref  = doc(db, 'companies', companyId)
-        const snap = await getDoc(ref)
-        console.log('🔧 Firestore response:', snap.exists() ? 'exists' : 'not found')
-        if (!snap.exists()) {
-          setError(`No config found for "${companyId}".`)
-        } else {
-          setConfig(snap.data())
+        
+        // Load company configuration
+        const companyRef = doc(db, 'companies', companyId)
+        const companySnap = await getDoc(companyRef)
+        
+        if (!companySnap.exists()) {
+          setError(`No company found for "${companyId}".`)
+          return
         }
+        
+        const companyData = companySnap.data()
+        setConfig(companyData)
+        
+        // If formId is provided, load the form builder configuration
+        if (formId) {
+          const formRef = doc(db, 'companies', companyId, 'calculators', formId)
+          const formSnap = await getDoc(formRef)
+          
+          if (formSnap.exists()) {
+            const formData = formSnap.data()
+            
+            // Merge company services with form's selected services
+            const allServices = companyData.services || []
+            const selectedServiceIds = formData.selectedServices || []
+            const availableServices = allServices.filter(service => 
+              selectedServiceIds.includes(service.id)
+            )
+            
+            // Create merged configuration
+            const mergedConfig = {
+              ...companyData,
+              ...formData,
+              services: availableServices,
+              formMode: true
+            }
+            setConfig(mergedConfig)
+            console.log('🔧 Merged config with form services:', mergedConfig)
+          } else {
+            setError(`Form "${formId}" not found.`)
+            return
+          }
+        }
+        
+        console.log('🔧 Config loaded successfully')
+        
       } catch (e) {
         console.error('🔧 Error loading config:', e)
         setError('Failed to load configuration.')
@@ -36,7 +74,7 @@ export default function BookingPage() {
       }
     }
     loadConfig()
-  }, [companyId])
+  }, [companyId, formId])
 
   console.log('🔧 Current state - loading:', loading, 'error:', error, 'config:', config)
 
@@ -54,9 +92,13 @@ export default function BookingPage() {
     <div className="bg-white shadow rounded-lg">
       <div className="px-4 py-5 sm:p-6">
         <h1 className="text-2xl font-semibold mb-4">
-          Booking for: <span className="capitalize">{companyId}</span>
+          {config?.formMode ? (config.name || 'Booking Calculator') : `Booking for: ${companyId}`}
         </h1>
-        <BookingForm config={config} />
+        {config?.formMode ? (
+          <BookingForm config={config} />
+        ) : (
+          <BookingCalculator />
+        )}
       </div>
     </div>
   )
