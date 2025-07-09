@@ -20,7 +20,16 @@ export default function CompanyConfigPage({ companyId: propCompanyId }) {
       setError('')
       try {
         const ref = doc(db, 'companies', companyId)
-        const snap = await getDoc(ref)
+        // TODO: Replace direct Firestore call with Gemini's getCompanyServices(companyId) service function
+        // const snap = await getDoc(ref)
+        // setConfig(snap.data())
+        // ---
+        // Example stub usage:
+        // const config = await getCompanyServices(companyId)
+        // setConfig(config)
+        //
+        // TODO: Replace direct Firestore call with Gemini's updateCompanyServices(companyId, newConfig) service function
+        // await setDoc(doc(db, 'companies', companyId), newConfig)
         if (snap.exists()) {
           const configData = snap.data()
           setConfig(configData)
