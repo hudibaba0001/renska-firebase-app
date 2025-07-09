@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { db } from '../firebase/init';
-import { doc, getDoc } from 'firebase/firestore';
+import { getAllServicesForCompany } from '../services/firestore';
 import { 
   Card, 
   Button, 
@@ -42,18 +41,12 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     async function fetchServices() {
       if (!companyId) return;
-      
       setServicesLoading(true);
       setServicesError('');
       try {
-        const companyRef = doc(db, 'companies', companyId);
-        // TODO: Replace direct Firestore call with Gemini's getCompanyServices(companyId) service function
-        // const companySnap = await getDoc(companyRef);
-        // setServices(companyData.services || []);
-        // ---
-        // Example stub usage:
-        // const services = await getCompanyServices(companyId);
-        // setServices(services);
+        // Use the new service layer function
+        const services = await getAllServicesForCompany(companyId);
+        setServices(services);
       } catch (error) {
         console.error('Error fetching services:', error);
         setServicesError('Failed to load services');
@@ -61,7 +54,6 @@ export default function AdminDashboardPage() {
         setServicesLoading(false);
       }
     }
-    
     fetchServices();
   }, [companyId]);
 
