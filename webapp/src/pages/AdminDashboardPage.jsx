@@ -24,13 +24,13 @@ import {
   ClockIcon,
   BanknotesIcon,
   ArrowTrendingUpIcon,
-  ExclamationTriangleIcon
+  ExclamationTriangleIcon,
+  WrenchScrewdriverIcon
 } from '@heroicons/react/24/outline';
-import { motion } from 'framer-motion';
 
 export default function AdminDashboardPage() {
   const { companyId } = useParams();
-  const [timeRange, setTimeRange] = useState('7d');
+  const [_, setTimeRange] = useState('7d');
 
   // Simulate real-time data updates
   const [stats] = useState([
@@ -222,51 +222,47 @@ export default function AdminDashboardPage() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, index) => (
-          <motion.div
+        {stats.map((stat) => (
+          <Card
             key={stat.name}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: index * 0.1 }}
+            className="hover:shadow-lg transition-shadow duration-200"
           >
-            <Card className="hover:shadow-lg transition-shadow duration-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                    {stat.name}
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                  {stat.name}
+                </p>
+                <div className="flex items-baseline mt-1">
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {stat.value}
                   </p>
-                  <div className="flex items-baseline mt-1">
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                      {stat.value}
-                    </p>
-                    {stat.unit && (
-                      <span className="ml-1 text-sm text-gray-500 dark:text-gray-400">
-                        {stat.unit}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className={`p-3 rounded-lg bg-gradient-to-r ${getStatColor(stat.color)}`}>
-                  <stat.icon className="w-6 h-6 text-white" />
-                </div>
-              </div>
-              <div className="flex items-center mt-4">
-                <div className={`flex items-center text-sm ${
-                  stat.changeType === 'positive' ? 'text-green-600' : 'text-red-600'
-                }`}>
-                  {stat.changeType === 'positive' ? (
-                    <ArrowUpIcon className="w-4 h-4 mr-1" />
-                  ) : (
-                    <ArrowDownIcon className="w-4 h-4 mr-1" />
+                  {stat.unit && (
+                    <span className="ml-1 text-sm text-gray-500 dark:text-gray-400">
+                      {stat.unit}
+                    </span>
                   )}
-                  {stat.change}
                 </div>
-                <span className="text-sm text-gray-500 dark:text-gray-400 ml-2">
-                  {stat.description}
-                </span>
               </div>
-            </Card>
-          </motion.div>
+              <div className={`p-3 rounded-lg bg-gradient-to-r ${getStatColor(stat.color)}`}>
+                <stat.icon className="w-6 h-6 text-white" />
+              </div>
+            </div>
+            <div className="flex items-center mt-4">
+              <div className={`flex items-center text-sm ${
+                stat.changeType === 'positive' ? 'text-green-600' : 'text-red-600'
+              }`}>
+                {stat.changeType === 'positive' ? (
+                  <ArrowUpIcon className="w-4 h-4 mr-1" />
+                ) : (
+                  <ArrowDownIcon className="w-4 h-4 mr-1" />
+                )}
+                {stat.change}
+              </div>
+              <span className="text-sm text-gray-500 dark:text-gray-400 ml-2">
+                {stat.description}
+              </span>
+            </div>
+          </Card>
         ))}
       </div>
 
@@ -281,16 +277,13 @@ export default function AdminDashboardPage() {
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {quickActions.map((action, index) => (
-                <motion.div
+              {quickActions.map((action) => (
+                <Card
                   key={action.title}
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.2, delay: index * 0.1 }}
+                  className={`block p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-200 hover:shadow-md ${action.bgColor} dark:bg-gray-800`}
                 >
                   <Link
                     to={action.href}
-                    className={`block p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-200 hover:shadow-md ${action.bgColor} dark:bg-gray-800`}
                   >
                     <div className="flex items-start space-x-3">
                       <div className={`p-2 rounded-lg bg-gradient-to-r ${action.color}`}>
@@ -306,7 +299,7 @@ export default function AdminDashboardPage() {
                       </div>
                     </div>
                   </Link>
-                </motion.div>
+                </Card>
               ))}
             </div>
           </Card>
@@ -322,7 +315,7 @@ export default function AdminDashboardPage() {
               <Dropdown
                 arrowIcon={false}
                 inline
-                label={<Button color="gray" size="xs">Last 7 days</Button>}
+                label={<span className="px-2 py-1 rounded bg-gray-100 text-gray-700 text-xs cursor-pointer">Last 7 days</span>}
               >
                 <Dropdown.Item onClick={() => setTimeRange('24h')}>Last 24 hours</Dropdown.Item>
                 <Dropdown.Item onClick={() => setTimeRange('7d')}>Last 7 days</Dropdown.Item>
@@ -430,7 +423,7 @@ export default function AdminDashboardPage() {
                       <Button color="gray" size="xs">
                         <EyeIcon className="w-4 h-4" />
                       </Button>
-                      <Dropdown arrowIcon={false} inline label={<Button color="gray" size="xs">•••</Button>}>
+                      <Dropdown arrowIcon={false} inline label={<span className="px-2 py-1 rounded bg-gray-100 text-gray-700 text-xs cursor-pointer">•••</span>}>
                         <Dropdown.Item>Edit</Dropdown.Item>
                         <Dropdown.Item>Contact Customer</Dropdown.Item>
                         <Dropdown.Item>Cancel Booking</Dropdown.Item>
@@ -458,12 +451,9 @@ export default function AdminDashboardPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {calculatorStats.map((calc, index) => (
-            <motion.div
+          {calculatorStats.map((calc) => (
+            <Card
               key={calc.name}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: index * 0.1 }}
               className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:shadow-md transition-shadow"
             >
               <div className="flex items-center justify-between mb-3">
@@ -495,8 +485,59 @@ export default function AdminDashboardPage() {
                   <Button color="gray" size="xs">View</Button>
                 </div>
               </div>
-            </motion.div>
+            </Card>
           ))}
+        </div>
+      </Card>
+
+      {/* Configured Services */}
+      <Card>
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Configured Services</h2>
+            <p className="text-gray-500 dark:text-gray-400">Your available cleaning services</p>
+          </div>
+          <Button as={Link} to={`/admin/${companyId}/services/new`} color="blue" size="sm">
+            <WrenchScrewdriverIcon className="w-4 h-4 mr-2" />
+            New Service
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Example services - replace with actual data fetching */}
+          <Card className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-gray-900 dark:text-white">Standard Cleaning</h3>
+              <Badge color="success" size="sm">Published</Badge>
+            </div>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Basic cleaning of floors, surfaces, and bathrooms.</p>
+            <div className="flex items-center justify-between mt-4">
+              <span className="text-sm text-green-600 font-medium">+10% this month</span>
+              <Button color="gray" size="xs">Edit</Button>
+            </div>
+          </Card>
+          <Card className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-gray-900 dark:text-white">Deep Cleaning</h3>
+              <Badge color="warning" size="sm">Draft</Badge>
+            </div>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Comprehensive cleaning of all surfaces, including hard-to-reach areas.</p>
+            <div className="flex items-center justify-between mt-4">
+              <span className="text-sm text-green-600 font-medium">+5% this month</span>
+              <Button color="gray" size="xs">Edit</Button>
+            </div>
+          </Card>
+          <Card className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-gray-900 dark:text-white">Window Cleaning</h3>
+              <Badge color="success" size="sm">Published</Badge>
+            </div>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Cleaning of windows, sills, and frames.</p>
+            <div className="flex items-center justify-between mt-4">
+              <span className="text-sm text-green-600 font-medium">+15% this month</span>
+              <Button color="gray" size="xs">Edit</Button>
+            </div>
+          </Card>
         </div>
       </Card>
 

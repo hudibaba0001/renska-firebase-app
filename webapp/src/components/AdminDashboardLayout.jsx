@@ -314,10 +314,8 @@ export default function AdminDashboardLayout() {
                   arrowIcon={false}
                   inline
                   label={
-                    <Button
-                      color="gray"
-                      size="sm"
-                      className="relative p-2 text-gray-500 rounded-lg hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-700"
+                    <span
+                      className="relative p-2 text-gray-500 rounded-lg hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-700 cursor-pointer flex items-center"
                     >
                       <BellIcon className="w-5 h-5" />
                       {unreadCount > 0 && (
@@ -325,7 +323,7 @@ export default function AdminDashboardLayout() {
                           {unreadCount}
                         </div>
                       )}
-                    </Button>
+                    </span>
                   }
                 >
                   <Dropdown.Header>
