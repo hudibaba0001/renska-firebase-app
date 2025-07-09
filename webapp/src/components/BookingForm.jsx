@@ -24,6 +24,7 @@ export default function BookingForm({ config = {}, companyId }) {
   const [submitMessage, setSubmitMessage] = useState('');
   const [currentStep, setCurrentStep] = useState(1);
   const [gdprConsent, setGdprConsent] = useState(false);
+  const [gdprError, setGdprError] = useState('');
 
   // Price calculation logic remains the same.
   const currentService = availableServices.find(s => s.id === selectedService) || availableServices[0];
@@ -39,45 +40,41 @@ export default function BookingForm({ config = {}, companyId }) {
    */
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (currentStep === 3 && !gdprConsent) {
-      toast.error('You must consent to GDPR to complete your booking.');
-      return;
-    }
-    
     setIsSubmitting(true);
     setSubmitMessage('');
 
+    if (currentStep === 3 && !gdprConsent) {
+      setGdprError('You must consent to the processing of your personal data (GDPR) to complete your booking.');
+      setIsSubmitting(false);
+      return;
+    }
+    setGdprError('');
+
     try {
-      // 1. Prepare the booking data object.
       const bookingData = {
         serviceId: selectedService,
-        serviceName: currentService?.name,
         sqm,
-        // frequency,
-        // addOns: selectedAddOns,
-        // windowSize,
-        // zip,
-        // useRut,
-        totalPrice: totalPrice,
+        frequency,
+        addOns: selectedAddOns,
+        windowSize,
+        zip,
+        useRut,
+        totalPrice,
         customerInfo,
-        status: 'pending' // The service layer will set the timestamp.
+        companyId: config.slug || 'unknown',
       };
 
-      // 2. Call the service function, passing the companyId and booking data.
-      // This is the core of the refactoring.
-      await createBooking(companyId, bookingData);
-      
-      toast.success('Booking submitted successfully! We will be in touch shortly.');
-      setSubmitMessage('Booking submitted!');
-      
-      // 3. Reset the form for the next booking.
-      setCurrentStep(1);
+      // Use the new service layer function
+      await createBooking(config.id || config.companyId, bookingData);
+      setSubmitMessage('Booking submitted successfully!');
+      toast.success('Booking submitted successfully!');
+      // Reset form
       setCustomerInfo({ name: '', email: '', phone: '' });
-      setGdprConsent(false);
-
+      setCurrentStep(1);
     } catch (error) {
-      console.error('Booking submission error:', error);
-      toast.error(error.message || 'Failed to submit booking. Please try again.');
+      console.error('❌ Booking submission error:', error);
+      setSubmitMessage('Failed to submit booking. Please try again.');
+      toast.error('Failed to submit booking');
     } finally {
       setIsSubmitting(false);
     }
@@ -166,6 +163,7 @@ export default function BookingForm({ config = {}, companyId }) {
         </motion.div>
         
         {submitMessage && <Alert color={submitMessage.includes('success') ? 'success' : 'failure'}>{submitMessage}</Alert>}
+        {gdprError && <Alert color="failure">{gdprError}</Alert>}
       </form>
     </div>
   );
