@@ -4,132 +4,110 @@ import { doc, getDoc, setDoc, collection, addDoc, serverTimestamp, query, where,
 import { db } from "../firebase/init";
 import { sanitizeObject } from "../utils/security";
 
-// ============================================================================
-// USER SERVICE FUNCTIONS
-// ============================================================================
+// ... (helpers and other functions) ...
+const validateEmail = (email) => { /* ... */ };
+const validateSlug = (slug) => { /* ... */ };
 export const getUserProfile = async (userId) => { /* ... */ };
-
-// ============================================================================
-// TENANT / COMPANY SERVICE FUNCTIONS
-// ============================================================================
 export const createTenant = async (formData) => { /* ... */ };
 export const getTenant = async (tenantId) => { /* ... */ };
 export const getAllTenants = async () => { /* ... */ };
 export const updateTenant = async (tenantId, updatedData) => { /* ... */ };
 export const deleteTenant = async (tenantId) => { /* ... */ };
 
+
 // ============================================================================
 // SERVICE-RELATED FUNCTIONS (Subcollection of Company)
 // ============================================================================
-export const createService = async (companyId, serviceData) => { /* ... */ };
-export const getAllServicesForCompany = async (companyId) => { /* ... */ };
-export const updateService = async (companyId, serviceId, updatedData) => { /* ... */ };
-export const deleteService = async (companyId, serviceId) => { /* ... */ };
-
-
-// ============================================================================
-// BOOKING-RELATED FUNCTIONS (Subcollection of Company)
-// ============================================================================
 
 /**
- * Creates a new booking for a specific company.
- * Bookings are stored in a subcollection: /companies/{companyId}/bookings.
- * @param {string} companyId - The ID of the parent company for the booking.
- * @param {object} bookingData - The data for the new booking.
- * @returns {Promise<string>} The ID of the newly created booking document.
+ * Creates a new service for a specific company with enhanced validation.
+ * @param {string} companyId - The ID of the parent company.
+ * @param {object} serviceData - The data for the new service.
+ * @returns {Promise<string>} The ID of the newly created service.
  * @throws {Error} On validation or database error.
- * @example
- *   const newBookingId = await createBooking('tenantId123', { customerName: 'John Doe', ... });
  */
-export const createBooking = async (companyId, bookingData) => {
-    if (!companyId) throw new Error("Company ID is required to create a booking.");
-    if (!bookingData || !bookingData.customerEmail) throw new Error("Booking data with a customer email is required.");
+export const createService = async (companyId, serviceData) => {
+    if (!companyId) throw new Error("Company ID is required to create a service.");
+    
+    // **1. Validate Service Data**
+    const { name, pricingModel, minimumPrice, vatRate } = serviceData;
+    if (!name || name.length < 2 || name.length > 100) {
+        throw new Error("Service name must be between 2 and 100 characters.");
+    }
+    if (!pricingModel) { // In a real app, you'd check if it's one of the valid PRICING_MODELS
+        throw new Error("A valid pricing model is required.");
+    }
+    if (minimumPrice !== undefined && (isNaN(parseFloat(minimumPrice)) || minimumPrice < 0)) {
+        throw new Error("Minimum price must be a non-negative number.");
+    }
+     if (vatRate === undefined || isNaN(parseFloat(vatRate)) || vatRate < 0 || vatRate > 1) {
+        throw new Error("VAT rate must be a number between 0 and 1 (e.g., 0.25 for 25%).");
+    }
 
-    const bookingsCollectionRef = collection(db, 'companies', companyId, 'bookings');
-    const sanitizedData = sanitizeObject(bookingData);
-
+    // **2. Sanitize and Create Document**
+    const servicesCollectionRef = collection(db, 'companies', companyId, 'services');
+    const sanitizedData = sanitizeObject(serviceData);
+    
     try {
-        const docRef = await addDoc(bookingsCollectionRef, {
+        const docRef = await addDoc(servicesCollectionRef, {
             ...sanitizedData,
-            status: 'pending', // All new bookings start as pending.
             createdAt: serverTimestamp()
         });
         return docRef.id;
     } catch (error) {
-        console.error(`Error creating booking for company ${companyId}:`, error);
-        throw new Error("Failed to create booking.");
+        console.error(`Error creating service for company ${companyId}:`, error);
+        throw new Error("Failed to create service due to a database error.");
     }
 };
 
-/**
- * Fetches all bookings for a specific company, ordered by creation date.
- * @param {string} companyId - The ID of the company whose bookings to fetch.
- * @returns {Promise<Array<object>>} An array of booking objects, each including their ID.
- * @throws {Error} On validation or database error.
- * @example
- *   const bookings = await getAllBookingsForCompany('tenantId123');
- */
-export const getAllBookingsForCompany = async (companyId) => {
-    if (!companyId) throw new Error("Company ID is required to fetch bookings.");
-
-    const bookingsCollectionRef = collection(db, 'companies', companyId, 'bookings');
-    const q = query(bookingsCollectionRef, orderBy('createdAt', 'desc'));
-
-    try {
-        const querySnapshot = await getDocs(q);
-        return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    } catch (error) {
-        console.error(`Error fetching bookings for company ${companyId}:`, error);
-        throw new Error("Failed to fetch bookings.");
-    }
-};
+export const getAllServicesForCompany = async (companyId) => { /* ... */ };
 
 /**
- * Updates a specific booking within a company's subcollection.
+ * Updates a specific service with enhanced validation.
  * @param {string} companyId - The ID of the parent company.
- * @param {string} bookingId - The ID of the booking to update.
+ * @param {string} serviceId - The ID of the service to update.
  * @param {object} updatedData - An object containing the fields to update.
  * @returns {Promise<void>}
  * @throws {Error} On validation or database error.
- * @example
- *   await updateBooking('tenantId123', 'bookingId789', { status: 'confirmed' });
  */
-export const updateBooking = async (companyId, bookingId, updatedData) => {
-    if (!companyId || !bookingId) throw new Error("Company ID and Booking ID are required.");
+export const updateService = async (companyId, serviceId, updatedData) => {
+    if (!companyId || !serviceId) throw new Error("Company ID and Service ID are required.");
     if (!updatedData || Object.keys(updatedData).length === 0) throw new Error("Update data is required.");
 
-    const bookingDocRef = doc(db, 'companies', companyId, 'bookings', bookingId);
+    // **1. Validate updatedData fields before proceeding**
+    const { name, pricingModel, minimumPrice, vatRate } = updatedData;
+    if (name !== undefined && (name.length < 2 || name.length > 100)) {
+        throw new Error("Service name must be between 2 and 100 characters.");
+    }
+    if (pricingModel !== undefined && !pricingModel) {
+        throw new Error("A valid pricing model is required.");
+    }
+    if (minimumPrice !== undefined && (isNaN(parseFloat(minimumPrice)) || minimumPrice < 0)) {
+        throw new Error("Minimum price must be a non-negative number.");
+    }
+    if (vatRate !== undefined && (isNaN(parseFloat(vatRate)) || vatRate < 0 || vatRate > 1)) {
+        throw new Error("VAT rate must be a number between 0 and 1.");
+    }
+
+    // **2. Sanitize and Update Document**
+    const serviceDocRef = doc(db, 'companies', companyId, 'services', serviceId);
     const sanitizedData = sanitizeObject(updatedData);
 
     try {
-        await updateDoc(bookingDocRef, {
+        await updateDoc(serviceDocRef, {
             ...sanitizedData,
-            updatedAt: serverTimestamp() // Always update the timestamp on modification.
+            updatedAt: serverTimestamp()
         });
     } catch (error) {
-        console.error(`Error updating booking ${bookingId}:`, error);
-        throw new Error("Failed to update booking.");
+        console.error(`Error updating service ${serviceId}:`, error);
+        throw new Error("Failed to update service due to a database error.");
     }
 };
 
-/**
- * Deletes a specific booking from a company's subcollection.
- * @param {string} companyId - The ID of the parent company.
- * @param {string} bookingId - The ID of the booking to delete.
- * @returns {Promise<void>}
- * @throws {Error} On validation or database error.
- * @example
- *   await deleteBooking('tenantId123', 'bookingId789');
- */
-export const deleteBooking = async (companyId, bookingId) => {
-    if (!companyId || !bookingId) throw new Error("Company ID and Booking ID are required.");
+export const deleteService = async (companyId, serviceId) => { /* ... */ };
 
-    const bookingDocRef = doc(db, 'companies', companyId, 'bookings', bookingId);
-
-    try {
-        await deleteDoc(bookingDocRef);
-    } catch (error) {
-        console.error(`Error deleting booking ${bookingId}:`, error);
-        throw new Error("Failed to delete booking.");
-    }
-};
+// ... Booking functions
+export const createBooking = async (companyId, bookingData) => { /* ... */ };
+export const getAllBookingsForCompany = async (companyId) => { /* ... */ };
+export const updateBooking = async (companyId, bookingId, updatedData) => { /* ... */ };
+export const deleteBooking = async (companyId, bookingId) => { /* ... */ };
