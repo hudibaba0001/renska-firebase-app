@@ -1,357 +1,184 @@
-import React, { useState } from 'react';
-import ServicePricingEditor from './ServicePricingEditor';
-
-const PRICING_MODELS = [
-  {
-    id: 'per_sqm_tiered',
-    name: 'Per-m² Tiered',
-    description: 'Different prices for different area ranges (e.g. 0-50m² = 1000kr, 51-100m² = 1500kr)',
-    icon: '📊'
-  },
-  {
-    id: 'flat_range',
-    name: 'Flat-Range',
-    description: 'Fixed price for entire area ranges',
-    icon: '📏'
-  },
-  {
-    id: 'hourly_by_size',
-    name: 'Hourly by Size',
-    description: 'Price based on estimated hours for different home sizes',
-    icon: '⏰'
-  },
-  {
-    id: 'per_room',
-    name: 'Per-Room',
-    description: 'Price per individual room',
-    icon: '🏠'
-  },
-  {
-    id: 'window_based',
-    name: 'Window-based',
-    description: 'Price based on window sizes and quantities',
-    icon: '🪟'
-  },
-  {
-    id: 'custom_function',
-    name: 'Custom Function',
-    description: 'Advanced: Custom pricing logic',
-    icon: '⚙️'
-  }
-];
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import { db } from '../../firebase/init';
+import { doc, getDoc } from 'firebase/firestore';
+import { Card, Button, Badge, Alert, Spinner, Checkbox } from 'flowbite-react';
+import { ExclamationTriangleIcon, CogIcon } from '@heroicons/react/24/outline';
 
 export default function DefineServicesStep({ config, updateConfig, onNext, onPrev }) {
-  const [editingService, setEditingService] = useState(null);
+  const { companyId } = useParams();
+  const [availableServices, setAvailableServices] = useState([]);
+  const [servicesLoading, setServicesLoading] = useState(true);
+  const [servicesError, setServicesError] = useState('');
 
-  const addService = () => {
-    const newService = {
-      id: Date.now().toString(),
-      name: '',
-      key: '',
-      description: '',
-      pricingModel: 'per_sqm_tiered',
-      pricingConfig: {},
-      enabled: true
-    };
-    
-    updateConfig({
-      services: [...(config.services || []), newService]
-    });
-    
-    setEditingService(newService.id);
-  };
-
-  const updateService = (serviceId, updates) => {
-    const updatedServices = config.services.map(service =>
-      service.id === serviceId ? { ...service, ...updates } : service
-    );
-    updateConfig({ services: updatedServices });
-  };
-
-  const deleteService = (serviceId) => {
-    const updatedServices = config.services.filter(service => service.id !== serviceId);
-    updateConfig({ services: updatedServices });
-    
-    if (editingService === serviceId) {
-      setEditingService(null);
+  // Fetch configured services from company configuration
+  useEffect(() => {
+    async function fetchCompanyServices() {
+      if (!companyId) return;
+      
+      setServicesLoading(true);
+      setServicesError('');
+      try {
+        const companyRef = doc(db, 'companies', companyId);
+        const companySnap = await getDoc(companyRef);
+        
+        if (companySnap.exists()) {
+          const companyData = companySnap.data();
+          const services = companyData.services || [];
+          setAvailableServices(services);
+          
+          // If no services selected yet, pre-select all available enabled services
+          if (!config.services || config.services.length === 0) {
+            const enabledServices = services
+              .filter(service => service.enabled !== false)
+              .map(service => service.id);
+            updateConfig({ selectedServices: enabledServices });
+          }
+        } else {
+          setAvailableServices([]);
+        }
+      } catch (error) {
+        console.error('Error fetching company services:', error);
+        setServicesError('Failed to load company services');
+      } finally {
+        setServicesLoading(false);
+      }
     }
-  };
+    
+    fetchCompanyServices();
+  }, [companyId]);
 
-  const duplicateService = (serviceId) => {
-    const originalService = config.services.find(s => s.id === serviceId);
-    if (originalService) {
-      const duplicatedService = {
-        ...originalService,
-        id: Date.now().toString(),
-        name: `${originalService.name} (Copy)`,
-        key: `${originalService.key}_copy`
-      };
-      updateConfig({
-        services: [...config.services, duplicatedService]
-      });
-    }
-  };
-
-  const generateServiceKey = (name) => {
-    return name
-      .toLowerCase()
-      .replace(/[åäà]/g, 'a')
-      .replace(/[öø]/g, 'o')
-      .replace(/[éê]/g, 'e')
-      .replace(/[^a-z0-9\s]/g, '')
-      .replace(/\s+/g, '_');
-  };
-
-  const handleServiceNameChange = (serviceId, name) => {
-    const service = config.services.find(s => s.id === serviceId);
-    updateService(serviceId, {
-      name,
-      key: service?.key || generateServiceKey(name)
-    });
+  const toggleServiceSelection = (serviceId) => {
+    const currentSelected = config.selectedServices || [];
+    const newSelected = currentSelected.includes(serviceId)
+      ? currentSelected.filter(id => id !== serviceId)
+      : [...currentSelected, serviceId];
+    
+    updateConfig({ selectedServices: newSelected });
   };
 
   const canProceed = () => {
-    return config.services && config.services.length > 0 && 
-           config.services.every(service => service.name.trim() && service.key.trim());
+    return config.selectedServices && config.selectedServices.length > 0;
   };
 
   return (
     <div className="max-w-6xl mx-auto">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Services List */}
-        <div className="lg:col-span-1">
-          <div className="bg-white shadow rounded-lg p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold">Services</h2>
-              <button
-                onClick={addService}
-                className="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700"
-              >
-                + Add Service
-              </button>
-            </div>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Select Services for Your Calculator</h2>
+          <p className="text-gray-600">Choose which services from your company configuration to include in this booking calculator.</p>
+        </div>
 
-            <div className="space-y-3">
-              {(config.services || []).map((service) => (
-                <div
-                  key={service.id}
-                  className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                    editingService === service.id
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                  onClick={() => setEditingService(service.id)}
+        {servicesLoading ? (
+          <div className="flex justify-center py-12">
+            <Spinner size="lg" />
+          </div>
+        ) : servicesError ? (
+          <Alert color="failure">
+            <ExclamationTriangleIcon className="h-4 w-4" />
+            <span className="ml-2">{servicesError}</span>
+          </Alert>
+        ) : availableServices.length === 0 ? (
+          <Alert color="warning">
+            <ExclamationTriangleIcon className="h-4 w-4" />
+            <div className="ml-2">
+              <span className="font-medium">No services configured yet.</span>
+              <p className="mt-1">You need to configure your company services first before creating a calculator.</p>
+              <div className="mt-3">
+                <Button 
+                  as="a" 
+                  href={`/admin/${companyId}/config`}
+                  color="blue"
+                  size="sm"
                 >
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <h3 className="font-medium text-gray-900">
-                        {service.name || 'Unnamed Service'}
-                      </h3>
-                      <p className="text-sm text-gray-500 mt-1">
-                        {PRICING_MODELS.find(m => m.id === service.pricingModel)?.name || 'No pricing model'}
-                      </p>
+                  <CogIcon className="h-4 w-4 mr-1" />
+                  Configure Services
+                </Button>
+              </div>
+            </div>
+          </Alert>
+        ) : (
+          <Card>
+            <div className="p-6">
+              <h3 className="text-lg font-semibold mb-4">Available Services</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {availableServices.map((service) => {
+                  const isSelected = config.selectedServices?.includes(service.id) || false;
+                  return (
+                    <div
+                      key={service.id}
+                      className={`border rounded-lg p-4 cursor-pointer transition-all ${
+                        isSelected
+                          ? 'border-blue-500 bg-blue-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                      onClick={() => toggleServiceSelection(service.id)}
+                    >
+                      <div className="flex items-start space-x-3">
+                        <Checkbox
+                          checked={isSelected}
+                          onChange={() => toggleServiceSelection(service.id)}
+                          className="mt-1"
+                        />
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between mb-2">
+                            <h4 className="font-medium text-gray-900">{service.name || 'Unnamed Service'}</h4>
+                            <Badge color={service.enabled !== false ? "success" : "gray"} size="sm">
+                              {service.enabled !== false ? "Active" : "Disabled"}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-gray-500 mb-2">{service.description || 'No description'}</p>
+                          <div className="text-sm text-gray-600 space-y-1">
+                            <div className="flex justify-between">
+                              <span>Base Price:</span>
+                              <span className="font-medium">{service.basePrice || 0} DKK</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Pricing Model:</span>
+                              <span className="capitalize">{service.pricingModel?.replace('_', ' ') || 'fixed'}</span>
+                            </div>
+                            {service.pricingModel === 'per_sqm' && service.pricePerSqm && (
+                              <div className="flex justify-between">
+                                <span>Per SQM:</span>
+                                <span className="font-medium">{service.pricePerSqm} DKK</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          duplicateService(service.id);
-                        }}
-                        className="text-gray-400 hover:text-gray-600"
-                        title="Duplicate"
-                      >
-                        📄
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deleteService(service.id);
-                        }}
-                        className="text-red-400 hover:text-red-600"
-                        title="Delete"
-                      >
-                        🗑️
-                      </button>
-                    </div>
-                  </div>
-                  
-                  {!service.enabled && (
-                    <span className="inline-block mt-2 px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded">
-                      Disabled
-                    </span>
-                  )}
-                </div>
-              ))}
-
-              {(!config.services || config.services.length === 0) && (
-                <div className="text-center py-8 text-gray-500">
-                  <p>No services added yet.</p>
-                  <p className="text-sm">Click "Add Service" to get started.</p>
+                  );
+                })}
+              </div>
+              
+              {config.selectedServices && config.selectedServices.length > 0 && (
+                <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <p className="text-sm text-green-800">
+                    <strong>{config.selectedServices.length}</strong> service(s) selected for this calculator.
+                  </p>
                 </div>
               )}
             </div>
-          </div>
-        </div>
-
-        {/* Service Editor */}
-        <div className="lg:col-span-2">
-          {editingService ? (
-            <ServiceEditor
-              service={config.services.find(s => s.id === editingService)}
-              onUpdate={(updates) => updateService(editingService, updates)}
-              onNameChange={(name) => handleServiceNameChange(editingService, name)}
-              pricingModels={PRICING_MODELS}
-            />
-          ) : (
-            <div className="bg-white shadow rounded-lg p-6">
-              <div className="text-center py-12">
-                <div className="text-6xl mb-4">⚙️</div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  Select a service to configure
-                </h3>
-                <p className="text-gray-500">
-                  Choose a service from the list on the left to set up its pricing model and configuration.
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Navigation */}
-      <div className="flex justify-between mt-8">
-        <button
-          onClick={onPrev}
-          className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
-        >
-          ← Previous
-        </button>
-        
-        <button
-          onClick={onNext}
-          disabled={!canProceed()}
-          className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          Continue to Global Options →
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// Service Editor Component
-function ServiceEditor({ service, onUpdate, onNameChange, pricingModels }) {
-  if (!service) return null;
-
-  return (
-    <div className="bg-white shadow rounded-lg p-6">
-      <h3 className="text-lg font-semibold mb-6">Configure Service</h3>
-      
-      <div className="space-y-6">
-        {/* Basic Info */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Service Name *
-            </label>
-            <input
-              type="text"
-              value={service.name || ''}
-              onChange={(e) => onNameChange(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="e.g. Hemstädning"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Service Key *
-            </label>
-            <input
-              type="text"
-              value={service.key || ''}
-              onChange={(e) => onUpdate({ key: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="hemstadning"
-            />
-            <p className="text-gray-500 text-xs mt-1">Used for internal identification</p>
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Description
-          </label>
-          <textarea
-            value={service.description || ''}
-            onChange={(e) => onUpdate({ description: e.target.value })}
-            rows={2}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Brief description shown to customers"
-          />
-        </div>
-
-        {/* Pricing Model Selection */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-3">
-            Pricing Model
-          </label>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {pricingModels.map((model) => (
-              <label
-                key={model.id}
-                className={`flex items-start p-4 border rounded-lg cursor-pointer transition-colors ${
-                  service.pricingModel === model.id
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="pricingModel"
-                  value={model.id}
-                  checked={service.pricingModel === model.id}
-                  onChange={(e) => onUpdate({ pricingModel: e.target.value, pricingConfig: {} })}
-                  className="sr-only"
-                />
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-lg">{model.icon}</span>
-                    <span className="font-medium">{model.name}</span>
-                  </div>
-                  <p className="text-sm text-gray-600">{model.description}</p>
-                </div>
-              </label>
-            ))}
-          </div>
-        </div>
-
-        {/* Pricing Configuration */}
-        {service.pricingModel && (
-          <ServicePricingEditor
-            pricingModel={service.pricingModel}
-            config={service.pricingConfig || {}}
-            onUpdate={(pricingConfig) => onUpdate({ pricingConfig })}
-          />
+          </Card>
         )}
 
-        {/* Service Status */}
-        <div>
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={service.enabled !== false}
-              onChange={(e) => onUpdate({ enabled: e.target.checked })}
-              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-            />
-            <span className="text-sm font-medium text-gray-700">
-              Service enabled
-            </span>
-          </label>
-          <p className="text-gray-500 text-xs mt-1">
-            Disabled services won't appear in the customer form
-          </p>
+        {/* Navigation */}
+        <div className="flex justify-between mt-8">
+          <Button
+            color="gray"
+            onClick={onPrev}
+          >
+            ← Previous
+          </Button>
+          
+          <Button
+            color="blue"
+            onClick={onNext}
+            disabled={!canProceed()}
+          >
+            Continue to Global Options →
+          </Button>
         </div>
       </div>
     </div>
