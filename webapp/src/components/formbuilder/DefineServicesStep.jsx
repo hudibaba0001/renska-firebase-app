@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { db } from '../../firebase/init';
-import { doc, getDoc } from 'firebase/firestore';
+import { getAllServicesForCompany } from '../../services/firestore';
 import { Card, Button, Badge, Alert, Spinner, Checkbox } from 'flowbite-react';
 import { ExclamationTriangleIcon, CogIcon } from '@heroicons/react/24/outline';
 
@@ -15,18 +14,12 @@ export default function DefineServicesStep({ config, updateConfig, onNext, onPre
   useEffect(() => {
     async function fetchCompanyServices() {
       if (!companyId) return;
-      
       setServicesLoading(true);
       setServicesError('');
       try {
-        const companyRef = doc(db, 'companies', companyId);
-        // TODO: Replace direct Firestore call with Gemini's getCompanyServices(companyId) service function
-        // const companySnap = await getDoc(companyRef);
-        // setAvailableServices(services);
-        // ---
-        // Example stub usage:
-        // const services = await getCompanyServices(companyId);
-        // setAvailableServices(services);
+        // Use the new service layer function
+        const services = await getAllServicesForCompany(companyId);
+        setAvailableServices(services);
       } catch (error) {
         console.error('Error fetching company services:', error);
         setServicesError('Failed to load company services');
@@ -34,7 +27,6 @@ export default function DefineServicesStep({ config, updateConfig, onNext, onPre
         setServicesLoading(false);
       }
     }
-    
     fetchCompanyServices();
   }, [companyId]);
 

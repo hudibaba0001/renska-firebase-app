@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 // Import the tenant service functions, which will handle fetching and updating the company config.
-import { getTenant, updateTenant } from '../services/firestore';
+import { getAllServicesForCompany, createService, updateService, deleteService } from '../services/firestore';
 import ServiceConfigForm from '../components/ServiceConfigForm';
 import LivePreview from '../components/LivePreview';
 import ErrorBoundary from '../components/ErrorBoundary';
@@ -19,40 +19,22 @@ export default function CompanyConfigPage({ companyId: propCompanyId }) {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    /**
-     * Fetches the company's configuration using the centralized `getTenant` service.
-     */
     async function fetchConfig() {
+      if (!companyId) return;
       setLoading(true);
       setError('');
       try {
-        // Use the service layer to get the tenant/company data.
-        const configData = await getTenant(companyId);
-        
-        if (configData) {
-          setConfig(configData);
-          setPreviewConfig(configData);
-        } else {
-          // If a company document doesn't exist, we can't configure it.
-          // This is a safeguard. In a real app, a company should always exist at this point.
-          setError('Could not find company configuration.');
-          toast.error('Company not found. Cannot load configuration.');
-        }
+        // Use the new service layer function
+        const config = await getAllServicesForCompany(companyId);
+        setConfig(config);
       } catch (error) {
-        console.error('Error loading config:', error);
-        setError('Failed to load configuration.');
-        toast.error(error.message);
+        console.error('Error fetching company config:', error);
+        setError('Failed to load company configuration');
       } finally {
         setLoading(false);
       }
     }
-
-    if (companyId) {
-        fetchConfig();
-    } else {
-        setError("No company ID provided.");
-        setLoading(false);
-    }
+    fetchConfig();
   }, [companyId]);
 
   /**
