@@ -13,101 +13,97 @@ export const getTenant = async (tenantId) => { /* ... */ };
 export const getAllTenants = async () => { /* ... */ };
 export const updateTenant = async (tenantId, updatedData) => { /* ... */ };
 export const deleteTenant = async (tenantId) => { /* ... */ };
+export const createService = async (companyId, serviceData) => { /* ... */ };
+export const getAllServicesForCompany = async (companyId) => { /* ... */ };
+export const updateService = async (companyId, serviceId, updatedData) => { /* ... */ };
+export const deleteService = async (companyId, serviceId) => { /* ... */ };
 
 
 // ============================================================================
-// SERVICE-RELATED FUNCTIONS (Subcollection of Company)
+// BOOKING-RELATED FUNCTIONS (Subcollection of Company)
 // ============================================================================
 
 /**
- * Creates a new service for a specific company with enhanced validation.
+ * Creates a new booking with enhanced validation.
  * @param {string} companyId - The ID of the parent company.
- * @param {object} serviceData - The data for the new service.
- * @returns {Promise<string>} The ID of the newly created service.
+ * @param {object} bookingData - The data for the new booking.
+ * @returns {Promise<string>} The ID of the new booking.
  * @throws {Error} On validation or database error.
  */
-export const createService = async (companyId, serviceData) => {
-    if (!companyId) throw new Error("Company ID is required to create a service.");
+export const createBooking = async (companyId, bookingData) => {
+    if (!companyId) throw new Error("Company ID is required to create a booking.");
     
-    // **1. Validate Service Data**
-    const { name, pricingModel, minimumPrice, vatRate } = serviceData;
-    if (!name || name.length < 2 || name.length > 100) {
-        throw new Error("Service name must be between 2 and 100 characters.");
+    // **1. Validate Booking Data**
+    const { customerInfo, serviceId, totalPrice, status } = bookingData;
+    if (!customerInfo || !customerInfo.name || !validateEmail(customerInfo.email)) {
+        throw new Error("Valid customer name and email are required.");
     }
-    if (!pricingModel) { // In a real app, you'd check if it's one of the valid PRICING_MODELS
-        throw new Error("A valid pricing model is required.");
+    if (!serviceId) {
+        throw new Error("A service must be selected for the booking.");
     }
-    if (minimumPrice !== undefined && (isNaN(parseFloat(minimumPrice)) || minimumPrice < 0)) {
-        throw new Error("Minimum price must be a non-negative number.");
+    if (totalPrice === undefined || isNaN(parseFloat(totalPrice)) || totalPrice < 0) {
+        throw new Error("Total price must be a non-negative number.");
     }
-     if (vatRate === undefined || isNaN(parseFloat(vatRate)) || vatRate < 0 || vatRate > 1) {
-        throw new Error("VAT rate must be a number between 0 and 1 (e.g., 0.25 for 25%).");
+    if (status && !['pending', 'confirmed', 'completed', 'cancelled'].includes(status)) {
+        throw new Error("Invalid booking status provided.");
     }
 
     // **2. Sanitize and Create Document**
-    const servicesCollectionRef = collection(db, 'companies', companyId, 'services');
-    const sanitizedData = sanitizeObject(serviceData);
-    
+    const bookingsCollectionRef = collection(db, 'companies', companyId, 'bookings');
+    const sanitizedData = sanitizeObject(bookingData);
+
     try {
-        const docRef = await addDoc(servicesCollectionRef, {
+        const docRef = await addDoc(bookingsCollectionRef, {
             ...sanitizedData,
+            status: status || 'pending', // Default to pending if not provided
             createdAt: serverTimestamp()
         });
         return docRef.id;
     } catch (error) {
-        console.error(`Error creating service for company ${companyId}:`, error);
-        throw new Error("Failed to create service due to a database error.");
+        console.error(`Error creating booking for company ${companyId}:`, error);
+        throw new Error("Failed to create booking due to a database error.");
     }
 };
 
-export const getAllServicesForCompany = async (companyId) => { /* ... */ };
+export const getAllBookingsForCompany = async (companyId) => { /* ... */ };
 
 /**
- * Updates a specific service with enhanced validation.
+ * Updates a specific booking with enhanced validation.
  * @param {string} companyId - The ID of the parent company.
- * @param {string} serviceId - The ID of the service to update.
+ * @param {string} bookingId - The ID of the booking to update.
  * @param {object} updatedData - An object containing the fields to update.
  * @returns {Promise<void>}
  * @throws {Error} On validation or database error.
  */
-export const updateService = async (companyId, serviceId, updatedData) => {
-    if (!companyId || !serviceId) throw new Error("Company ID and Service ID are required.");
+export const updateBooking = async (companyId, bookingId, updatedData) => {
+    if (!companyId || !bookingId) throw new Error("Company ID and Booking ID are required.");
     if (!updatedData || Object.keys(updatedData).length === 0) throw new Error("Update data is required.");
 
     // **1. Validate updatedData fields before proceeding**
-    const { name, pricingModel, minimumPrice, vatRate } = updatedData;
-    if (name !== undefined && (name.length < 2 || name.length > 100)) {
-        throw new Error("Service name must be between 2 and 100 characters.");
+    const { customerInfo, totalPrice, status } = updatedData;
+    if (customerInfo && (customerInfo.name === '' || (customerInfo.email && !validateEmail(customerInfo.email)))) {
+         throw new Error("Valid customer name and email are required if customer info is being updated.");
     }
-    if (pricingModel !== undefined && !pricingModel) {
-        throw new Error("A valid pricing model is required.");
+    if (totalPrice !== undefined && (isNaN(parseFloat(totalPrice)) || totalPrice < 0)) {
+        throw new Error("Total price must be a non-negative number.");
     }
-    if (minimumPrice !== undefined && (isNaN(parseFloat(minimumPrice)) || minimumPrice < 0)) {
-        throw new Error("Minimum price must be a non-negative number.");
-    }
-    if (vatRate !== undefined && (isNaN(parseFloat(vatRate)) || vatRate < 0 || vatRate > 1)) {
-        throw new Error("VAT rate must be a number between 0 and 1.");
+    if (status && !['pending', 'confirmed', 'completed', 'cancelled'].includes(status)) {
+        throw new Error("Invalid booking status provided.");
     }
 
     // **2. Sanitize and Update Document**
-    const serviceDocRef = doc(db, 'companies', companyId, 'services', serviceId);
+    const bookingDocRef = doc(db, 'companies', companyId, 'bookings', bookingId);
     const sanitizedData = sanitizeObject(updatedData);
 
     try {
-        await updateDoc(serviceDocRef, {
+        await updateDoc(bookingDocRef, {
             ...sanitizedData,
             updatedAt: serverTimestamp()
         });
     } catch (error) {
-        console.error(`Error updating service ${serviceId}:`, error);
-        throw new Error("Failed to update service due to a database error.");
+        console.error(`Error updating booking ${bookingId}:`, error);
+        throw new Error("Failed to update booking due to a database error.");
     }
 };
 
-export const deleteService = async (companyId, serviceId) => { /* ... */ };
-
-// ... Booking functions
-export const createBooking = async (companyId, bookingData) => { /* ... */ };
-export const getAllBookingsForCompany = async (companyId) => { /* ... */ };
-export const updateBooking = async (companyId, bookingId, updatedData) => { /* ... */ };
 export const deleteBooking = async (companyId, bookingId) => { /* ... */ };
