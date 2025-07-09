@@ -184,5 +184,3 @@ export default function ServiceConfigForm({ initialConfig, onChange, onSave }) {
 // NOTE: The helper components like PricingModelFields, ServiceAdvancedFields, etc.,
 // would need to be updated to call `updateServiceInState` which in turn calls `handleUpdateService`.
 // For brevity, I've shown the main refactoring. I will now stub out the updated helpers.
-function PricingModelFields({ service, updateServiceInState }) { return <div></div> }
-function ServiceAdvancedFields({ service, updateServiceInState }) { return <div></div> }
