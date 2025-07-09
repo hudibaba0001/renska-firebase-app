@@ -28,8 +28,8 @@ import {
   ExclamationTriangleIcon,
   StarIcon
 } from '@heroicons/react/24/outline'
-import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
+import { motion } from 'framer-motion';
 
 export default function BookingForm({ config = {} }) {
   console.log('🔧 BookingForm config:', config);
@@ -60,6 +60,9 @@ export default function BookingForm({ config = {} }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState('');
   const [currentStep, setCurrentStep] = useState(1);
+  // Add GDPR consent state
+  const [gdprConsent, setGdprConsent] = useState(false);
+  const [gdprError, setGdprError] = useState('');
 
   // Get current service config
   const currentService = availableServices.find(s => s.id === selectedService) || availableServices[0];
@@ -94,30 +97,40 @@ export default function BookingForm({ config = {} }) {
     
     console.log('🔧 Base price:', basePrice);
     
-    // 2. Apply frequency multiplier
+    // 2. Apply frequency multiplier ONLY to service charges
     const frequencyMultiplier = config.frequencyMultiplier || defaultFrequencyMultiplier;
     const freqMultiplier = frequencyMultiplier[frequency] || 1;
-    basePrice = basePrice * freqMultiplier;
+    const serviceChargeWithFrequency = basePrice * freqMultiplier;
     
-    console.log('🔧 After frequency multiplier:', basePrice);
+    console.log('🔧 After frequency multiplier (service only):', serviceChargeWithFrequency);
     
-    // 3. Add selected add-ons
+    // 3. Add selected add-ons (NO frequency multiplier applied)
     const addOns = config.addOns || defaultAddOns;
     const addOnsCost = selectedAddOns.reduce((total, addOnKey) => {
       return total + (addOns[addOnKey] || 0);
     }, 0);
     
-    console.log('🔧 Add-ons cost:', addOnsCost);
+    console.log('🔧 Add-ons cost (no frequency multiplier):', addOnsCost);
     
-    // 4. Add window cleaning
+    // 4. Add window cleaning (NO frequency multiplier applied)
     const windowPrices = config.windowCleaningPrices || defaultWindowPrices;
     const windowCost = windowPrices[windowSize] || 0;
     
-    console.log('🔧 Window cost:', windowCost);
+    console.log('🔧 Window cost (no frequency multiplier):', windowCost);
     
-    let total = basePrice + addOnsCost + windowCost;
+    // 5. Calculate subtotal before VAT
+    let subtotal = serviceChargeWithFrequency + addOnsCost + windowCost;
     
-    // 5. Apply RUT discount if eligible
+    // 6. Apply universal VAT to all charges (service + add-ons + extras)
+    const universalVAT = config.universalVAT || 0.25; // Default 25%
+    const vatAmount = subtotal * universalVAT;
+    let total = subtotal + vatAmount;
+    
+    console.log('🔧 Subtotal before VAT:', subtotal);
+    console.log('🔧 VAT amount:', vatAmount);
+    console.log('🔧 Total with VAT:', total);
+    
+    // 7. Apply RUT discount if eligible (applied to total including VAT)
     if (useRut && zip) {
       const zipAreas = config.zipAreas || defaultZipAreas;
       const rutPercentage = config.rutPercentage || 0.3; // 30% RUT discount
@@ -145,6 +158,13 @@ export default function BookingForm({ config = {} }) {
     e.preventDefault();
     setIsSubmitting(true);
     setSubmitMessage('');
+
+    if (currentStep === 3 && !gdprConsent) {
+      setGdprError('You must consent to the processing of your personal data (GDPR) to complete your booking.');
+      setIsSubmitting(false);
+      return;
+    }
+    setGdprError('');
 
     try {
       const bookingData = {
@@ -183,7 +203,7 @@ export default function BookingForm({ config = {} }) {
   };
 
   // Form validation
-  const isFormValid = selectedService && sqm > 0 && customerInfo.name && customerInfo.email && customerInfo.phone;
+  const isFormValid = selectedService && sqm > 0 && customerInfo.name && customerInfo.email && customerInfo.phone && (currentStep !== 3 || gdprConsent);
 
   const stepProgress = (currentStep / 3) * 100;
 
@@ -480,6 +500,21 @@ export default function BookingForm({ config = {} }) {
                     />
                   </div>
                 </div>
+
+                <div className="flex items-center space-x-2 mt-4">
+                  <Checkbox
+                    id="gdpr-consent"
+                    checked={gdprConsent}
+                    onChange={e => setGdprConsent(e.target.checked)}
+                    required
+                  />
+                  <Label htmlFor="gdpr-consent" className="cursor-pointer">
+                    I consent to the processing of my personal data in accordance with the <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="underline text-primary-600">Privacy Policy (GDPR)</a>.
+                  </Label>
+                </div>
+                {gdprError && (
+                  <Alert color="failure" className="mt-2">{gdprError}</Alert>
+                )}
 
                 <div className="flex justify-between">
                   <Button
