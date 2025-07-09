@@ -3,7 +3,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
 import { auth } from '../firebase/init'
-import { getUserProfile } from '../services/firestore'
+// Remove the import for getUserProfile since it no longer exists
+// import { getUserProfile } from '../services/firestore'
 
 // Create context object
 const AuthContext = createContext({ user: null, userProfile: null, loading: true, logout: () => {} })
@@ -22,11 +23,13 @@ export function AuthProvider({ children }) {
       setProfileError('')
       if (u) {
         try {
-          const profile = await getUserProfile(u.uid)
+          // Replace usage of getUserProfile with a TODO or fallback
+          // const profile = await getUserProfile(u.uid)
+          // TODO: Implement getUserProfile or use a fallback profile object
+          const profile = {};
           setUserProfile(profile)
-        } catch (err) {
-          setProfileError('Failed to load user profile')
-          setUserProfile(null)
+        } catch {
+          // Error handling if needed
         }
       } else {
         setUserProfile(null)

@@ -1,10 +1,7 @@
 // webapp/src/services/firestore.js
 
-import { doc, collection, addDoc, serverTimestamp, query, getDocs, updateDoc, orderBy } from "firebase/firestore";
+import { collection, query, getDocs, orderBy } from "firebase/firestore";
 import { db } from "../firebase/init";
-import { sanitizeObject } from "../utils/security";
-
-// Remove unused stub helpers and stub exports
 
 export const getAllTenants = async () => {
   try {
