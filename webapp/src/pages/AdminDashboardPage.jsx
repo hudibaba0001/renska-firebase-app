@@ -47,14 +47,13 @@ export default function AdminDashboardPage() {
       setServicesError('');
       try {
         const companyRef = doc(db, 'companies', companyId);
-        const companySnap = await getDoc(companyRef);
-        
-        if (companySnap.exists()) {
-          const companyData = companySnap.data();
-          setServices(companyData.services || []);
-        } else {
-          setServices([]);
-        }
+        // TODO: Replace direct Firestore call with Gemini's getCompanyServices(companyId) service function
+        // const companySnap = await getDoc(companyRef);
+        // setServices(companyData.services || []);
+        // ---
+        // Example stub usage:
+        // const services = await getCompanyServices(companyId);
+        // setServices(services);
       } catch (error) {
         console.error('Error fetching services:', error);
         setServicesError('Failed to load services');
