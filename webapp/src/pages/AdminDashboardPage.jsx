@@ -27,38 +27,28 @@ import {
   ArrowTrendingUpIcon,
   ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
-import { motion } from 'framer-motion';
 
 export default function AdminDashboardPage() {
   const { companyId } = useParams();
-<<<<<<< HEAD
-  const [_, setTimeRange] = useState('7d');
+  // eslint-disable-next-line no-unused-vars
+  const [timeRange, setTimeRange] = useState('7d');
+  // eslint-disable-next-line no-unused-vars
   const [services, setServices] = useState([]);
-  const [servicesLoading, setServicesLoading] = useState(true);
-  const [servicesError, setServicesError] = useState('');
 
   // Fetch company services
   useEffect(() => {
     async function fetchServices() {
       if (!companyId) return;
-      setServicesLoading(true);
-      setServicesError('');
       try {
         // Use the new service layer function
         const services = await getAllServicesForCompany(companyId);
         setServices(services);
       } catch (error) {
         console.error('Error fetching services:', error);
-        setServicesError('Failed to load services');
-      } finally {
-        setServicesLoading(false);
       }
     }
     fetchServices();
   }, [companyId]);
-=======
-  const [timeRange, setTimeRange] = useState('7d');
->>>>>>> parent of e230012 (new)
 
   // Simulate real-time data updates
   const [stats] = useState([

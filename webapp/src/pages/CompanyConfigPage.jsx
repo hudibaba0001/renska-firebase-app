@@ -1,23 +1,12 @@
-<<<<<<< HEAD
 // webapp/src/pages/CompanyConfigPage.jsx
 
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-// Import the tenant service functions, which will handle fetching and updating the company config.
-import { getAllServicesForCompany, createService, updateService, deleteService } from '../services/firestore';
-import ServiceConfigForm from '../components/ServiceConfigForm';
+import { getAllServicesForCompany, updateTenant } from '../services/firestore';
+import ConfigForm from '../components/ConfigForm';
 import LivePreview from '../components/LivePreview';
-import ErrorBoundary from '../components/ErrorBoundary';
 import { Spinner, Alert } from 'flowbite-react';
 import toast from 'react-hot-toast';
-=======
-import React, { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
-import { db } from '../firebase/init'
-import { doc, getDoc, setDoc } from 'firebase/firestore'
-import ConfigForm from '../components/ConfigForm'
-import LivePreview from '../components/LivePreview'
->>>>>>> parent of e230012 (new)
 
 export default function CompanyConfigPage({ companyId: propCompanyId }) {
   const routeParams = useParams();
