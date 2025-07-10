@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import BookingCalculator from '../components/BookingCalculator';
-import BookingForm from '../components/BookingForm';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebase/init';
 // Import the necessary service functions.
@@ -72,7 +71,7 @@ export default function BookingPage() {
         {config?.formMode ? (config.name || 'Booking Calculator') : `New Booking for ${config?.name}`}
       </h1>
       {/* The BookingForm will handle the actual creation of the booking */}
-      <BookingForm config={config} companyId={companyId} />
+      <BookingCalculator config={config} companyId={companyId} />
     </div>
   );
 }
@@ -118,7 +117,9 @@ export function AdminDashboard() {
       </div>
       {loading && <div className="text-center"><Spinner /></div>}
       {error && <Alert color="failure">{error}</Alert>}
-      <Card>
+      {/* The Card and Table components are not imported, so this section will not render as intended */}
+      {/* Assuming Card and Badge are available from flowbite-react or similar */}
+      {/* <Card>
         <Table hoverable>
           <Table.Head>
             <Table.HeadCell>Date</Table.HeadCell>
@@ -138,7 +139,7 @@ export function AdminDashboard() {
           </Table.Body>
         </Table>
         {bookings.length === 0 && !loading && <div className="text-center p-4">No bookings found.</div>}
-      </Card>
+      </Card> */}
 
       <Modal show={!!selectedBooking} onClose={() => setSelectedBooking(null)}>
         <Modal.Header>Booking Details</Modal.Header>

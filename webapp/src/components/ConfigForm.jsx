@@ -28,6 +28,26 @@ import {
 import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 
+// 1. Update the default service structure to support all SwedPrime models and options
+const defaultService = () => ({
+  id: Date.now().toString(),
+  name: '',
+  pricingModel: 'fixed-tier', // SwedPrime models: fixed-tier, tiered-multiplier, universal, window, hourly, per-room
+  tiers: [{ min: 1, max: 50, price: 3000 }], // for fixed-tier and tiered-multiplier
+  universalRate: 50, // for universal multiplier
+  windowTypes: [{ name: 'Typ 1', price: 60 }], // for window cleaning
+  hourlyTiers: [{ min: 1, max: 50, hours: 3 }], // for hourly model
+  hourlyRate: 400, // for hourly model
+  perRoomRates: [{ type: 'room', price: 300 }, { type: 'bathroom', price: 150 }], // for per-room
+  minPrice: 700,
+  vatRate: undefined, // fallback to global if not set
+  addOns: [], // [{ name, price, rutEligible }]
+  frequencyEnabled: true,
+  frequencyMultipliers: { weekly: 1, biweekly: 1.15, monthly: 1.4 },
+  rutEligible: true,
+  customFees: [], // [{ label, amount, rutEligible }]
+});
+
 export default function ConfigForm({ initialConfig, onSave, onChange }) {
   const [config, setConfig] = useState({
     services: [],
@@ -76,13 +96,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
   const addService = () => {
     setConfig(prev => ({
       ...prev,
-      services: [...prev.services, {
-        id: Date.now().toString(),
-        name: '',
-        pricingModel: 'flat-rate',
-        pricePerSqm: 10,
-        tiers: [{ min: 0, max: 50, pricePerSqm: 12 }]
-      }]
+      services: [...prev.services, defaultService()]
     }))
     toast.success('New service added')
   }
