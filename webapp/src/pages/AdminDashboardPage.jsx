@@ -30,21 +30,30 @@ import {
 
 export default function AdminDashboardPage() {
   const { companyId } = useParams();
+  if (!companyId) {
+    return <div className="p-8 text-center text-red-600 font-bold">Error: No companyId found in route params.</div>;
+  }
   // eslint-disable-next-line no-unused-vars
   const [timeRange, setTimeRange] = useState('7d');
   // eslint-disable-next-line no-unused-vars
   const [services, setServices] = useState([]);
 
+  console.log('[AdminDashboardPage] Rendered. companyId:', companyId);
+
   // Fetch company services
   useEffect(() => {
     async function fetchServices() {
-      if (!companyId) return;
+      if (!companyId) {
+        console.warn('[AdminDashboardPage] No companyId found in params.');
+        return;
+      }
       try {
         // Use the new service layer function
         const services = await getAllServicesForCompany(companyId);
         setServices(services);
+        console.log('[AdminDashboardPage] Loaded services:', services);
       } catch (error) {
-        console.error('Error fetching services:', error);
+        console.error('[AdminDashboardPage] Error fetching services:', error);
       }
     }
     fetchServices();
