@@ -1,5 +1,8 @@
-// webapp/src/context/AuthContext.jsx
+import React, { createContext, useContext, useEffect, useState } from 'react'
+import { onAuthStateChanged, signOut } from 'firebase/auth'
+import { auth } from '../firebase/init'
 
+<<<<<<< HEAD
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
 import { auth } from '../firebase/init'
@@ -56,6 +59,19 @@ export function AuthProvider({ children }) {
       } else {
         setUserProfile(null)
       }
+=======
+// Create context object
+const AuthContext = createContext({ user: null, loading: true, logout: () => {} })
+
+export function AuthProvider({ children }) {
+  const [user, setUser] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    // Subscribe to Firebase auth changes
+    const unsubscribe = onAuthStateChanged(auth, u => {
+      setUser(u)
+>>>>>>> parent of 17b29e4 (refactor: Create Firestore service and refactor AuthContext)
       setLoading(false)
     })
     // Cleanup on unmount
@@ -78,4 +94,8 @@ export function AuthProvider({ children }) {
   )
 }
 
+<<<<<<< HEAD
 export const useAuth = () => useContext(AuthContext)
+=======
+export const useAuth = () => useContext(AuthContext) 
+>>>>>>> parent of 17b29e4 (refactor: Create Firestore service and refactor AuthContext)

@@ -1,9 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
-<<<<<<< HEAD
 import { getAllServicesForCompany } from '../services/firestore';
-=======
->>>>>>> parent of 214ec97 (new)
 import { 
   Card, 
   Button, 
@@ -35,7 +32,6 @@ import {
 export default function AdminDashboardPage() {
   const { companyId } = useParams();
   const [_, setTimeRange] = useState('7d');
-<<<<<<< HEAD
   const [services, setServices] = useState([]);
   const [servicesLoading, setServicesLoading] = useState(true);
   const [servicesError, setServicesError] = useState('');
@@ -59,8 +55,6 @@ export default function AdminDashboardPage() {
     }
     fetchServices();
   }, [companyId]);
-=======
->>>>>>> parent of 214ec97 (new)
 
   // Simulate real-time data updates
   const [stats] = useState([
