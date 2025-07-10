@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 // webapp/src/pages/CompanyConfigPage.jsx
 
 import React, { useEffect, useState } from 'react';
@@ -9,6 +10,14 @@ import LivePreview from '../components/LivePreview';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { Spinner, Alert } from 'flowbite-react';
 import toast from 'react-hot-toast';
+=======
+import React, { useEffect, useState } from 'react'
+import { useParams } from 'react-router-dom'
+import { db } from '../firebase/init'
+import { doc, getDoc, setDoc } from 'firebase/firestore'
+import ConfigForm from '../components/ConfigForm'
+import LivePreview from '../components/LivePreview'
+>>>>>>> parent of e230012 (new)
 
 export default function CompanyConfigPage({ companyId: propCompanyId }) {
   const routeParams = useParams();
@@ -91,13 +100,11 @@ export default function CompanyConfigPage({ companyId: propCompanyId }) {
       
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <div className="xl:col-span-2">
-          <ErrorBoundary>
-            <ServiceConfigForm 
-              initialConfig={config}
-              onSave={handleSave}
-              onChange={handleConfigChange}
-            />
-          </ErrorBoundary>
+          <ConfigForm 
+            initialConfig={config}
+            onSave={handleSave}
+            onChange={handleConfigChange}
+          />
         </div>
         
         <div className="xl:col-span-1">
