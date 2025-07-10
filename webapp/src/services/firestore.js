@@ -19,12 +19,12 @@ export const getAllTenants = async () => {
   }
 };
 
-// Create a new service in the 'services' collection
-export const createService = async (serviceData) => {
+// Create a new service in the 'services' collection for a specific company
+export const createService = async (companyId, serviceData) => {
   try {
     const servicesRef = collection(db, 'services');
-    const docRef = await addDoc(servicesRef, serviceData);
-    return { id: docRef.id, ...serviceData };
+    const docRef = await addDoc(servicesRef, { ...serviceData, companyId });
+    return docRef.id;
   } catch (error) {
     console.error('Error creating service:', error);
     throw error;
