@@ -267,7 +267,7 @@ export default function TenantListPage() {
                       <Table.Cell onClick={() => navigate(`/super-admin/tenants/${tenant.id}`)}><Badge color={getStatusColor(tenant.subscription?.active)}>{tenant.subscription?.active ? 'Active' : 'Suspended'}</Badge></Table.Cell>
                       <Table.Cell onClick={() => navigate(`/super-admin/tenants/${tenant.id}`)}>{tenant.createdAt?.seconds ? new Date(tenant.createdAt.seconds * 1000).toLocaleDateString() : '—'}</Table.Cell>
                       <Table.Cell>
-                        {console.log('Rendering Actions', tenant)}
+                        <div style={{background: 'red', color: 'white', padding: '2px 8px', borderRadius: '4px', marginBottom: '4px'}}>DEBUG: Actions Cell Rendered</div>
                         <div className="flex items-center space-x-2" onClick={(e) => e.stopPropagation()}>
                           <Button size="xs" onClick={() => navigate(`/super-admin/tenants/${tenant.id}`)}><EyeIcon className="w-4 h-4" /></Button>
                           {/* Always show impersonate button */}
