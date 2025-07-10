@@ -149,49 +149,85 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
     updateService(serviceId, { tiers: updatedTiers })
   }
 
-  // Global settings management
-  const updateFrequencyMultiplier = (key, value) => {
+  // Add per-service helpers for add-ons, custom fees, and frequency multipliers
+  function addAddOn(serviceId) {
     setConfig(prev => ({
       ...prev,
-      frequencyMultiplier: {
-        ...prev.frequencyMultiplier,
-        [key]: parseFloat(value) || 1
-      }
-    }))
+      services: prev.services.map(service =>
+        service.id === serviceId
+          ? { ...service, addOns: [...(service.addOns || []), { name: '', price: 0, rutEligible: false }] }
+          : service
+      )
+    }));
   }
-
-  const updateAddOn = (key, value) => {
+  function deleteAddOn(serviceId, addOnIdx) {
     setConfig(prev => ({
       ...prev,
-      addOns: {
-        ...prev.addOns,
-        [key]: parseInt(value) || 0
-      }
-    }))
+      services: prev.services.map(service => {
+        if (service.id !== serviceId) return service;
+        const addOns = [...(service.addOns || [])];
+        addOns.splice(addOnIdx, 1);
+        return { ...service, addOns };
+      })
+    }));
   }
-
-  const addNewAddOn = () => {
-    if (newAddOnName && !config.addOns[newAddOnName]) {
-      setConfig(prev => ({
-        ...prev,
-        addOns: {
-          ...prev.addOns,
-          [newAddOnName]: 0
-        }
-      }))
-      setNewAddOnName('')
-      setShowAddOnModal(false)
-      toast.success('Add-on created')
-    }
+  function updateAddOn(serviceId, addOnIdx, changes) {
+    setConfig(prev => ({
+      ...prev,
+      services: prev.services.map(service => {
+        if (service.id !== serviceId) return service;
+        const addOns = [...(service.addOns || [])];
+        addOns[addOnIdx] = { ...addOns[addOnIdx], ...changes };
+        return { ...service, addOns };
+      })
+    }));
   }
-
-  const deleteAddOn = (key) => {
-    setConfig(prev => {
-      const newAddOns = { ...prev.addOns }
-      delete newAddOns[key]
-      return { ...prev, addOns: newAddOns }
-    })
-    toast.success('Add-on deleted')
+  function addCustomFee(serviceId) {
+    setConfig(prev => ({
+      ...prev,
+      services: prev.services.map(service =>
+        service.id === serviceId
+          ? { ...service, customFees: [...(service.customFees || []), { label: '', amount: 0, rutEligible: false }] }
+          : service
+      )
+    }));
+  }
+  function deleteCustomFee(serviceId, feeIdx) {
+    setConfig(prev => ({
+      ...prev,
+      services: prev.services.map(service => {
+        if (service.id !== serviceId) return service;
+        const customFees = [...(service.customFees || [])];
+        customFees.splice(feeIdx, 1);
+        return { ...service, customFees };
+      })
+    }));
+  }
+  function updateCustomFee(serviceId, feeIdx, changes) {
+    setConfig(prev => ({
+      ...prev,
+      services: prev.services.map(service => {
+        if (service.id !== serviceId) return service;
+        const customFees = [...(service.customFees || [])];
+        customFees[feeIdx] = { ...customFees[feeIdx], ...changes };
+        return { ...service, customFees };
+      })
+    }));
+  }
+  function updateFrequencyMultiplier(serviceId, freq, value) {
+    setConfig(prev => ({
+      ...prev,
+      services: prev.services.map(service => {
+        if (service.id !== serviceId) return service;
+        return {
+          ...service,
+          frequencyMultipliers: {
+            ...service.frequencyMultipliers,
+            [freq]: value
+          }
+        };
+      })
+    }));
   }
 
   const updateWindowPrice = (size, price) => {
