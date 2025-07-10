@@ -24,8 +24,6 @@ import { AdminDashboard } from './pages/BookingPage';
 import TenantListPage from './pages/TenantListPage';
 import TenantOnboardPage from './pages/TenantOnboardPage';
 import TenantDetailPage from './pages/TenantDetailPage';
-import WidgetPage from './pages/WidgetPage';
-import IframeTestPage from './pages/IframeTestPage';
 
 export default function App() {
   return (

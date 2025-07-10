@@ -1,20 +1,18 @@
 // webapp/src/components/BookingForm.jsx
 
 import React, { useState, useMemo } from 'react';
-// Import the specific service function needed for creating a booking.
 import { createBooking } from '../services/firestore';
 import { 
   Card, Button, TextInput, Select, Label, Checkbox, Badge, Alert, Spinner, Progress
 } from 'flowbite-react';
 import { 
   HomeIcon, CurrencyDollarIcon, CalendarDaysIcon, PlusIcon, SparklesIcon,
-  MapPinIcon, UserIcon, EnvelopeIcon, PhoneIcon, CheckCircleIcon
+  MapPinIcon, UserIcon, EnvelopeIcon, PhoneIcon, CheckCircleIcon,
+  ExclamationTriangleIcon, StarIcon
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
-import { motion } from 'framer-motion';
 
-export default function BookingForm({ config = {}, companyId }) {
-  // Default values and state management remain the same.
+export default function BookingForm({ config = {} }) {
   const availableServices = config.services?.length > 0 ? config.services : [{ id: 'default', name: 'Default Service', pricePerSqm: 10 }];
   const [selectedService, setSelectedService] = useState(availableServices[0]?.id || '');
   const [sqm, setSqm] = useState(50);
@@ -24,51 +22,29 @@ export default function BookingForm({ config = {}, companyId }) {
   const [submitMessage, setSubmitMessage] = useState('');
   const [currentStep, setCurrentStep] = useState(1);
   const [gdprConsent, setGdprConsent] = useState(false);
-  const [gdprError, setGdprError] = useState('');
 
-  // Price calculation logic remains the same.
+  // Price calculation logic
   const currentService = availableServices.find(s => s.id === selectedService) || availableServices[0];
   const totalPrice = useMemo(() => {
-    // ... existing price calculation logic
     let total = (currentService?.pricePerSqm || 10) * sqm;
     return Math.round(total);
-  }, [currentService, sqm, /* ... other dependencies */ config]);
+  }, [currentService, sqm, config]);
 
-  /**
-   * Handles the final submission of the booking form.
-   * This function now uses the centralized `createBooking` service function.
-   */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
     setSubmitMessage('');
-
-    if (currentStep === 3 && !gdprConsent) {
-      setGdprError('You must consent to the processing of your personal data (GDPR) to complete your booking.');
-      setIsSubmitting(false);
-      return;
-    }
-    setGdprError('');
-
     try {
       const bookingData = {
         serviceId: selectedService,
         sqm,
-        frequency,
-        addOns: selectedAddOns,
-        windowSize,
-        zip,
-        useRut,
-        totalPrice,
         customerInfo,
         companyId: config.slug || 'unknown',
+        totalPrice,
       };
-
-      // Use the new service layer function
       await createBooking(config.id || config.companyId, bookingData);
       setSubmitMessage('Booking submitted successfully!');
       toast.success('Booking submitted successfully!');
-      // Reset form
       setCustomerInfo({ name: '', email: '', phone: '' });
       setCurrentStep(1);
     } catch (error) {
@@ -79,10 +55,9 @@ export default function BookingForm({ config = {}, companyId }) {
       setIsSubmitting(false);
     }
   };
-  
+
   const isFormValid = selectedService && sqm > 0 && customerInfo.name && customerInfo.email && gdprConsent;
 
-  // The rest of the JSX rendering logic remains the same.
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <Card>
@@ -92,7 +67,6 @@ export default function BookingForm({ config = {}, companyId }) {
         </div>
         <Progress progress={(currentStep / 3) * 100} />
       </Card>
-
       <form onSubmit={handleSubmit} className="space-y-6">
         {currentStep === 1 && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
@@ -112,21 +86,18 @@ export default function BookingForm({ config = {}, companyId }) {
             </Card>
           </motion.div>
         )}
-
         {currentStep === 2 && (
-             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                 {/* Simplified Step 2 for brevity */}
-                <Card>
-                    <h3 className="text-xl font-bold">2. Add-ons & Options</h3>
-                    <p>Add-on UI would go here...</p>
-                    <div className="flex justify-between">
-                        <Button color="gray" onClick={() => setCurrentStep(1)}>Previous</Button>
-                        <Button onClick={() => setCurrentStep(3)}>Next</Button>
-                    </div>
-                </Card>
-            </motion.div>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            <Card>
+              <h3 className="text-xl font-bold">2. Add-ons & Options</h3>
+              <p>Add-on UI would go here...</p>
+              <div className="flex justify-between">
+                <Button color="gray" onClick={() => setCurrentStep(1)}>Previous</Button>
+                <Button onClick={() => setCurrentStep(3)}>Next</Button>
+              </div>
+            </Card>
+          </motion.div>
         )}
-
         {currentStep === 3 && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
             <Card>
@@ -139,9 +110,9 @@ export default function BookingForm({ config = {}, companyId }) {
                 <Label htmlFor="email" value="Email Address" />
                 <TextInput id="email" type="email" value={customerInfo.email} onChange={(e) => setCustomerInfo(p => ({ ...p, email: e.target.value }))} required />
               </div>
-               <div>
-                  <Checkbox id="gdpr-consent" checked={gdprConsent} onChange={e => setGdprConsent(e.target.checked)} required />
-                  <Label htmlFor="gdpr-consent"> I consent to the GDPR terms.</Label>
+              <div>
+                <Checkbox id="gdpr-consent" checked={gdprConsent} onChange={e => setGdprConsent(e.target.checked)} required />
+                <Label htmlFor="gdpr-consent"> I consent to the GDPR terms.</Label>
               </div>
               <div className="flex justify-between">
                 <Button color="gray" onClick={() => setCurrentStep(2)}>Previous</Button>
@@ -152,19 +123,10 @@ export default function BookingForm({ config = {}, companyId }) {
             </Card>
           </motion.div>
         )}
-
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          <Card className="sticky bottom-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold">Total Price</h3>
-              <div className="text-3xl font-bold">{totalPrice} kr</div>
-            </div>
-          </Card>
-        </motion.div>
-        
-        {submitMessage && <Alert color={submitMessage.includes('success') ? 'success' : 'failure'}>{submitMessage}</Alert>}
-        {gdprError && <Alert color="failure">{gdprError}</Alert>}
       </form>
+      {submitMessage && (
+        <Alert color={submitMessage.includes('success') ? 'success' : 'failure'}>{submitMessage}</Alert>
+      )}
     </div>
   );
 }

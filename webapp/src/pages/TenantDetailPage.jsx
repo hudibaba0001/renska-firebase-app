@@ -5,7 +5,6 @@ import { useParams } from 'react-router-dom';
 // Import the specific service function needed for this page.
 // This replaces the direct 'firebase/firestore' import.
 import { getTenant } from '../services/firestore';
-import { db } from '../firebase/init'; // Keep for other potential uses or remove if not needed.
 import { Card, Tabs, Avatar, Badge, Spinner, Alert, Button } from 'flowbite-react';
 import { 
   ArrowLeftIcon, 
@@ -31,7 +30,7 @@ export default function TenantDetailPage() {
   const [tenant, setTenant] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('config');
+  const [ , setActiveTab] = useState('config');
 
   useEffect(() => {
     /**
@@ -134,10 +133,16 @@ export default function TenantDetailPage() {
                 </div>
               </div>
             </div>
-            <Button color="gray" size="sm" onClick={() => window.open(`/booking/${tenant.slug}`, '_blank')}>
-              <GlobeAltIcon className="h-4 w-4 mr-2" />
-              View Booking Page
-            </Button>
+            <div className="flex items-center space-x-2">
+              <Button color="gray" size="sm" onClick={() => window.open(`/admin/${tenant.slug}`, '_blank')}>
+                <BuildingOfficeIcon className="h-4 w-4 mr-2" />
+                Admin Dashboard
+              </Button>
+              <Button color="gray" size="sm" onClick={() => window.open(`/booking/${tenant.slug}`, '_blank')}>
+                <GlobeAltIcon className="h-4 w-4 mr-2" />
+                View Booking Page
+              </Button>
+            </div>
           </div>
         </div>
       </Card>
