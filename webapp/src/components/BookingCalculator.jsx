@@ -1,7 +1,44 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { db } from '../firebase/init';
 import { doc, getDoc } from 'firebase/firestore';
+import { 
+  Card, 
+  Button, 
+  TextInput, 
+  Select, 
+  Label, 
+  Checkbox, 
+  Badge, 
+  Alert, 
+  Spinner,
+  Progress,
+  Tooltip
+} from 'flowbite-react';
+import { 
+  HomeIcon, 
+  CurrencyDollarIcon, 
+  CalendarDaysIcon, 
+  PlusIcon, 
+  SparklesIcon,
+  MapPinIcon,
+  UserIcon,
+  EnvelopeIcon,
+  PhoneIcon,
+  CheckCircleIcon,
+  ExclamationTriangleIcon,
+  StarIcon,
+  CogIcon,
+  ChartBarIcon,
+  ClockIcon
+} from '@heroicons/react/24/outline';
+import { motion, AnimatePresence } from 'framer-motion';
+import toast from 'react-hot-toast';
+
+// Import our enhanced engines
+import { PricingEngine, PRICING_MODELS, PricingUtils } from '../utils/pricingEngine';
+import { ValidationEngine, FIELD_TYPES, ValidationUtils } from '../utils/validationEngine';
+import { PricingRulesEngine, RULE_TYPES, RuleUtils } from '../utils/pricingRulesEngine';
 
 // Placeholder step components
 const ZipCodeStep = ({ onNext, formData, setFormData, allowedZipCodes, error, setError }) => (
