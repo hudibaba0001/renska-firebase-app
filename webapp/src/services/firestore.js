@@ -1,6 +1,6 @@
 // webapp/src/services/firestore.js
 
-import { collection, query, getDocs, orderBy, addDoc, deleteDoc, doc, where } from "firebase/firestore";
+import { collection, query, getDocs, orderBy, addDoc, deleteDoc, doc, where, updateDoc, getDoc } from "firebase/firestore";
 import { db } from "../firebase/init";
 
 export const getAllTenants = async () => {
@@ -43,6 +43,18 @@ export const deleteService = async (serviceId) => {
   }
 };
 
+// Update a service in the 'services' collection by ID
+export const updateService = async (serviceId, serviceData) => {
+  try {
+    const serviceDocRef = doc(db, 'services', serviceId);
+    await updateDoc(serviceDocRef, serviceData);
+    return true;
+  } catch (error) {
+    console.error('Error updating service:', error);
+    throw error;
+  }
+};
+
 // Get all services for a specific company (tenant) by companyId
 export const getAllServicesForCompany = async (companyId) => {
   try {
@@ -57,5 +69,86 @@ export const getAllServicesForCompany = async (companyId) => {
   } catch (error) {
     console.error('Error fetching services for company:', error);
     return [];
+  }
+};
+
+// Create a new booking in the 'bookings' collection
+export const createBooking = async (bookingData) => {
+  try {
+    const bookingsRef = collection(db, 'bookings');
+    const docRef = await addDoc(bookingsRef, bookingData);
+    return { id: docRef.id, ...bookingData };
+  } catch (error) {
+    console.error('Error creating booking:', error);
+    throw error;
+  }
+};
+
+// Get all bookings for a specific company (tenant) by companyId
+export const getAllBookingsForCompany = async (companyId) => {
+  try {
+    const bookingsRef = collection(db, 'bookings');
+    const q = query(bookingsRef, where('companyId', '==', companyId), orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
+    const bookings = [];
+    snapshot.forEach(doc => {
+      bookings.push({ id: doc.id, ...doc.data() });
+    });
+    return bookings;
+  } catch (error) {
+    console.error('Error fetching bookings for company:', error);
+    return [];
+  }
+};
+
+// Get a tenant (company) by ID
+export const getTenant = async (tenantId) => {
+  try {
+    const tenantDocRef = doc(db, 'companies', tenantId);
+    const tenantSnap = await getDoc(tenantDocRef);
+    if (tenantSnap.exists()) {
+      return { id: tenantSnap.id, ...tenantSnap.data() };
+    } else {
+      return null;
+    }
+  } catch (error) {
+    console.error('Error fetching tenant:', error);
+    throw error;
+  }
+};
+
+// Create a new tenant (company) in the 'companies' collection
+export const createTenant = async (tenantData) => {
+  try {
+    const companiesRef = collection(db, 'companies');
+    const docRef = await addDoc(companiesRef, tenantData);
+    return { id: docRef.id, ...tenantData };
+  } catch (error) {
+    console.error('Error creating tenant:', error);
+    throw error;
+  }
+};
+
+// Update a tenant (company) in the 'companies' collection by ID
+export const updateTenant = async (tenantId, tenantData) => {
+  try {
+    const tenantDocRef = doc(db, 'companies', tenantId);
+    await updateDoc(tenantDocRef, tenantData);
+    return true;
+  } catch (error) {
+    console.error('Error updating tenant:', error);
+    throw error;
+  }
+};
+
+// Delete a tenant (company) from the 'companies' collection by ID
+export const deleteTenant = async (tenantId) => {
+  try {
+    const tenantDocRef = doc(db, 'companies', tenantId);
+    await deleteDoc(tenantDocRef);
+    return true;
+  } catch (error) {
+    console.error('Error deleting tenant:', error);
+    throw error;
   }
 };
