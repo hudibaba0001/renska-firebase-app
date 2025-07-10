@@ -25,7 +25,6 @@ import {
   TagIcon,
   MapIcon
 } from '@heroicons/react/24/outline'
-import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 
 // 1. Update the default service structure to support all SwedPrime models and options
@@ -57,6 +56,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
     zipAreas: ["41107", "41121", "41254", "41318", "41503"],
     rutPercentage: 0.3,
     rutEnabled: true,
+    vatRate: 25, // Universal VAT setting
     ...initialConfig
   })
 
@@ -230,6 +230,19 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
 
   return (
     <div className="space-y-6">
+      {/* Universal VAT setting */}
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-700">VAT Rate (%)</label>
+        <input
+          type="number"
+          min="0"
+          max="100"
+          step="0.1"
+          value={config.vatRate || ''}
+          onChange={e => setConfig(c => ({ ...c, vatRate: Number(e.target.value) }))}
+          className="mt-1 block w-32 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+        />
+      </div>
       {/* Services Section */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
