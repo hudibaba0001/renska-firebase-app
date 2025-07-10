@@ -41,6 +41,8 @@ export default function AdminDashboardLayout() {
   const { companyId } = useParams()
   const location = useLocation()
   const { user } = useAuth()
+  // Debug log for impersonation state
+  console.log('AdminDashboardLayout:', { user, companyId, impersonationData: JSON.parse(sessionStorage.getItem('superAdminImpersonation') || 'null') })
   const [company, setCompany] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')

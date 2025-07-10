@@ -1,6 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+<<<<<<< HEAD
 import { getAllServicesForCompany } from '../services/firestore';
+=======
+>>>>>>> parent of 214ec97 (new)
 import { 
   Card, 
   Button, 
@@ -9,8 +12,7 @@ import {
   Avatar, 
   Dropdown,
   Table,
-  Alert,
-  Spinner
+  Alert
 } from 'flowbite-react';
 import {
   ArrowUpIcon,
@@ -33,6 +35,7 @@ import {
 export default function AdminDashboardPage() {
   const { companyId } = useParams();
   const [_, setTimeRange] = useState('7d');
+<<<<<<< HEAD
   const [services, setServices] = useState([]);
   const [servicesLoading, setServicesLoading] = useState(true);
   const [servicesError, setServicesError] = useState('');
@@ -56,6 +59,8 @@ export default function AdminDashboardPage() {
     }
     fetchServices();
   }, [companyId]);
+=======
+>>>>>>> parent of 214ec97 (new)
 
   // Simulate real-time data updates
   const [stats] = useState([
@@ -522,68 +527,48 @@ export default function AdminDashboardPage() {
             <h2 className="text-xl font-bold text-gray-900 dark:text-white">Configured Services</h2>
             <p className="text-gray-500 dark:text-gray-400">Your available cleaning services</p>
           </div>
-          <Button as={Link} to={`/admin/${companyId}/config`} color="blue" size="sm">
+          <Button as={Link} to={`/admin/${companyId}/services/new`} color="blue" size="sm">
             <WrenchScrewdriverIcon className="w-4 h-4 mr-2" />
-            Configure Services
+            New Service
           </Button>
         </div>
 
-        {servicesLoading ? (
-          <div className="flex justify-center py-8">
-            <Spinner size="lg" />
-          </div>
-        ) : servicesError ? (
-          <Alert color="failure" className="mb-4">
-            <ExclamationTriangleIcon className="h-4 w-4" />
-            <span className="ml-2">{servicesError}</span>
-          </Alert>
-        ) : services.length === 0 ? (
-          <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-            <WrenchScrewdriverIcon className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-            <p className="text-lg font-medium mb-1">No Services Configured</p>
-            <p className="text-sm mb-4">Set up your first cleaning service to get started</p>
-            <Button as={Link} to={`/admin/${companyId}/config`} color="blue">
-              <PlusIcon className="h-4 w-4 mr-1" />
-              Add First Service
-            </Button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {services.map((service) => (
-              <Card key={service.id} className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:shadow-md transition-shadow">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-semibold text-gray-900 dark:text-white">{service.name || 'Unnamed Service'}</h3>
-                  <Badge color={service.enabled !== false ? "success" : "gray"} size="sm">
-                    {service.enabled !== false ? "Active" : "Disabled"}
-                  </Badge>
-                </div>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">{service.description || 'No description'}</p>
-                <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1 mb-4">
-                  <div className="flex justify-between">
-                    <span>Base Price:</span>
-                    <span className="font-medium">{service.basePrice || 0} DKK</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Pricing:</span>
-                    <span className="capitalize">{service.pricingModel?.replace('_', ' ') || 'fixed'}</span>
-                  </div>
-                  {service.pricingModel === 'per_sqm' && service.pricePerSqm && (
-                    <div className="flex justify-between">
-                      <span>Per SQM:</span>
-                      <span className="font-medium">{service.pricePerSqm} DKK</span>
-                    </div>
-                  )}
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-green-600 font-medium">Ready to use</span>
-                  <Button as={Link} to={`/admin/${companyId}/config`} color="gray" size="xs">
-                    Edit
-                  </Button>
-                </div>
-              </Card>
-            ))}
-          </div>
-        )}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Example services - replace with actual data fetching */}
+          <Card className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-gray-900 dark:text-white">Standard Cleaning</h3>
+              <Badge color="success" size="sm">Published</Badge>
+            </div>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Basic cleaning of floors, surfaces, and bathrooms.</p>
+            <div className="flex items-center justify-between mt-4">
+              <span className="text-sm text-green-600 font-medium">+10% this month</span>
+              <Button color="gray" size="xs">Edit</Button>
+            </div>
+          </Card>
+          <Card className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-gray-900 dark:text-white">Deep Cleaning</h3>
+              <Badge color="warning" size="sm">Draft</Badge>
+            </div>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Comprehensive cleaning of all surfaces, including hard-to-reach areas.</p>
+            <div className="flex items-center justify-between mt-4">
+              <span className="text-sm text-green-600 font-medium">+5% this month</span>
+              <Button color="gray" size="xs">Edit</Button>
+            </div>
+          </Card>
+          <Card className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-gray-900 dark:text-white">Window Cleaning</h3>
+              <Badge color="success" size="sm">Published</Badge>
+            </div>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Cleaning of windows, sills, and frames.</p>
+            <div className="flex items-center justify-between mt-4">
+              <span className="text-sm text-green-600 font-medium">+15% this month</span>
+              <Button color="gray" size="xs">Edit</Button>
+            </div>
+          </Card>
+        </div>
       </Card>
 
       {/* System Alerts */}

@@ -57,6 +57,7 @@ export default function ServiceConfigForm({ initialConfig, onChange, onSave }) {
     const handleAddService = async () => {
         if (!companyId) return;
         const newService = newServiceTemplate();
+        console.log('handleAddService called', { companyId, newService });
         try {
             // Call the service function to create the document in Firestore.
             const newServiceId = await createService(companyId, newService);
