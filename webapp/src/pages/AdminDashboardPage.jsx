@@ -27,6 +27,7 @@ import {
   ArrowTrendingUpIcon,
   ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
+import { motion } from 'framer-motion';
 
 export default function AdminDashboardPage() {
   const { companyId } = useParams();
@@ -349,7 +350,7 @@ export default function AdminDashboardPage() {
               <Dropdown
                 arrowIcon={false}
                 inline
-                label={<Button color="gray" size="xs">Last 7 days</Button>}
+                label={<span className="inline-block px-2 py-1 bg-gray-100 rounded text-xs cursor-pointer">Last 7 days</span>}
               >
                 <Dropdown.Item onClick={() => setTimeRange('24h')}>Last 24 hours</Dropdown.Item>
                 <Dropdown.Item onClick={() => setTimeRange('7d')}>Last 7 days</Dropdown.Item>
@@ -457,7 +458,7 @@ export default function AdminDashboardPage() {
                       <Button color="gray" size="xs">
                         <EyeIcon className="w-4 h-4" />
                       </Button>
-                      <Dropdown arrowIcon={false} inline label={<Button color="gray" size="xs">•••</Button>}>
+                      <Dropdown arrowIcon={false} inline label={<span className="inline-block px-2 py-1 bg-gray-100 rounded text-xs cursor-pointer">•••</span>}>
                         <Dropdown.Item>Edit</Dropdown.Item>
                         <Dropdown.Item>Contact Customer</Dropdown.Item>
                         <Dropdown.Item>Cancel Booking</Dropdown.Item>
