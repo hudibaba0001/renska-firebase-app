@@ -267,145 +267,143 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
           </div>
 
           <div className="space-y-4">
-            {config.services.map((service, index) => (
-              <motion.div
-                key={service.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.2, delay: index * 0.1 }}
-              >
-                <Card className="border-2 border-gray-100 hover:border-primary-200 transition-colors">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex-1 space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <div className="mb-2 block">
-                            <Label htmlFor={`service-name-${service.id}`} value="Service Name" />
-                          </div>
-                          <TextInput
-                            id={`service-name-${service.id}`}
-                            value={service.name}
-                            onChange={(e) => updateService(service.id, { name: e.target.value })}
-                            placeholder="e.g., Basic Cleaning"
-                            icon={TagIcon}
-                          />
-                        </div>
-
-                        <div>
-                          <div className="mb-2 block">
-                            <Label htmlFor={`pricing-model-${service.id}`} value="Pricing Model" />
-                          </div>
-                          <Select
-                            id={`pricing-model-${service.id}`}
-                            value={service.pricingModel}
-                            onChange={(e) => updateService(service.id, { pricingModel: e.target.value })}
-                          >
-                            <option value="flat-rate">Flat Rate (per sqm)</option>
-                            <option value="per-sqm-tiered">Tiered Pricing (per sqm)</option>
-                            <option value="per-room">Per Room</option>
-                            <option value="hourly">Hourly Rate</option>
-                          </Select>
-                        </div>
-                      </div>
-
-                      {service.pricingModel === 'flat-rate' && (
-                        <div className="w-full md:w-1/3">
-                          <div className="mb-2 block">
-                            <Label htmlFor={`price-per-sqm-${service.id}`} value="Price per sqm (kr)" />
-                          </div>
-                          <TextInput
-                            id={`price-per-sqm-${service.id}`}
-                            type="number"
-                            value={service.pricePerSqm || ''}
-                            onChange={(e) => updateService(service.id, { pricePerSqm: parseFloat(e.target.value) || 0 })}
-                            placeholder="10"
-                            icon={CurrencyDollarIcon}
-                          />
-                        </div>
-                      )}
-
-                      {service.pricingModel === 'per-sqm-tiered' && (
-                        <div>
-                          <div className="flex justify-between items-center mb-4">
-                            <Label value="Pricing Tiers" />
-                            <Button
-                              color="secondary"
-                              size="sm"
-                              onClick={() => addTier(service.id)}
-                              className="flex items-center space-x-1"
-                            >
-                              <PlusIcon className="h-3 w-3" />
-                              <span>Add Tier</span>
-                            </Button>
-                          </div>
-                          
-                          <div className="overflow-x-auto">
-                            <Table>
-                              <Table.Head>
-                                <Table.HeadCell>Min sqm</Table.HeadCell>
-                                <Table.HeadCell>Max sqm</Table.HeadCell>
-                                <Table.HeadCell>Price per sqm</Table.HeadCell>
-                                <Table.HeadCell>Actions</Table.HeadCell>
-                              </Table.Head>
-                              <Table.Body>
-                                {service.tiers?.map((tier, tierIndex) => (
-                                  <Table.Row key={tierIndex}>
-                                    <Table.Cell>
-                                      <TextInput
-                                        type="number"
-                                        value={tier.min}
-                                        onChange={(e) => updateTier(service.id, tierIndex, { min: parseInt(e.target.value) || 0 })}
-                                        size="sm"
-                                        placeholder="0"
-                                      />
-                                    </Table.Cell>
-                                    <Table.Cell>
-                                      <TextInput
-                                        type="number"
-                                        value={tier.max}
-                                        onChange={(e) => updateTier(service.id, tierIndex, { max: parseInt(e.target.value) || 0 })}
-                                        size="sm"
-                                        placeholder="50"
-                                      />
-                                    </Table.Cell>
-                                    <Table.Cell>
-                                      <TextInput
-                                        type="number"
-                                        value={tier.pricePerSqm}
-                                        onChange={(e) => updateTier(service.id, tierIndex, { pricePerSqm: parseFloat(e.target.value) || 0 })}
-                                        size="sm"
-                                        placeholder="12"
-                                      />
-                                    </Table.Cell>
-                                    <Table.Cell>
-                                      <Button
-                                        color="failure"
-                                        size="xs"
-                                        onClick={() => deleteTier(service.id, tierIndex)}
-                                      >
-                                        <TrashIcon className="h-3 w-3" />
-                                      </Button>
-                                    </Table.Cell>
-                                  </Table.Row>
-                                ))}
-                              </Table.Body>
-                            </Table>
-                          </div>
-                        </div>
-                      )}
+            {config.services.map((service, idx) => (
+              <div key={service.id} className="border rounded-lg p-4 mb-6 bg-white shadow">
+                <div className="flex items-center justify-between mb-2">
+                  <input
+                    className="font-bold text-lg flex-1 mr-2 border-b border-gray-200 focus:outline-none"
+                    value={service.name}
+                    onChange={e => updateService(service.id, { name: e.target.value })}
+                    placeholder="Service name"
+                  />
+                  <button type="button" onClick={() => deleteService(service.id)} className="text-red-500 ml-2">Remove</button>
+                </div>
+                {/* Pricing Model */}
+                <div className="mb-2">
+                  <label className="block text-sm font-medium">Pricing Model</label>
+                  <select
+                    value={service.pricingModel}
+                    onChange={e => updateService(service.id, { pricingModel: e.target.value })}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                  >
+                    <option value="fixed-tier">Fixed Tier</option>
+                    <option value="tiered-multiplier">Tiered Multiplier</option>
+                    <option value="universal">Universal Multiplier</option>
+                    <option value="window">Window Cleaning</option>
+                    <option value="hourly">Hourly</option>
+                    <option value="per-room">Per Room</option>
+                  </select>
+                </div>
+                {/* Add-Ons */}
+                <div className="mb-2">
+                  <label className="block text-sm font-medium">Add-Ons</label>
+                  {service.addOns && service.addOns.map((addOn, aIdx) => (
+                    <div key={aIdx} className="flex items-center gap-2 mb-1">
+                      <input
+                        className="border rounded px-2 py-1 w-32"
+                        value={addOn.name}
+                        onChange={e => updateAddOn(service.id, aIdx, { name: e.target.value })}
+                        placeholder="Add-on name"
+                      />
+                      <input
+                        type="number"
+                        className="border rounded px-2 py-1 w-20"
+                        value={addOn.price}
+                        onChange={e => updateAddOn(service.id, aIdx, { price: Number(e.target.value) })}
+                        placeholder="Price"
+                      />
+                      <label className="flex items-center text-xs">
+                        <input
+                          type="checkbox"
+                          checked={addOn.rutEligible}
+                          onChange={e => updateAddOn(service.id, aIdx, { rutEligible: e.target.checked })}
+                          className="mr-1"
+                        />
+                        RUT
+                      </label>
+                      <button type="button" onClick={() => deleteAddOn(service.id, aIdx)} className="text-red-400">Remove</button>
                     </div>
-
-                    <Button
-                      color="failure"
-                      size="sm"
-                      onClick={() => deleteService(service.id)}
-                      className="ml-4"
-                    >
-                      <TrashIcon className="h-4 w-4" />
-                    </Button>
+                  ))}
+                  <button type="button" onClick={() => addAddOn(service.id)} className="text-blue-500 text-xs mt-1">+ Add Add-On</button>
+                </div>
+                {/* Frequency Multipliers */}
+                <div className="mb-2">
+                  <label className="block text-sm font-medium">Frequency Multipliers</label>
+                  <div className="flex gap-2">
+                    {Object.entries(service.frequencyMultipliers || {}).map(([freq, mult]) => (
+                      <div key={freq} className="flex flex-col items-center">
+                        <span className="text-xs capitalize">{freq}</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          className="border rounded px-2 py-1 w-16"
+                          value={mult}
+                          onChange={e => updateFrequencyMultiplier(service.id, freq, Number(e.target.value))}
+                        />
+                      </div>
+                    ))}
                   </div>
-                </Card>
-              </motion.div>
+                </div>
+                {/* RUT Eligible Toggle */}
+                <div className="mb-2">
+                  <label className="flex items-center text-sm font-medium">
+                    <input
+                      type="checkbox"
+                      checked={service.rutEligible}
+                      onChange={e => updateService(service.id, { rutEligible: e.target.checked })}
+                      className="mr-2"
+                    />
+                    RUT Eligible
+                  </label>
+                </div>
+                {/* Custom Fees */}
+                <div className="mb-2">
+                  <label className="block text-sm font-medium">Custom Fees</label>
+                  {service.customFees && service.customFees.map((fee, fIdx) => (
+                    <div key={fIdx} className="flex items-center gap-2 mb-1">
+                      <input
+                        className="border rounded px-2 py-1 w-32"
+                        value={fee.label}
+                        onChange={e => updateCustomFee(service.id, fIdx, { label: e.target.value })}
+                        placeholder="Fee label"
+                      />
+                      <input
+                        type="number"
+                        className="border rounded px-2 py-1 w-20"
+                        value={fee.amount}
+                        onChange={e => updateCustomFee(service.id, fIdx, { amount: Number(e.target.value) })}
+                        placeholder="Amount"
+                      />
+                      <label className="flex items-center text-xs">
+                        <input
+                          type="checkbox"
+                          checked={fee.rutEligible}
+                          onChange={e => updateCustomFee(service.id, fIdx, { rutEligible: e.target.checked })}
+                          className="mr-1"
+                        />
+                        RUT
+                      </label>
+                      <button type="button" onClick={() => deleteCustomFee(service.id, fIdx)} className="text-red-400">Remove</button>
+                    </div>
+                  ))}
+                  <button type="button" onClick={() => addCustomFee(service.id)} className="text-blue-500 text-xs mt-1">+ Add Custom Fee</button>
+                </div>
+                {/* Per-service VAT override */}
+                <div className="mb-2">
+                  <label className="block text-sm font-medium">VAT Override (%)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    value={service.vatRate ?? ''}
+                    onChange={e => updateService(service.id, { vatRate: e.target.value ? Number(e.target.value) : undefined })}
+                    className="mt-1 block w-24 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    placeholder={`Default: ${config.vatRate}%`}
+                  />
+                </div>
+                {/* TODO: Add pricing model-specific fields here (not in this step) */}
+              </div>
             ))}
 
             {config.services.length === 0 && (
