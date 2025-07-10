@@ -16,6 +16,28 @@ export function AuthProvider({ children }) {
   const [profileError, setProfileError] = useState('')
 
   useEffect(() => {
+    // Check for super admin impersonation
+    const impersonation = sessionStorage.getItem('superAdminImpersonation');
+    if (impersonation) {
+      const { tenantId, tenantName } = JSON.parse(impersonation);
+      // Inject a fake user object for impersonation
+      setUser({
+        uid: 'super-admin-impersonate',
+        email: 'superadmin@impersonate.local',
+        displayName: `SuperAdmin (Impersonating ${tenantName})`,
+        companyId: tenantId,
+        role: 'super-admin-impersonate',
+        isImpersonating: true
+      });
+      setUserProfile({
+        companyId: tenantId,
+        companyName: tenantName,
+        role: 'super-admin-impersonate',
+        isImpersonating: true
+      });
+      setLoading(false);
+      return;
+    }
     // Subscribe to Firebase auth changes
     const unsubscribe = onAuthStateChanged(auth, async (u) => {
       setUser(u)
