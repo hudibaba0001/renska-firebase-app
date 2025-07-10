@@ -118,37 +118,6 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
     toast.success('Service deleted')
   }
 
-  // Tier management
-  const addTier = (serviceId) => {
-    const service = config.services.find(s => s.id === serviceId)
-    const lastTier = service.tiers[service.tiers.length - 1]
-    const newTier = {
-      min: lastTier ? lastTier.max + 1 : 0,
-      max: lastTier ? lastTier.max + 50 : 50,
-      pricePerSqm: 10
-    }
-    
-    updateService(serviceId, {
-      tiers: [...service.tiers, newTier]
-    })
-  }
-
-  const updateTier = (serviceId, tierIndex, updates) => {
-    const service = config.services.find(s => s.id === serviceId)
-    const updatedTiers = service.tiers.map((tier, index) =>
-      index === tierIndex ? { ...tier, ...updates } : tier
-    )
-    
-    updateService(serviceId, { tiers: updatedTiers })
-  }
-
-  const deleteTier = (serviceId, tierIndex) => {
-    const service = config.services.find(s => s.id === serviceId)
-    const updatedTiers = service.tiers.filter((_, index) => index !== tierIndex)
-    
-    updateService(serviceId, { tiers: updatedTiers })
-  }
-
   // Add per-service helpers for add-ons, custom fees, and frequency multipliers
   function addAddOn(serviceId) {
     setConfig(prev => ({
