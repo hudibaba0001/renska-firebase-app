@@ -232,145 +232,7 @@ export default function AdminDashboardLayout() {
 
   return (
     <div className={`flex min-h-screen ${darkMode ? 'dark' : ''}`}> 
-      {/* 1. Move <nav> (top bar) outside the flex container, make it fixed w-full z-50 top-0. */}
-      {/* 2. Add 'mt-16' to <aside> so sidebar starts below top bar (assuming nav is h-16). */}
-      {/* 3. Add 'pt-16' to main content div so content starts below top bar. */}
-      {/* 4. Add 'bg-gray-100' to main content area for card contrast. */}
-      {/* 5. Ensure Modal for search is z-[9999] and overlays everything. */}
-      <nav className={`fixed ${isImpersonating ? 'top-10' : 'top-0'} z-50 w-full bg-white border-b border-gray-200 dark:bg-gray-800 dark:border-gray-700`}>
-        <div className="px-3 py-3 lg:px-5 lg:pl-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center justify-start rtl:justify-end">
-              {/* Logo */}
-              <Link to="/" className="flex items-center ml-2 md:mr-24">
-                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center mr-3">
-                  <span className="text-white font-bold text-sm">S</span>
-                </div>
-                <span className="self-center text-xl font-semibold sm:text-2xl whitespace-nowrap dark:text-white">
-                  SwedPrime
-                </span>
-              </Link>
-            </div>
-            
-            {/* Right side items */}
-            <div className="flex items-center space-x-3">
-              {/* Search */}
-              <Button
-                color="gray"
-                size="sm"
-                onClick={() => setSearchOpen(true)}
-                className="p-2 text-gray-500 rounded-lg hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-700"
-              >
-                <MagnifyingGlassIcon className="w-5 h-5" />
-              </Button>
-              
-              {/* Dark mode toggle */}
-              <Button
-                color="gray"
-                size="sm"
-                onClick={() => setDarkMode(!darkMode)}
-                className="p-2 text-gray-500 rounded-lg hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-700"
-              >
-                {darkMode ? <SunIcon className="w-5 h-5" /> : <MoonIcon className="w-5 h-5" />}
-              </Button>
-              
-              {/* Notifications */}
-              <Dropdown
-                arrowIcon={false}
-                inline
-                label={
-                  <Button
-                    color="gray"
-                    size="sm"
-                    className="relative p-2 text-gray-500 rounded-lg hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-700"
-                  >
-                    <BellIcon className="w-5 h-5" />
-                    {unreadCount > 0 && (
-                      <div className="absolute inline-flex items-center justify-center w-6 h-6 text-xs font-bold text-white bg-red-500 border-2 border-white rounded-full -top-2 -right-2 dark:border-gray-900">
-                        {unreadCount}
-                      </div>
-                    )}
-                  </Button>
-                }
-              >
-                <Dropdown.Header>
-                  <div className="flex items-center justify-between">
-                    <span className="block text-base font-medium">Notifications</span>
-                    <Badge color="info" size="sm">{unreadCount} new</Badge>
-                  </div>
-                </Dropdown.Header>
-                {notifications.slice(0, 3).map((notification) => (
-                  <Dropdown.Item key={notification.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                    <div className="flex items-start space-x-3 p-2">
-                      <div className={`w-2 h-2 rounded-full mt-2 ${notification.unread ? 'bg-blue-600' : 'bg-gray-300'}`} />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-base font-medium text-text-heading dark:text-white">
-                          {notification.title}
-                        </p>
-                        <p className="text-base text-text-subtle dark:text-white truncate">
-                          {notification.message}
-                        </p>
-                        <p className="text-base text-text-subtle dark:text-white">
-                          {notification.time}
-                        </p>
-                      </div>
-                    </div>
-                  </Dropdown.Item>
-                ))}
-                <Dropdown.Divider />
-                <Dropdown.Item>
-                  <span className="block text-base text-center text-gray-500 dark:text-gray-400">
-                    View all notifications
-                  </span>
-                </Dropdown.Item>
-              </Dropdown>
-              
-              {/* User menu */}
-              <Dropdown
-                arrowIcon={false}
-                inline
-                label={
-                  <Avatar
-                    alt="Admin"
-                    img="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=100&q=80"
-                    rounded
-                    size="sm"
-                    className="cursor-pointer"
-                  />
-                }
-              >
-                <Dropdown.Header>
-                  <span className="block text-base font-medium">
-                    {user?.email || 'Admin User'}
-                  </span>
-                  <span className="block text-base text-text-subtle dark:text-white truncate">
-                    {user?.email || 'admin@swedprime.com'}
-                  </span>
-                </Dropdown.Header>
-                <Dropdown.Item icon={UserIcon}>
-                  Profile Settings
-                </Dropdown.Item>
-                <Dropdown.Item icon={BuildingOfficeIcon}>
-                  Company Settings
-                </Dropdown.Item>
-                <Dropdown.Item icon={CreditCardIcon}>
-                  Billing
-                </Dropdown.Item>
-                <Dropdown.Item icon={QuestionMarkCircleIcon}>
-                  Help & Support
-                </Dropdown.Item>
-                <Dropdown.Divider />
-                <Dropdown.Item icon={ArrowRightOnRectangleIcon}>
-                  Sign Out
-                </Dropdown.Item>
-              </Dropdown>
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      {/* Sidebar */}
-      <aside className="sticky top-0 h-screen w-64 flex-shrink-0 bg-white border-r border-gray-200 dark:bg-gray-800 dark:border-gray-700 mt-16">
+      <aside className={`sticky top-0 h-screen w-64 flex-shrink-0 bg-white border-r border-gray-200 dark:bg-gray-800 dark:border-gray-700 ${isImpersonating ? 'pt-20' : 'pt-16'}`}>
         <div className="h-full px-3 pb-4 overflow-y-auto bg-white dark:bg-gray-800">
             {/* Company Info Card */}
             <div className="mb-6 p-4 bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg text-white">
@@ -436,9 +298,7 @@ export default function AdminDashboardLayout() {
             </div>
           </div>
         </aside>
-
-      {/* Main Content - Always has left margin on desktop to account for fixed sidebar */}
-      <div className="flex-1 min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+      <div className="flex-1 min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200 overflow-x-hidden">
         <Toaster 
           position="top-right"
           toastOptions={{
@@ -471,8 +331,141 @@ export default function AdminDashboardLayout() {
           </div>
         )}
         
-        {/* Main Content Area */}
-        <div className={`min-h-screen transition-all duration-300 ease-in-out w-full ${isImpersonating ? 'pt-20' : 'pt-16'} overflow-x-hidden bg-gray-100`}>
+        {/* Top Navigation Bar */}
+        <nav className={`fixed left-0 right-0 top-0 z-50 overflow-x-hidden box-border bg-white border-b border-gray-200 dark:bg-gray-800 dark:border-gray-700`}>
+          <div className="w-full overflow-x-hidden box-border px-3 py-3 lg:px-5 lg:pl-3 max-w-screen box-border">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center justify-start rtl:justify-end">
+                {/* Logo */}
+                <Link to="/" className="flex items-center ml-2 md:mr-24">
+                  <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center mr-3">
+                    <span className="text-white font-bold text-sm">S</span>
+                  </div>
+                  <span className="self-center text-xl font-semibold sm:text-2xl whitespace-nowrap dark:text-white">
+                    SwedPrime
+                  </span>
+                </Link>
+              </div>
+              
+              {/* Right side items */}
+              <div className="flex items-center space-x-3">
+                {/* Search */}
+                <Button
+                  color="gray"
+                  size="sm"
+                  onClick={() => setSearchOpen(true)}
+                  className="p-2 text-gray-500 rounded-lg hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-700"
+                >
+                  <MagnifyingGlassIcon className="w-5 h-5" />
+                </Button>
+                
+                {/* Dark mode toggle */}
+                <Button
+                  color="gray"
+                  size="sm"
+                  onClick={() => setDarkMode(!darkMode)}
+                  className="p-2 text-gray-500 rounded-lg hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-700"
+                >
+                  {darkMode ? <SunIcon className="w-5 h-5" /> : <MoonIcon className="w-5 h-5" />}
+                </Button>
+                
+                {/* Notifications */}
+                <Dropdown
+                  arrowIcon={false}
+                  inline
+                  label={
+                    <Button
+                      color="gray"
+                      size="sm"
+                      className="relative p-2 text-gray-500 rounded-lg hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-700"
+                    >
+                      <BellIcon className="w-5 h-5" />
+                      {unreadCount > 0 && (
+                        <div className="absolute inline-flex items-center justify-center w-6 h-6 text-xs font-bold text-white bg-red-500 border-2 border-white rounded-full -top-2 -right-2 dark:border-gray-900">
+                          {unreadCount}
+                        </div>
+                      )}
+                    </Button>
+                  }
+                >
+                  <Dropdown.Header>
+                    <div className="flex items-center justify-between">
+                      <span className="block text-base font-medium">Notifications</span>
+                      <Badge color="info" size="sm">{unreadCount} new</Badge>
+                    </div>
+                  </Dropdown.Header>
+                  {notifications.slice(0, 3).map((notification) => (
+                    <Dropdown.Item key={notification.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                      <div className="flex items-start space-x-3 p-2">
+                        <div className={`w-2 h-2 rounded-full mt-2 ${notification.unread ? 'bg-blue-600' : 'bg-gray-300'}`} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-base font-medium text-text-heading dark:text-white">
+                            {notification.title}
+                          </p>
+                          <p className="text-base text-text-subtle dark:text-white truncate">
+                            {notification.message}
+                          </p>
+                          <p className="text-base text-text-subtle dark:text-white">
+                            {notification.time}
+                          </p>
+                        </div>
+                      </div>
+                    </Dropdown.Item>
+                  ))}
+                  <Dropdown.Divider />
+                  <Dropdown.Item>
+                    <span className="block text-base text-center text-gray-500 dark:text-gray-400">
+                      View all notifications
+                    </span>
+                  </Dropdown.Item>
+                </Dropdown>
+                
+                {/* User menu */}
+                <Dropdown
+                  arrowIcon={false}
+                  inline
+                  label={
+                    <Avatar
+                      alt="Admin"
+                      img="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=100&q=80"
+                      rounded
+                      size="sm"
+                      className="cursor-pointer"
+                    />
+                  }
+                >
+                  <Dropdown.Header>
+                    <span className="block text-base font-medium">
+                      {user?.email || 'Admin User'}
+                    </span>
+                    <span className="block text-base text-text-subtle dark:text-white truncate">
+                      {user?.email || 'admin@swedprime.com'}
+                    </span>
+                  </Dropdown.Header>
+                  <Dropdown.Item icon={UserIcon}>
+                    Profile Settings
+                  </Dropdown.Item>
+                  <Dropdown.Item icon={BuildingOfficeIcon}>
+                    Company Settings
+                  </Dropdown.Item>
+                  <Dropdown.Item icon={CreditCardIcon}>
+                    Billing
+                  </Dropdown.Item>
+                  <Dropdown.Item icon={QuestionMarkCircleIcon}>
+                    Help & Support
+                  </Dropdown.Item>
+                  <Dropdown.Divider />
+                  <Dropdown.Item icon={ArrowRightOnRectangleIcon}>
+                    Sign Out
+                  </Dropdown.Item>
+                </Dropdown>
+              </div>
+            </div>
+          </div>
+        </nav>
+
+        {/* Main Content - Always has left margin on desktop to account for fixed sidebar */}
+        <div className={`min-h-screen transition-all duration-300 ease-in-out w-full ${isImpersonating ? 'pt-20' : 'pt-16'} overflow-x-hidden`}>
           <div className="p-6">
             {/* Page Header */}
             <div className="mb-6">
