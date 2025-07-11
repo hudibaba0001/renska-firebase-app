@@ -19,9 +19,8 @@ import {
   CalendarDaysIcon,
   BanknotesIcon
 } from '@heroicons/react/24/outline'
-import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
-import { STRIPE_CONFIG, formatPrice, getPlanByPriceId } from '../stripe/config'
+import { STRIPE_CONFIG, formatPrice } from '../stripe/config'
 
 export default function AdminBillingPage() {
   const { companyId } = useParams()
@@ -37,7 +36,6 @@ export default function AdminBillingPage() {
   useEffect(() => {
     const success = searchParams.get('success')
     const plan = searchParams.get('plan')
-    const error = searchParams.get('error')
 
     if (success === 'true') {
       toast.success('Subscription activated successfully!')
@@ -49,9 +47,6 @@ export default function AdminBillingPage() {
       }
     }
 
-    if (error) {
-      toast.error('There was an issue with your payment')
-    }
   }, [searchParams])
 
   // Mock data loading
@@ -145,7 +140,7 @@ export default function AdminBillingPage() {
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <Spinner size="xl" className="mx-auto mb-4" />
-            <p className="text-gray-500">Loading billing information...</p>
+            <p className="text-text-main dark:text-white">Loading billing information...</p>
           </div>
         </div>
       </div>
@@ -173,7 +168,7 @@ export default function AdminBillingPage() {
       </div>
 
       {/* Current Plan */}
-      <motion.div
+      <div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
@@ -259,10 +254,10 @@ export default function AdminBillingPage() {
             </div>
           </div>
         </Card>
-      </motion.div>
+      </div>
 
       {/* Billing Status */}
-      <motion.div
+      <div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: 0.1 }}
@@ -292,10 +287,10 @@ export default function AdminBillingPage() {
             </Alert>
           </div>
         </Card>
-      </motion.div>
+      </div>
 
       {/* Invoice History */}
-      <motion.div
+      <div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: 0.2 }}
@@ -352,7 +347,7 @@ export default function AdminBillingPage() {
             </div>
           </div>
         </Card>
-      </motion.div>
+      </div>
 
       {/* Plan Change Modal */}
       <Modal show={showPlanModal} onClose={() => setShowPlanModal(false)} size="4xl">

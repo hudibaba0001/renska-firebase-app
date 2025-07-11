@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { getAllServicesForCompany } from '../services/firestore';
 import { 
   Card, 
   Button, 
@@ -27,40 +26,12 @@ import {
   ArrowTrendingUpIcon,
   ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
-import { motion } from 'framer-motion';
 
 export default function AdminDashboardPage() {
   const { companyId } = useParams();
   if (!companyId) {
     return <div className="p-8 text-center text-red-600 font-bold">Error: No companyId found in route params.</div>;
   }
-  // eslint-disable-next-line no-unused-vars
-  const [timeRange, setTimeRange] = useState('7d');
-  // eslint-disable-next-line no-unused-vars
-  const [services, setServices] = useState([]);
-
-  console.log('[AdminDashboardPage] Rendered. companyId:', companyId);
-
-  // Fetch company services
-  useEffect(() => {
-    async function fetchServices() {
-      if (!companyId) {
-        console.warn('[AdminDashboardPage] No companyId found in params.');
-        return;
-      }
-      try {
-        // Use the new service layer function
-        const services = await getAllServicesForCompany(companyId);
-        setServices(services);
-        console.log('[AdminDashboardPage] Loaded services:', services);
-      } catch (error) {
-        console.error('[AdminDashboardPage] Error fetching services:', error);
-      }
-    }
-    fetchServices();
-  }, [companyId]);
-
-  // Simulate real-time data updates
   const [stats] = useState([
     {
       name: 'Total Revenue',
@@ -104,7 +75,7 @@ export default function AdminDashboardPage() {
     }
   ]);
 
-  const recentBookings = [
+  const [recentBookings] = useState([
     {
       id: 'BK-2024-001',
       customer: 'Anna Andersson',
@@ -135,7 +106,7 @@ export default function AdminDashboardPage() {
       time: '09:00',
       avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face'
     }
-  ];
+  ]);
 
   const calculatorStats = [
     {
@@ -224,24 +195,24 @@ export default function AdminDashboardPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 overflow-x-hidden w-full box-border">
       {/* Welcome Section */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-6 text-white">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-text-heading dark:text-white">Welcome back! 👋</h1>
-            <p className="text-sm text-text-main dark:text-white">
+            <p className="text-base text-text-main dark:text-white">
               Here's what's happening with your cleaning business today.
             </p>
           </div>
           <div className="hidden md:flex items-center space-x-4">
             <div className="text-right">
-              <p className="text-sm text-text-main dark:text-white">Today's Revenue</p>
+              <p className="text-base text-text-main dark:text-white">Today's Revenue</p>
               <p className="text-2xl font-bold text-text-heading dark:text-white">2,340 kr</p>
             </div>
             <div className="w-px h-12 bg-blue-400"></div>
             <div className="text-right">
-              <p className="text-sm text-text-main dark:text-white">New Bookings</p>
+              <p className="text-base text-text-main dark:text-white">New Bookings</p>
               <p className="text-2xl font-bold text-text-heading dark:text-white">7</p>
             </div>
           </div>
@@ -250,17 +221,14 @@ export default function AdminDashboardPage() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, index) => (
-          <motion.div
+        {stats.map((stat) => (
+          <div
             key={stat.name}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: index * 0.1 }}
           >
             <Card className="hover:shadow-lg transition-shadow duration-200">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                  <p className="text-base font-medium text-text-subtle dark:text-gray-400">
                     {stat.name}
                   </p>
                   <div className="flex items-baseline mt-1">
@@ -268,7 +236,7 @@ export default function AdminDashboardPage() {
                       {stat.value}
                     </p>
                     {stat.unit && (
-                      <span className="ml-1 text-sm text-gray-500 dark:text-gray-400">
+                      <span className="ml-1 text-base text-text-subtle dark:text-gray-400">
                         {stat.unit}
                       </span>
                     )}
@@ -279,7 +247,7 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
               <div className="flex items-center mt-4">
-                <div className={`flex items-center text-sm ${
+                <div className={`flex items-center text-base ${
                   stat.changeType === 'positive' ? 'text-green-600' : 'text-red-600'
                 }`}>
                   {stat.changeType === 'positive' ? (
@@ -289,12 +257,12 @@ export default function AdminDashboardPage() {
                   )}
                   {stat.change}
                 </div>
-                <span className="text-sm text-gray-500 dark:text-gray-400 ml-2">
+                <span className="text-base text-text-subtle dark:text-gray-400 ml-2">
                   {stat.description}
                 </span>
               </div>
             </Card>
-          </motion.div>
+          </div>
         ))}
       </div>
 
@@ -305,16 +273,13 @@ export default function AdminDashboardPage() {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h2 className="text-xl font-bold text-text-heading dark:text-white">Quick Actions</h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Common tasks to manage your business</p>
+                <p className="text-base text-text-subtle dark:text-gray-400">Common tasks to manage your business</p>
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {quickActions.map((action, index) => (
-                <motion.div
+              {quickActions.map((action) => (
+                <div
                   key={action.title}
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.2, delay: index * 0.1 }}
                 >
                   <Link
                     to={action.href}
@@ -328,13 +293,13 @@ export default function AdminDashboardPage() {
                         <h3 className={`font-semibold ${action.textColor} dark:text-white`}>
                           {action.title}
                         </h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                        <p className="text-base text-text-subtle dark:text-gray-400 mt-1">
                           {action.description}
                         </p>
                       </div>
                     </div>
                   </Link>
-                </motion.div>
+                </div>
               ))}
             </div>
           </Card>
@@ -344,41 +309,31 @@ export default function AdminDashboardPage() {
         <div>
           <Card>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-text-heading dark:text-white">
+              <h3 className="text-xl font-semibold text-text-heading dark:text-white">
                 Performance Overview
               </h3>
-              <Dropdown
-                arrowIcon={false}
-                inline
-                label={<span className="inline-block px-2 py-1 bg-gray-100 rounded text-xs cursor-pointer">Last 7 days</span>}
-              >
-                <Dropdown.Item onClick={() => setTimeRange('24h')}>Last 24 hours</Dropdown.Item>
-                <Dropdown.Item onClick={() => setTimeRange('7d')}>Last 7 days</Dropdown.Item>
-                <Dropdown.Item onClick={() => setTimeRange('30d')}>Last 30 days</Dropdown.Item>
-                <Dropdown.Item onClick={() => setTimeRange('90d')}>Last 90 days</Dropdown.Item>
-              </Dropdown>
             </div>
             
             <div className="space-y-4">
               <div>
-                <div className="flex justify-between text-sm mb-1">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Form Views</span>
+                <div className="flex justify-between text-base mb-1">
+                  <span className="text-base text-text-subtle dark:text-gray-400">Form Views</span>
                   <span className="font-medium">2,315</span>
                 </div>
                 <Progress progress={75} color="blue" size="sm" />
               </div>
               
               <div>
-                <div className="flex justify-between text-sm mb-1">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Conversions</span>
+                <div className="flex justify-between text-base mb-1">
+                  <span className="text-base text-text-subtle dark:text-gray-400">Conversions</span>
                   <span className="font-medium">151</span>
                 </div>
                 <Progress progress={45} color="green" size="sm" />
               </div>
               
               <div>
-                <div className="flex justify-between text-sm mb-1">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Revenue Goal</span>
+                <div className="flex justify-between text-base mb-1">
+                  <span className="text-base text-text-subtle dark:text-gray-400">Revenue Goal</span>
                   <span className="font-medium">45,230 kr</span>
                 </div>
                 <Progress progress={68} color="yellow" size="sm" />
@@ -389,10 +344,10 @@ export default function AdminDashboardPage() {
               <div className="flex items-start space-x-3">
                 <ArrowTrendingUpIcon className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" />
                 <div>
-                  <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100">
+                  <h4 className="text-base font-semibold text-blue-900 dark:text-blue-100">
                     Great Performance!
                   </h4>
-                  <p className="text-xs text-blue-700 dark:text-blue-200 mt-1">
+                  <p className="text-base text-blue-700 dark:text-blue-200 mt-1">
                     Your conversion rate increased by 12% this week. Keep up the excellent work!
                   </p>
                 </div>
@@ -407,7 +362,7 @@ export default function AdminDashboardPage() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-xl font-bold text-text-heading dark:text-white">Recent Bookings</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Latest customer bookings and their status</p>
+            <p className="text-base text-text-subtle dark:text-gray-400">Latest customer bookings and their status</p>
           </div>
           <Button as={Link} to={`/admin/${companyId}/bookings`} color="blue" size="sm">
             View All
@@ -432,16 +387,16 @@ export default function AdminDashboardPage() {
                       <Avatar img={booking.avatar} size="sm" rounded />
                       <div>
                         <div className="font-semibold">{booking.customer}</div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">{booking.id}</div>
+                        <div className="text-base text-text-subtle dark:text-gray-400">{booking.id}</div>
                       </div>
                     </div>
                   </Table.Cell>
                   <Table.Cell>{booking.service}</Table.Cell>
                   <Table.Cell>
                     <div className="flex items-center space-x-2">
-                      <CalendarIcon className="w-4 h-4 text-gray-400" />
+                      <CalendarIcon className="w-4 h-4 text-text-subtle dark:text-gray-400" />
                       <span>{booking.date}</span>
-                      <ClockIcon className="w-4 h-4 text-gray-400 ml-2" />
+                      <ClockIcon className="w-4 h-4 text-text-subtle dark:text-gray-400 ml-2" />
                       <span>{booking.time}</span>
                     </div>
                   </Table.Cell>
@@ -477,7 +432,7 @@ export default function AdminDashboardPage() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-xl font-bold text-text-heading dark:text-white">Calculator Performance</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400">How your booking forms are performing</p>
+            <p className="text-base text-text-subtle dark:text-gray-400">How your booking forms are performing</p>
           </div>
           <Button as={Link} to={`/admin/${companyId}/forms/new`} color="blue" size="sm">
             <PlusIcon className="w-4 h-4 mr-2" />
@@ -486,13 +441,9 @@ export default function AdminDashboardPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {calculatorStats.map((calc, index) => (
-            <motion.div
+          {calculatorStats.map((calc) => (
+            <div
               key={calc.name}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: index * 0.1 }}
-              className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:shadow-md transition-shadow"
             >
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-semibold text-text-heading dark:text-white">{calc.name}</h3>
@@ -502,28 +453,28 @@ export default function AdminDashboardPage() {
               </div>
               
               <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Views</span>
+                <div className="flex justify-between text-base">
+                  <span className="text-base text-text-subtle dark:text-gray-400">Views</span>
                   <span className="font-medium">{calc.views.toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Conversions</span>
+                <div className="flex justify-between text-base">
+                  <span className="text-base text-text-subtle dark:text-gray-400">Conversions</span>
                   <span className="font-medium">{calc.conversions}</span>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Revenue</span>
+                <div className="flex justify-between text-base">
+                  <span className="text-base text-text-subtle dark:text-gray-400">Revenue</span>
                   <span className="font-medium">{calc.revenue}</span>
                 </div>
               </div>
               
               <div className="flex items-center justify-between mt-4">
-                <span className="text-sm text-green-600 font-medium">{calc.trend}</span>
+                <span className="text-base text-green-600 font-medium">{calc.trend}</span>
                 <div className="flex space-x-2">
                   <Button color="gray" size="xs">Edit</Button>
                   <Button color="gray" size="xs">View</Button>
                 </div>
               </div>
-            </motion.div>
+            </div>
           ))}
         </div>
       </Card>

@@ -60,7 +60,7 @@ export default function SetupSuperAdminPage() {
         
         <div className="space-y-4">
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h3 className="font-semibold text-blue-900">Setup Instructions:</h3>
+            <h3 className="font-semibold text-text-heading dark:text-white">Setup Instructions:</h3>
             <p className="text-sm text-text-main dark:text-white">
               This will configure super admin access for admin@swedprime.com
             </p>

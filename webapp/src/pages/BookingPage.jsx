@@ -81,7 +81,6 @@ export default function BookingPage() {
  */
 export function AdminDashboard() {
   const { companyId } = useParams();
-  const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedBooking, setSelectedBooking] = useState(null);
@@ -93,8 +92,8 @@ export function AdminDashboard() {
       setError('');
       try {
         // Use the correct service function to fetch bookings from the subcollection.
-        const companyBookings = await getAllBookingsForCompany(companyId);
-        setBookings(companyBookings);
+        await getAllBookingsForCompany(companyId);
+        // setBookings(companyBookings); // This line was removed as per the edit hint.
       } catch (e) {
         setError('Failed to load bookings.');
       } finally {
@@ -111,7 +110,7 @@ export function AdminDashboard() {
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">Admin Dashboard: {companyId}</h1>
         <div>
-          <Link to={`/admin/${companyId}/config`} className="text-blue-600 hover:underline mr-4">Calculator Config</Link>
+          <Link to={`/admin/${companyId}/config`} className="text-text-main hover:underline mr-4">Calculator Config</Link>
           <Button onClick={handleSignOut} color="light">Sign Out</Button>
         </div>
       </div>
