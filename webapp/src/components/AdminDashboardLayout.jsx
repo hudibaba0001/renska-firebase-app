@@ -1,3 +1,11 @@
+// UI milestone: Admin dashboard layout fixed (header, sidebar, overflow, text size, search modal)
+// This commit marks a stable, production-ready UI baseline for the admin dashboard.
+//
+// All major layout, overflow, and text issues resolved. Safe to revert to this commit for a clean, professional UI.
+//
+// Date: [fill in date if you want]
+//
+// -------------------------------------------------------------
 import React, { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useParams, useLocation } from 'react-router-dom'
 import { doc, getDoc } from 'firebase/firestore'
