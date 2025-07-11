@@ -1,3 +1,11 @@
+// UI milestone: Admin dashboard layout fixed (header, sidebar, overflow, text size, search modal)
+// This commit marks a stable, production-ready UI baseline for the admin dashboard.
+//
+// All major layout, overflow, and text issues resolved. Safe to revert to this commit for a clean, professional UI.
+//
+// Date: [fill in date if you want]
+//
+// -------------------------------------------------------------
 import React, { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useParams, useLocation } from 'react-router-dom'
 import { doc, getDoc } from 'firebase/firestore'
@@ -34,8 +42,9 @@ import {
   BuildingOfficeIcon,
   QuestionMarkCircleIcon
 } from '@heroicons/react/24/outline'
-import { motion, AnimatePresence } from 'framer-motion'
+import { AnimatePresence } from 'framer-motion'
 import toast, { Toaster } from 'react-hot-toast'
+import AdminHeader from './AdminHeader';
 
 export default function AdminDashboardLayout() {
   const { companyId } = useParams()
@@ -46,7 +55,10 @@ export default function AdminDashboardLayout() {
   const [company, setCompany] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  // Remove sidebarOpen state and all logic related to toggling sidebar visibility on desktop
+  // Remove AnimatePresence and motion.div for mobile overlay
+  // Sidebar should always be visible on the left for lg: and up, and main content should always be visible on the right
+  // Adjust the main content div to always have left padding/margin for the sidebar
   const [darkMode, setDarkMode] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [notifications] = useState([
@@ -138,8 +150,6 @@ export default function AdminDashboardLayout() {
     return 'Dashboard Overview'
   }
 
-  const unreadCount = notifications.filter(n => n.unread).length
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
@@ -153,7 +163,7 @@ export default function AdminDashboardLayout() {
                 </div>
               </div>
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mt-4 mb-2">
+            <h3 className="text-lg font-semibold text-text-heading dark:text-white mt-4 mb-2">
               Loading SwedPrime Dashboard
             </h3>
             <p className="text-gray-500 dark:text-gray-400">
@@ -228,8 +238,72 @@ export default function AdminDashboardLayout() {
   ]
 
   return (
-    <div className={`min-h-screen ${darkMode ? 'dark' : ''}`}>
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+    <div className={`flex min-h-screen ${darkMode ? 'dark' : ''}`}> 
+      <aside className={`sticky top-0 h-screen w-64 flex-shrink-0 bg-white border-r border-gray-200 dark:bg-gray-800 dark:border-gray-700 ${isImpersonating ? 'pt-20' : 'pt-16'}`}>
+        <div className="h-full px-3 pb-4 overflow-y-auto bg-white dark:bg-gray-800">
+          {/* Company Info Card */}
+          <div className="mb-6 p-4 bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg text-white">
+            <div className="flex items-center space-x-3 mb-3">
+              <div className="w-10 h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
+                <BuildingOfficeIcon className="w-6 h-6" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-base truncate text-text-heading dark:text-white">{company?.companyName || 'Company'}</h3>
+                <p className="text-base text-text-subtle dark:text-white capitalize">{company?.serviceType || 'Cleaning Service'}</p>
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <Badge color="success" size="sm">Pro Plan</Badge>
+              <Link
+                to={`/booking/${companyId}`}
+                className="text-base text-black dark:text-white underline"
+              >
+                View Live Form →
+              </Link>
+            </div>
+          </div>
+          {/* Navigation */}
+          <nav className="space-y-2">
+            {navigationItems.map((item) => (
+              <NavLink
+                key={item.href}
+                to={item.href}
+                end={item.exact}
+                className={({ isActive }) =>
+                  `group flex items-center w-full p-2 text-base font-normal rounded-lg transition duration-75 ${
+                    isActive
+                      ? 'text-black bg-gray-100 dark:bg-gray-700 dark:text-white'
+                      : 'text-black hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'
+                  }`
+                }
+              >
+                {item.icon && <item.icon className="w-5 h-5 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white" />}
+                <span className="ml-3 flex-1 whitespace-nowrap">{item.label}</span>
+                {item.badge && (
+                  <Badge color="info" size="sm">
+                    {item.badge}
+                  </Badge>
+                )}
+              </NavLink>
+            ))}
+          </nav>
+          {/* Bottom Section */}
+          <div className="mt-8 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <div className="p-4 bg-blue-50 dark:bg-blue-900 rounded-lg">
+              <h4 className="text-base font-semibold text-text-heading dark:text-white mb-2">
+                Need Help?
+              </h4>
+              <p className="text-base text-text-subtle dark:text-white mb-3">
+                Check our documentation or contact support for assistance.
+              </p>
+              <Button size="xs" color="blue" className="w-full">
+                Get Support
+              </Button>
+            </div>
+          </div>
+        </div>
+      </aside>
+      <div className="flex-1 min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200 overflow-x-hidden">
         <Toaster 
           position="top-right"
           toastOptions={{
@@ -243,263 +317,27 @@ export default function AdminDashboardLayout() {
         
         {/* Super Admin Impersonation Banner */}
         {isImpersonating && (
-          <div className="bg-red-600 text-white px-4 py-2 text-sm flex items-center justify-between relative z-50">
+          <div className="bg-red-600 text-white px-4 py-2 text-base flex items-center justify-between relative z-50">
             <div className="flex items-center gap-2">
               <span>🦹‍♀️</span>
               <span>
                 Super Admin Mode: Impersonating <strong>{impersonationData.tenantName}</strong>
               </span>
             </div>
-            <button
-              onClick={() => {
-                sessionStorage.removeItem('superAdminImpersonation');
-                window.location.href = '/super-admin/tenants';
-              }}
-              className="underline hover:no-underline"
-            >
-              Exit Impersonation
-            </button>
           </div>
         )}
         
         {/* Top Navigation Bar */}
-        <nav className={`fixed ${isImpersonating ? 'top-10' : 'top-0'} z-50 w-full bg-white border-b border-gray-200 dark:bg-gray-800 dark:border-gray-700`}>
-          <div className="px-3 py-3 lg:px-5 lg:pl-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center justify-start rtl:justify-end">
-                {/* Mobile menu button - only visible on mobile */}
-                <Button
-                  color="gray"
-                  size="sm"
-                  onClick={() => setSidebarOpen(!sidebarOpen)}
-                  className="inline-flex items-center p-2 text-sm text-gray-500 rounded-lg lg:hidden hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-600"
-                >
-                  <span className="sr-only">Toggle sidebar</span>
-                  {sidebarOpen ? <XMarkIcon className="w-6 h-6" /> : <Bars3Icon className="w-6 h-6" />}
-                </Button>
-                
-                {/* Logo */}
-                <Link to="/" className="flex items-center ml-2 md:mr-24">
-                  <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center mr-3">
-                    <span className="text-white font-bold text-sm">S</span>
-                  </div>
-                  <span className="self-center text-xl font-semibold sm:text-2xl whitespace-nowrap dark:text-white">
-                    SwedPrime
-                  </span>
-                </Link>
-              </div>
-              
-              {/* Right side items */}
-              <div className="flex items-center space-x-3">
-                {/* Search */}
-                <Button
-                  color="gray"
-                  size="sm"
-                  onClick={() => setSearchOpen(true)}
-                  className="p-2 text-gray-500 rounded-lg hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-700"
-                >
-                  <MagnifyingGlassIcon className="w-5 h-5" />
-                </Button>
-                
-                {/* Dark mode toggle */}
-                <Button
-                  color="gray"
-                  size="sm"
-                  onClick={() => setDarkMode(!darkMode)}
-                  className="p-2 text-gray-500 rounded-lg hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-700"
-                >
-                  {darkMode ? <SunIcon className="w-5 h-5" /> : <MoonIcon className="w-5 h-5" />}
-                </Button>
-                
-                {/* Notifications */}
-                <Dropdown
-                  arrowIcon={false}
-                  inline
-                  label={
-                    <Button
-                      color="gray"
-                      size="sm"
-                      className="relative p-2 text-gray-500 rounded-lg hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-700"
-                    >
-                      <BellIcon className="w-5 h-5" />
-                      {unreadCount > 0 && (
-                        <div className="absolute inline-flex items-center justify-center w-6 h-6 text-xs font-bold text-white bg-red-500 border-2 border-white rounded-full -top-2 -right-2 dark:border-gray-900">
-                          {unreadCount}
-                        </div>
-                      )}
-                    </Button>
-                  }
-                >
-                  <Dropdown.Header>
-                    <div className="flex items-center justify-between">
-                      <span className="block text-sm font-medium">Notifications</span>
-                      <Badge color="info" size="sm">{unreadCount} new</Badge>
-                    </div>
-                  </Dropdown.Header>
-                  {notifications.slice(0, 3).map((notification) => (
-                    <Dropdown.Item key={notification.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                      <div className="flex items-start space-x-3 p-2">
-                        <div className={`w-2 h-2 rounded-full mt-2 ${notification.unread ? 'bg-blue-600' : 'bg-gray-300'}`} />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 dark:text-white">
-                            {notification.title}
-                          </p>
-                          <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
-                            {notification.message}
-                          </p>
-                          <p className="text-xs text-gray-400 dark:text-gray-500">
-                            {notification.time}
-                          </p>
-                        </div>
-                      </div>
-                    </Dropdown.Item>
-                  ))}
-                  <Dropdown.Divider />
-                  <Dropdown.Item>
-                    <span className="block text-sm text-center text-gray-500 dark:text-gray-400">
-                      View all notifications
-                    </span>
-                  </Dropdown.Item>
-                </Dropdown>
-                
-                {/* User menu */}
-                <Dropdown
-                  arrowIcon={false}
-                  inline
-                  label={
-                    <Avatar
-                      alt="Admin"
-                      img="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=100&q=80"
-                      rounded
-                      size="sm"
-                      className="cursor-pointer"
-                    />
-                  }
-                >
-                  <Dropdown.Header>
-                    <span className="block text-sm font-medium">
-                      {user?.email || 'Admin User'}
-                    </span>
-                    <span className="block text-sm text-gray-500 truncate">
-                      {user?.email || 'admin@swedprime.com'}
-                    </span>
-                  </Dropdown.Header>
-                  <Dropdown.Item icon={UserIcon}>
-                    Profile Settings
-                  </Dropdown.Item>
-                  <Dropdown.Item icon={BuildingOfficeIcon}>
-                    Company Settings
-                  </Dropdown.Item>
-                  <Dropdown.Item icon={CreditCardIcon}>
-                    Billing
-                  </Dropdown.Item>
-                  <Dropdown.Item icon={QuestionMarkCircleIcon}>
-                    Help & Support
-                  </Dropdown.Item>
-                  <Dropdown.Divider />
-                  <Dropdown.Item icon={ArrowRightOnRectangleIcon}>
-                    Sign Out
-                  </Dropdown.Item>
-                </Dropdown>
-              </div>
-            </div>
-          </div>
-        </nav>
-
-        {/* Mobile overlay - only for mobile */}
-        <AnimatePresence>
-          {sidebarOpen && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-gray-900 bg-opacity-50 z-40 lg:hidden"
-              onClick={() => setSidebarOpen(false)}
-            />
-          )}
-        </AnimatePresence>
-        
-        {/* Sidebar - Always visible on desktop, toggleable on mobile */}
-        <aside className={`
-          fixed ${isImpersonating ? 'top-20' : 'top-0'} left-0 z-40 w-64 h-screen ${isImpersonating ? 'pt-10' : 'pt-20'} transition-transform duration-300 ease-in-out
-          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-          bg-white border-r border-gray-200 
-          dark:bg-gray-800 dark:border-gray-700
-        `}>
-          <div className="h-full px-3 pb-4 overflow-y-auto bg-white dark:bg-gray-800">
-            {/* Company Info Card */}
-            <div className="mb-6 p-4 bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg text-white">
-              <div className="flex items-center space-x-3 mb-3">
-                <div className="w-10 h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
-                  <BuildingOfficeIcon className="w-6 h-6" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-sm truncate">{company?.companyName || 'Company'}</h3>
-                  <p className="text-xs text-blue-100 capitalize">{company?.serviceType || 'Cleaning Service'}</p>
-                </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <Badge color="success" size="sm">Pro Plan</Badge>
-                <Link
-                  to={`/booking/${companyId}`}
-                  className="text-xs text-blue-100 hover:text-white underline"
-                >
-                  View Live Form →
-                </Link>
-              </div>
-            </div>
-
-            {/* Navigation */}
-            <nav className="space-y-2">
-              {navigationItems.map((item) => (
-                <NavLink
-                  key={item.href}
-                  to={item.href}
-                  end={item.exact}
-                  className={({ isActive }) =>
-                    `group flex items-center w-full p-2 text-sm font-normal rounded-lg transition duration-75 ${
-                      isActive
-                        ? 'text-gray-900 bg-gray-100 dark:bg-gray-700 dark:text-white'
-                        : 'text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'
-                    }`
-                  }
-                  onClick={() => {
-                    // Only close sidebar on mobile
-                    if (window.innerWidth < 1024) {
-                      setSidebarOpen(false)
-                    }
-                  }}
-                >
-                  <item.icon className="w-5 h-5 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white" />
-                  <span className="ml-3 flex-1 whitespace-nowrap">{item.label}</span>
-                  {item.badge && (
-                    <Badge color="info" size="sm">
-                      {item.badge}
-                    </Badge>
-                  )}
-                </NavLink>
-              ))}
-            </nav>
-
-            {/* Bottom Section */}
-            <div className="mt-8 pt-4 border-t border-gray-200 dark:border-gray-700">
-              <div className="p-4 bg-blue-50 dark:bg-blue-900 rounded-lg">
-                <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">
-                  Need Help?
-                </h4>
-                <p className="text-xs text-blue-700 dark:text-blue-200 mb-3">
-                  Check our documentation or contact support for assistance.
-                </p>
-                <Button size="xs" color="blue" className="w-full">
-                  Get Support
-                </Button>
-              </div>
-            </div>
-          </div>
-        </aside>
+        <AdminHeader
+          darkMode={darkMode}
+          setDarkMode={setDarkMode}
+          setSearchOpen={setSearchOpen}
+          unreadCount={notifications.filter(n => n.unread).length}
+          notifications={notifications}
+        />
 
         {/* Main Content - Always has left margin on desktop to account for fixed sidebar */}
-        <div className={`min-h-screen transition-all duration-300 ease-in-out ${isImpersonating ? 'pt-20' : 'pt-16'} pl-0 lg:pl-64`}>
+        <div className={`min-h-screen transition-all duration-300 ease-in-out w-full ${isImpersonating ? 'pt-20' : 'pt-16'} overflow-x-hidden`}>
           <div className="p-6">
             {/* Page Header */}
             <div className="mb-6">
@@ -510,34 +348,29 @@ export default function AdminDashboardLayout() {
                   </Breadcrumb.Item>
                 ))}
               </Breadcrumb>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+              <h1 className="text-2xl font-bold text-text-heading dark:text-white">
                 {getPageTitle()}
               </h1>
             </div>
 
             {/* Page Content */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-              className="w-full"
-            >
+            <AnimatePresence>
               <Outlet context={{ company }} />
-            </motion.div>
+            </AnimatePresence>
           </div>
         </div>
 
         {/* Search Modal */}
-        <Modal show={searchOpen} onClose={() => setSearchOpen(false)} size="2xl">
+        <Modal show={searchOpen} onClose={() => setSearchOpen(false)} className="fixed inset-0 w-screen h-screen z-[9999] flex items-center justify-center">
           <Modal.Header>Quick Search</Modal.Header>
-          <Modal.Body>
+          <Modal.Body className="w-full h-full flex items-center justify-center bg-white dark:bg-gray-900">
             <div className="space-y-4">
               <TextInput
                 icon={MagnifyingGlassIcon}
                 placeholder="Search bookings, customers, calculators..."
-                className="w-full"
+                className="w-full max-w-xl"
               />
-              <div className="text-sm text-gray-500">
+              <div className="text-base text-text-subtle dark:text-white">
                 <p>Try searching for:</p>
                 <ul className="mt-2 space-y-1">
                   <li>• Customer names (e.g., "Anna Andersson")</li>

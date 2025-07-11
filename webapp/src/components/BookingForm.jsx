@@ -11,6 +11,7 @@ import {
   ExclamationTriangleIcon, StarIcon
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
+import { motion } from 'framer-motion';
 
 export default function BookingForm({ config = {} }) {
   const availableServices = config.services?.length > 0 ? config.services : [{ id: 'default', name: 'Default Service', pricePerSqm: 10 }];

@@ -90,11 +90,11 @@ export default function HomePage() {
       <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-purple-800 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
           <div className="text-center">
-            <h1 className="text-4xl md:text-6xl font-bold mb-6">
+            <h1 className="text-4xl md:text-6xl font-bold mb-6 text-text-heading dark:text-white">
               Create Professional
-              <span className="block text-blue-200">Booking Calculators</span>
+              <span className="block text-blue-200 text-text-main dark:text-white">Booking Calculators</span>
             </h1>
-            <p className="text-xl md:text-2xl mb-8 text-blue-100 max-w-3xl mx-auto">
+            <p className="text-xl md:text-2xl mb-8 text-text-main dark:text-white max-w-3xl mx-auto">
               The no-code platform that lets cleaning companies build custom pricing calculators 
               and booking forms in minutes, not months.
             </p>
@@ -120,10 +120,10 @@ export default function HomePage() {
       <div className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-text-heading dark:text-white mb-4">
               Everything You Need to Succeed
             </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            <p className="text-xl text-text-main dark:text-white max-w-2xl mx-auto">
               Powerful features designed specifically for the cleaning industry
             </p>
           </div>
@@ -132,8 +132,8 @@ export default function HomePage() {
             {features.map((feature, index) => (
               <div key={index} className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
                 <div className="text-4xl mb-4">{feature.icon}</div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-3">{feature.title}</h3>
-                <p className="text-gray-600">{feature.description}</p>
+                <h3 className="text-xl font-semibold text-text-heading dark:text-white mb-3">{feature.title}</h3>
+                <p className="text-text-main dark:text-white">{feature.description}</p>
               </div>
             ))}
           </div>
@@ -144,10 +144,10 @@ export default function HomePage() {
       <div className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-text-heading dark:text-white mb-4">
               See It In Action
             </h2>
-            <p className="text-xl text-gray-600 mb-8">
+            <p className="text-xl text-text-main dark:text-white mb-8">
               Experience the power of our form builder with a live demo
             </p>
             <Link
@@ -172,7 +172,7 @@ export default function HomePage() {
                 className="w-full rounded-lg shadow-lg"
                 style={{backgroundColor: '#f0f8ff', minHeight: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', color: '#666'}}
               />
-              <div className="absolute inset-0 flex items-center justify-center text-2xl text-gray-500 bg-blue-50 rounded-lg m-8 mt-16">
+              <div className="absolute inset-0 flex items-center justify-center text-2xl text-text-main dark:text-white bg-blue-50 rounded-lg m-8 mt-16">
                 📊 Interactive Dashboard Preview
               </div>
             </div>
@@ -184,10 +184,10 @@ export default function HomePage() {
       <div className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-text-heading dark:text-white mb-4">
               Simple, Transparent Pricing
             </h2>
-            <p className="text-xl text-gray-600">
+            <p className="text-xl text-text-main dark:text-white">
               Choose the plan that fits your business needs
             </p>
           </div>
@@ -209,19 +209,19 @@ export default function HomePage() {
                 )}
                 
                 <div className="text-center mb-8">
-                  <h3 className="text-2xl font-bold text-gray-900 mb-2">{plan.name}</h3>
+                  <h3 className="text-2xl font-bold text-text-heading dark:text-white mb-2">{plan.name}</h3>
                   <div className="mb-4">
-                    <span className="text-4xl font-bold text-gray-900">{plan.price}</span>
-                    <span className="text-gray-600">{plan.period}</span>
+                    <span className="text-4xl font-bold text-text-heading dark:text-white">{plan.price}</span>
+                    <span className="text-text-main dark:text-white">{plan.period}</span>
                   </div>
-                  <p className="text-gray-600">{plan.description}</p>
+                  <p className="text-text-main dark:text-white">{plan.description}</p>
                 </div>
                 
                 <ul className="space-y-3 mb-8">
                   {plan.features.map((feature, featureIndex) => (
                     <li key={featureIndex} className="flex items-start">
                       <span className="text-green-500 mr-2">✓</span>
-                      <span className="text-gray-600">{feature}</span>
+                      <span className="text-text-main dark:text-white">{feature}</span>
                     </li>
                   ))}
                 </ul>
@@ -230,7 +230,7 @@ export default function HomePage() {
                   className={`w-full py-3 px-6 rounded-lg font-semibold transition-colors ${
                     plan.popular 
                       ? 'bg-blue-600 text-white hover:bg-blue-700' 
-                      : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
+                      : 'bg-gray-100 text-text-heading dark:text-white hover:bg-gray-200'
                   }`}
                 >
                   {plan.cta}
@@ -244,10 +244,10 @@ export default function HomePage() {
       {/* CTA Section */}
       <div className="py-20 bg-blue-600 text-white">
         <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl md:text-4xl font-bold mb-6">
+          <h2 className="text-3xl md:text-4xl font-bold mb-6 text-text-heading dark:text-white">
             Ready to Transform Your Business?
           </h2>
-          <p className="text-xl text-blue-100 mb-8">
+          <p className="text-xl text-text-main dark:text-white mb-8">
             Join hundreds of cleaning companies already using SwedPrime to automate their booking process
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -270,10 +270,10 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="bg-brand-dark text-white text-center py-12 mt-16">
         <div className="max-w-4xl mx-auto px-6">
-          <h3 className="text-2xl font-bold mb-4">Ready to Transform Your Cleaning Business?</h3>
-          <p className="text-brand-light mb-6">Join hundreds of cleaning professionals using SwedPrime SaaS</p>
-          <p className="text-sm text-brand-light">© 2025 SwedPrime SaaS Platform - Professional Multi-Tenant Solution</p>
-          <p className="text-xs text-brand-light mt-2">Version 2.0 - Now with GitHub Integration</p>
+          <h3 className="text-2xl font-bold mb-4 text-text-heading dark:text-white">Ready to Transform Your Cleaning Business?</h3>
+          <p className="text-brand-light text-text-main dark:text-white mb-6">Join hundreds of cleaning professionals using SwedPrime SaaS</p>
+          <p className="text-sm text-brand-light text-text-subtle dark:text-white">© 2025 SwedPrime SaaS Platform - Professional Multi-Tenant Solution</p>
+          <p className="text-xs text-brand-light text-text-subtle dark:text-white mt-2">Version 2.0 - Now with GitHub Integration</p>
         </div>
       </footer>
     </div>

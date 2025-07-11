@@ -37,20 +37,20 @@ export default function SetupPage() {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-6">🔧 Stage 2: Firestore Setup</h1>
+          <h1 className="text-3xl font-bold text-text-heading dark:text-white">🔧 Stage 2: Firestore Setup</h1>
           
           <div className="space-y-6">
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-              <h2 className="text-lg font-semibold text-blue-900 mb-4">Firestore Schema & Security</h2>
+              <h2 className="text-lg font-semibold text-text-heading mb-4">Firestore Schema & Security</h2>
               
               <div className="space-y-4">
                 <div>
-                  <h3 className="font-medium text-gray-900 mb-2">✅ Security Rules Deployed</h3>
-                  <p className="text-sm text-gray-600">Multi-tenant security rules are now active in Firebase</p>
+                  <h3 className="font-medium text-text-heading mb-2">✅ Security Rules Deployed</h3>
+                  <p className="text-sm text-text-main dark:text-white">Multi-tenant security rules are now active in Firebase</p>
                 </div>
                 
                 <div>
-                  <h3 className="font-medium text-gray-900 mb-2">📋 Data Structure</h3>
+                  <h3 className="font-medium text-text-heading mb-2">📋 Data Structure</h3>
                   <div className="bg-gray-50 rounded p-4 text-sm font-mono">
                     <div>/companies/&#123;companyId&#125;</div>
                     <div className="ml-4">├── name: string</div>
@@ -82,8 +82,8 @@ export default function SetupPage() {
 
             {status && (
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                <h3 className="font-medium text-gray-900 mb-2">Status</h3>
-                <p className="text-sm text-gray-700">{status}</p>
+                <h3 className="font-medium text-text-heading mb-2">Status</h3>
+                <p className="text-sm text-text-main">{status}</p>
               </div>
             )}
 

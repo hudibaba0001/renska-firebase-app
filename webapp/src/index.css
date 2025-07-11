@@ -17,8 +17,8 @@
 
 /* Base font family override */
 @layer base {
-  body {
-    font-family: 'Ubuntu Mono', ui-monospace, Menlo, Consolas, 'Liberation Mono', monospace;
+  body, html, #root {
+    font-family: 'Inter', 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
     background-color: #e6f2f2;
   }
 }

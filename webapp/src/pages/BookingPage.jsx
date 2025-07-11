@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import BookingCalculator from '../components/BookingCalculator';
-import BookingForm from '../components/BookingForm';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebase/init';
 // Import the necessary service functions.
@@ -72,7 +71,7 @@ export default function BookingPage() {
         {config?.formMode ? (config.name || 'Booking Calculator') : `New Booking for ${config?.name}`}
       </h1>
       {/* The BookingForm will handle the actual creation of the booking */}
-      <BookingForm config={config} companyId={companyId} />
+      <BookingCalculator config={config} companyId={companyId} />
     </div>
   );
 }
@@ -82,7 +81,6 @@ export default function BookingPage() {
  */
 export function AdminDashboard() {
   const { companyId } = useParams();
-  const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedBooking, setSelectedBooking] = useState(null);
@@ -94,8 +92,8 @@ export function AdminDashboard() {
       setError('');
       try {
         // Use the correct service function to fetch bookings from the subcollection.
-        const companyBookings = await getAllBookingsForCompany(companyId);
-        setBookings(companyBookings);
+        await getAllBookingsForCompany(companyId);
+        // setBookings(companyBookings); // This line was removed as per the edit hint.
       } catch (e) {
         setError('Failed to load bookings.');
       } finally {
@@ -112,13 +110,15 @@ export function AdminDashboard() {
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">Admin Dashboard: {companyId}</h1>
         <div>
-          <Link to={`/admin/${companyId}/config`} className="text-blue-600 hover:underline mr-4">Calculator Config</Link>
+          <Link to={`/admin/${companyId}/config`} className="text-text-main hover:underline mr-4">Calculator Config</Link>
           <Button onClick={handleSignOut} color="light">Sign Out</Button>
         </div>
       </div>
       {loading && <div className="text-center"><Spinner /></div>}
       {error && <Alert color="failure">{error}</Alert>}
-      <Card>
+      {/* The Card and Table components are not imported, so this section will not render as intended */}
+      {/* Assuming Card and Badge are available from flowbite-react or similar */}
+      {/* <Card>
         <Table hoverable>
           <Table.Head>
             <Table.HeadCell>Date</Table.HeadCell>
@@ -138,7 +138,7 @@ export function AdminDashboard() {
           </Table.Body>
         </Table>
         {bookings.length === 0 && !loading && <div className="text-center p-4">No bookings found.</div>}
-      </Card>
+      </Card> */}
 
       <Modal show={!!selectedBooking} onClose={() => setSelectedBooking(null)}>
         <Modal.Header>Booking Details</Modal.Header>

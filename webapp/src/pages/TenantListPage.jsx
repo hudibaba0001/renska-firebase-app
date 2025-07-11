@@ -222,8 +222,8 @@ export default function TenantListPage() {
     <div className="space-y-6">
       {/* Stats and Filter UI (unchanged) */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card><div className="flex items-center justify-between"><div><p>Total Tenants</p><p className="text-2xl font-bold">{totalTenants}</p></div><BuildingOfficeIcon className="w-6 h-6 text-white p-3 rounded-lg bg-blue-500" /></div></Card>
-        <Card><div className="flex items-center justify-between"><div><p>Active Tenants</p><p className="text-2xl font-bold">{activeTenants}</p></div><ChartBarIcon className="w-6 h-6 text-white p-3 rounded-lg bg-green-500" /></div></Card>
+        <Card><div className="flex items-center justify-between"><div><p>Total Tenants</p><p className="text-2xl font-bold text-text-heading dark:text-white">{totalTenants}</p></div><BuildingOfficeIcon className="w-6 h-6 text-white p-3 rounded-lg bg-blue-500" /></div></Card>
+        <Card><div className="flex items-center justify-between"><div><p>Active Tenants</p><p className="text-2xl font-bold text-text-heading dark:text-white">{activeTenants}</p></div><ChartBarIcon className="w-6 h-6 text-white p-3 rounded-lg bg-green-500" /></div></Card>
       </div>
       <Card>
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -236,8 +236,8 @@ export default function TenantListPage() {
       <Card>
         {filteredTenants.length === 0 ? (
           <div className="text-center py-12">
-            <h3 className="text-lg font-semibold">No tenants found</h3>
-            <p className="text-gray-500 mb-6">Create the first tenant or add test data.</p>
+            <h3 className="text-lg font-semibold text-text-heading dark:text-white">No tenants found</h3>
+            <p className="text-gray-500 mb-6 text-text-main dark:text-white">Create the first tenant or add test data.</p>
             <Button onClick={createTestData} disabled={creatingTestData}>{creatingTestData ? <Spinner/> : 'Add Test Data'}</Button>
           </div>
         ) : (
@@ -258,8 +258,8 @@ export default function TenantListPage() {
                         <div className="flex items-center space-x-3">
                           <Avatar img={getAvatarUrl(tenant.companyName || tenant.name)} rounded />
                           <div>
-                            <div className="font-semibold">{tenant.companyName || tenant.name}</div>
-                            <div className="text-sm text-gray-500">/{tenant.slug}</div>
+                            <div className="font-semibold text-text-heading dark:text-white">{tenant.companyName || tenant.name}</div>
+                            <div className="text-sm text-text-subtle dark:text-white">/{tenant.slug}</div>
                           </div>
                         </div>
                       </Table.Cell>

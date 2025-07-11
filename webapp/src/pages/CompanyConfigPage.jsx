@@ -64,7 +64,7 @@ export default function CompanyConfigPage({ companyId: propCompanyId }) {
     return (
       <div className="p-6 text-center">
         <Spinner size="xl" />
-        <p className="mt-4 text-gray-600">Loading configuration...</p>
+        <p className="mt-4 text-text-main dark:text-white">Loading configuration...</p>
       </div>
     );
   }
@@ -73,7 +73,7 @@ export default function CompanyConfigPage({ companyId: propCompanyId }) {
     return (
       <div className="p-6">
         <Alert color="failure">
-          <h3 className="font-medium">Error</h3>
+          <h3 className="font-medium text-text-heading dark:text-white">Error</h3>
           <p>{error}</p>
         </Alert>
       </div>
@@ -83,8 +83,8 @@ export default function CompanyConfigPage({ companyId: propCompanyId }) {
   return (
     <div className="p-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Company Configuration</h1>
-        <p className="text-gray-600">Configure your services, pricing models, and global settings.</p>
+        <h1 className="text-2xl font-bold text-text-heading dark:text-white">Company Configuration</h1>
+        <p className="text-text-main dark:text-white">Configure your services, pricing models, and global settings.</p>
       </div>
       
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">

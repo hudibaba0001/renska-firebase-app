@@ -81,7 +81,7 @@ export default function ServiceConfigForm({ initialConfig, onChange, onSave }) {
         setServices(prev => prev.filter(s => s.id !== serviceId));
         try {
             // Call the service function to delete the document.
-            await deleteService(companyId, serviceId);
+            await deleteService(serviceId);
             toast.success('Service deleted successfully.');
         } catch (error) {
             // If the delete fails, revert the local state.
