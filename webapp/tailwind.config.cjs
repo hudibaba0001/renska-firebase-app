@@ -107,7 +107,10 @@ module.exports = {
           800: '#1e293b',
           900: '#0f172a',
           950: '#020617'
-        }
+        },
+        'text-main': '#111111',
+        'text-heading': '#000000',
+        'text-subtle': '#222222',
       },
       // Typography
       fontFamily: {

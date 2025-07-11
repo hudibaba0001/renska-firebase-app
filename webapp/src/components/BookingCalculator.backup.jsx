@@ -1,44 +1,7 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { db } from '../firebase/init';
 import { doc, getDoc } from 'firebase/firestore';
-import { 
-  Card, 
-  Button, 
-  TextInput, 
-  Select, 
-  Label, 
-  Checkbox, 
-  Badge, 
-  Alert, 
-  Spinner,
-  Progress,
-  Tooltip
-} from 'flowbite-react';
-import { 
-  HomeIcon, 
-  CurrencyDollarIcon, 
-  CalendarDaysIcon, 
-  PlusIcon, 
-  SparklesIcon,
-  MapPinIcon,
-  UserIcon,
-  EnvelopeIcon,
-  PhoneIcon,
-  CheckCircleIcon,
-  ExclamationTriangleIcon,
-  StarIcon,
-  CogIcon,
-  ChartBarIcon,
-  ClockIcon
-} from '@heroicons/react/24/outline';
-import { motion, AnimatePresence } from 'framer-motion';
-import toast from 'react-hot-toast';
-
-// Import our enhanced engines
-import { PricingEngine, PRICING_MODELS, PricingUtils } from '../utils/pricingEngine';
-import { ValidationEngine, FIELD_TYPES, ValidationUtils } from '../utils/validationEngine';
-import { PricingRulesEngine, RULE_TYPES, RuleUtils } from '../utils/pricingRulesEngine';
 
 // Placeholder step components
 const ZipCodeStep = ({ onNext, formData, setFormData, allowedZipCodes, error, setError }) => (
@@ -267,7 +230,7 @@ const PriceCard = ({ formData }) => (
   </div>
 );
 
-export default function BookingCalculator() {
+export default function BookingCalculatorBackup() {
   const { companyId } = useParams();
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({});
@@ -281,15 +244,15 @@ export default function BookingCalculator() {
       setLoading(true);
       setError('');
       try {
-          const ref = doc(db, 'companies', companyId);
-          const snap = await getDoc(ref);
-          if (snap.exists()) {
+        const ref = doc(db, 'companies', companyId);
+        const snap = await getDoc(ref);
+        if (snap.exists()) {
           setConfig(snap.data());
         } else {
-          setError('Företagsdata kunde inte hämtas.');
+          setError('Ingen konfiguration hittades för detta företag.');
         }
-      } catch (err) {
-        setError('Fel vid hämtning av företagsdata.');
+      } catch (e) {
+        setError('Kunde inte ladda företagskonfiguration.');
       } finally {
         setLoading(false);
       }
@@ -297,59 +260,69 @@ export default function BookingCalculator() {
     fetchConfig();
   }, [companyId]);
 
-  if (loading) return <div>Laddar...</div>;
-  if (error) return <div className="text-red-600">{error}</div>;
-  if (!config) return <div>Ingen konfiguration hittades.</div>;
+  // If config loaded and zipAreas is empty, skip ZIP step
+  useEffect(() => {
+    if (config && Array.isArray(config.zipAreas) && config.zipAreas.length === 0 && step === 1) {
+      setStep(2);
+    }
+  }, [config, step]);
 
-  // Universal VAT setting (applies to all pricing models)
-  const vatRate = config.vatRate || 25;
-
-  // Allowed zip codes (example, could be from config)
-  const allowedZipCodes = config.allowedZipCodes || ['12345', '23456', '34567'];
+  if (loading) {
+    return <div className="text-center py-12">Laddar företagsinställningar…</div>;
+  }
+  if (error) {
+    return <div className="text-center text-red-600 py-12">{error}</div>;
+  }
+  if (!config) {
+    return null;
+  }
 
   return (
-    <div className="flex gap-8">
+    <div className="flex flex-col md:flex-row gap-8 max-w-5xl mx-auto mt-8">
+      {/* Left: Steps */}
       <div className="flex-1">
-            {step === 1 && (
+        {step === 1 && Array.isArray(config.zipAreas) && config.zipAreas.length > 0 && (
           <ZipCodeStep
             onNext={() => setStep(2)}
-                formData={formData}
+            formData={formData}
             setFormData={setFormData}
-            allowedZipCodes={allowedZipCodes}
+            allowedZipCodes={config.zipAreas}
             error={zipError}
             setError={setZipError}
           />
         )}
-            {step === 2 && (
+        {step === 2 && (
           <ServiceSelectStep
             onNext={() => setStep(3)}
-            onBack={() => setStep(1)}
+            onBack={() => {
+              if (Array.isArray(config.zipAreas) && config.zipAreas.length > 0) {
+                setStep(1);
+              }
+            }}
             formData={formData}
             setFormData={setFormData}
-                config={config}
-              />
-            )}
-            {step === 3 && (
+            config={config}
+          />
+        )}
+        {step === 3 && (
           <ServiceDetailsStep
             onNext={() => setStep(4)}
             onBack={() => setStep(2)}
-                formData={formData}
+            formData={formData}
             setFormData={setFormData}
-                config={config}
-              />
-            )}
-            {step === 4 && (
-              <CustomerInfoStep
+            config={config}
+          />
+        )}
+        {step === 4 && (
+          <CustomerInfoStep
             onBack={() => setStep(3)}
             formData={formData}
             setFormData={setFormData}
           />
         )}
-        <div className="mt-6">
-          <div className="font-bold">Moms (VAT): {vatRate}%</div>
-        </div>
       </div>
-      <div className="w-80">
+      {/* Right: Price Card */}
+      <div className="w-full md:w-[320px]">
         <PriceCard formData={formData} />
       </div>
     </div>

@@ -232,3 +232,25 @@
   0%, 100% { opacity: 1; }
   50% { opacity: 0.8; }
 } 
+
+html, body {
+  font-size: 16px;
+  color: var(--text-primary);
+  font-family: var(--font-family-sans);
+}
+
+.text-base {
+  font-size: 16px !important;
+  color: var(--text-primary) !important;
+}
+.text-heading {
+  font-size: 1.25rem !important;
+  font-weight: 700;
+  color: var(--text-primary) !important;
+}
+.text-main {
+  color: var(--text-primary) !important;
+}
+.text-subtle {
+  color: var(--text-secondary) !important;
+} 

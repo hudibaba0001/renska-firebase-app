@@ -1,47 +1,34 @@
-import React, { useState } from 'react';
-import ServicePricingEditor from './ServicePricingEditor';
-
-const PRICING_MODELS = [
-  {
-    id: 'per_sqm_tiered',
-    name: 'Per-m² Tiered',
-    description: 'Different prices for different area ranges (e.g. 0-50m² = 1000kr, 51-100m² = 1500kr)',
-    icon: '📊'
-  },
-  {
-    id: 'flat_range',
-    name: 'Flat-Range',
-    description: 'Fixed price for entire area ranges',
-    icon: '📏'
-  },
-  {
-    id: 'hourly_by_size',
-    name: 'Hourly by Size',
-    description: 'Price based on estimated hours for different home sizes',
-    icon: '⏰'
-  },
-  {
-    id: 'per_room',
-    name: 'Per-Room',
-    description: 'Price per individual room',
-    icon: '🏠'
-  },
-  {
-    id: 'window_based',
-    name: 'Window-based',
-    description: 'Price based on window sizes and quantities',
-    icon: '🪟'
-  },
-  {
-    id: 'custom_function',
-    name: 'Custom Function',
-    description: 'Advanced: Custom pricing logic',
-    icon: '⚙️'
-  }
-];
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import { getAllServicesForCompany } from '../../services/firestore';
+import { Card, Button, Badge, Alert, Spinner, Checkbox } from 'flowbite-react';
+import { ExclamationTriangleIcon, CogIcon } from '@heroicons/react/24/outline';
 
 export default function DefineServicesStep({ config, updateConfig, onNext, onPrev }) {
-  const [editingService, setEditingService] = useState(null);
+  const { companyId } = useParams();
+  const [availableServices, setAvailableServices] = useState([]);
+  const [servicesLoading, setServicesLoading] = useState(false);
+  const [servicesError, setServicesError] = useState('');
+
+  // Fetch configured services from company configuration
+  useEffect(() => {
+    async function fetchCompanyServices() {
+      if (!companyId) return;
+      setServicesLoading(true);
+      setServicesError('');
+      try {
+        // Use the new service layer function
+        const services = await getAllServicesForCompany(companyId);
+        setAvailableServices(services);
+      } catch (error) {
+        console.error('Error fetching company services:', error);
+        setServicesError('Failed to load company services');
+      } finally {
+        setServicesLoading(false);
+      }
+    }
+    fetchCompanyServices();
+  }, [companyId]);
 
   const addService = () => {
     const newService = {

@@ -182,10 +182,10 @@ export default function FormBuilderPage() {
       <div className="mb-6">
         <div className="flex justify-between items-center mb-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1 className="text-2xl font-bold text-text-heading dark:text-white">
               {config.name || 'New Form Builder'}
             </h1>
-            <p className="text-gray-600">
+            <p className="text-sm text-text-main dark:text-white">
               {config.description || 'Create a custom booking calculator'}
             </p>
           </div>
@@ -194,7 +194,7 @@ export default function FormBuilderPage() {
             <button
               onClick={saveDraft}
               disabled={saving}
-              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              className="px-4 py-2 border border-gray-300 rounded-md text-text-main hover:bg-gray-50 disabled:opacity-50"
             >
               {saving ? 'Saving...' : 'Save Draft'}
             </button>
@@ -223,7 +223,7 @@ export default function FormBuilderPage() {
                     ? 'border-blue-500 text-blue-600'
                     : step.id < currentStep
                     ? 'border-green-500 text-green-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                    : 'border-transparent text-text-subtle hover:text-text-main'
                 }`}
               >
                 <span className="flex items-center">
@@ -232,7 +232,7 @@ export default function FormBuilderPage() {
                       ? 'bg-blue-100 text-blue-600'
                       : step.id < currentStep
                       ? 'bg-green-100 text-green-600'
-                      : 'bg-gray-100 text-gray-400'
+                      : 'bg-gray-100 text-text-subtle'
                   }`}>
                     {step.id < currentStep ? '✓' : step.id}
                   </span>

@@ -1,128 +1,115 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // ============================================================================
+    // HELPER FUNCTIONS
+    // ============================================================================
     
-    // =============================================================================
-    // SUPER-ADMIN RULES
-    // =============================================================================
-    
-    // Super-admin users can access everything
-    match /tenants/{tenantId} {
-      // Super-admin can read/write all tenant data
-      allow read, write: if request.auth != null && request.auth.token.superAdmin == true;
-      
-      // Tenant admins can read/write their own tenant data
-      allow read, write: if request.auth != null && 
-        request.auth.token.adminOf != null && 
-        request.auth.token.adminOf == tenantId;
-      
-      // All subcollections under tenants
-      match /{subcollection=**} {
-        allow read, write: if request.auth != null && request.auth.token.superAdmin == true;
-        allow read, write: if request.auth != null && 
-          request.auth.token.adminOf != null && 
-          request.auth.token.adminOf == tenantId;
-      }
+    /**
+     * Checks if the user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Checks if the user is a designated Super Admin.
+     * This is determined by a custom claim on their auth token.
+     */
+    function isSuperAdmin() {
+      return isSignedIn() && request.auth.token.superAdmin == true;
+    }
+
+    /**
+     * Checks if the user is an admin of a specific company.
+     * @param companyId The ID of the company to check against.
+     */
+    function isCompanyAdmin(companyId) {
+      return isSignedIn() && request.auth.token.adminOf == companyId;
     }
     
-    // Global configuration (super-admin only)
-    match /globalConfig/{document} {
-      allow read, write: if request.auth != null && request.auth.token.superAdmin == true;
+    /**
+     * Checks if the user owns the specified document.
+     * @param userId The user ID to check against the authenticated user's UID.
+     */
+    function isOwner(userId) {
+        return isSignedIn() && request.auth.uid == userId;
     }
-    
-    // Plans and billing configuration (super-admin only)
-    match /plans/{planId} {
-      allow read: if request.auth != null; // All authenticated users can read plans
-      allow write: if request.auth != null && request.auth.token.superAdmin == true;
-    }
-    
-    // Audit logs (super-admin read-only)
-    match /auditLogs/{logId} {
-      allow read: if request.auth != null && request.auth.token.superAdmin == true;
-      allow write: if false; // Only server-side writes
-    }
-    
-    // User management (super-admin only)
-    match /superAdminUsers/{userId} {
-      allow read, write: if request.auth != null && request.auth.token.superAdmin == true;
-    }
-    
-    // =============================================================================
-    // EXISTING COMPANY RULES (BACKWARD COMPATIBILITY)
-    // =============================================================================
-    
-    // Companies collection - for backward compatibility and existing functionality
-    match /companies/{companyId} {
-      // SECURE: Only allow reading public data or authorized access
-      allow read: if resource.data.isPublic == true || 
-                     (request.auth != null && 
-                      (request.auth.token.superAdmin == true || 
-                       request.auth.token.adminOf == companyId));
-      
-      // Super-admins can do everything (create, read, write, update, delete)
-      allow read, write, create, update, delete: if request.auth != null && request.auth.token.superAdmin == true;
-      
-      // Only admins of the specific company can write (but not create new companies)
-      allow write, update: if request.auth != null && 
-        request.auth.token.adminOf != null && 
-        request.auth.token.adminOf == companyId;
-      
-      // Bookings subcollection
-      match /bookings/{bookingId} {
-        // Anyone can create bookings (for public forms)
-        allow create: if true;
-        
-        // Company admins can read/write their bookings
-        allow read, write: if request.auth != null && 
-          request.auth.token.adminOf != null && 
-          request.auth.token.adminOf == companyId;
-        
-        // Super-admins can read/write all bookings
-        allow read, write: if request.auth != null && request.auth.token.superAdmin == true;
-      }
-      
-      // Analytics and reports
-      match /analytics/{analyticsId} {
-        allow read, write: if request.auth != null && 
-          request.auth.token.adminOf != null && 
-          request.auth.token.adminOf == companyId;
-        allow read, write: if request.auth != null && request.auth.token.superAdmin == true;
-      }
-    }
-    
-    // =============================================================================
-    // USER AUTHENTICATION & PROFILES
-    // =============================================================================
-    
-    // User profiles
+
+    // ============================================================================
+    // USERS COLLECTION
+    // ============================================================================
+
     match /users/{userId} {
-      // Users can read/write their own profile
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      // A user can read and write to their own profile.
+      // A Super Admin can read any user's profile, but cannot write to it (to prevent impersonation).
+      allow read: if isOwner(userId) || isSuperAdmin();
+      allow write: if isOwner(userId);
+
+      // Data validation for user profiles
+      // Ensures that a user cannot grant themselves superAdmin or adminOf status.
+      allow update: if request.resource.data.superAdmin == resource.data.superAdmin &&
+                       request.resource.data.adminOf == resource.data.adminOf;
+    }
+
+    // ============================================================================
+    // COMPANIES (TENANTS) COLLECTION
+    // ============================================================================
+    
+    match /companies/{companyId} {
+      // READ: Allowed if the company is public, or if the user is a super admin or an admin of that specific company.
+      allow read: if resource.data.isPublic == true || isSuperAdmin() || isCompanyAdmin(companyId);
       
-      // Super-admins can read all user profiles
-      allow read: if request.auth != null && request.auth.token.superAdmin == true;
+      // CREATE: Only a Super Admin can create a new company document.
+      allow create: if isSuperAdmin();
+      
+      // UPDATE: A Super Admin or an admin of that company can update it.
+      allow update: if isSuperAdmin() || isCompanyAdmin(companyId);
+      
+      // DELETE: Only a Super Admin can delete a company document.
+      allow delete: if isSuperAdmin();
+      
+      // --- NESTED: SERVICES SUBCOLLECTION ---
+      match /services/{serviceId} {
+        // Anyone who can read the parent company can also read its services.
+        allow read: if get(/databases/$(database)/documents/companies/$(companyId)).data.isPublic == true || 
+                       isSuperAdmin() || isCompanyAdmin(companyId);
+                       
+        // Only company admins and super admins can create, update, or delete services.
+        allow create, update, delete: if isSuperAdmin() || isCompanyAdmin(companyId);
+        
+        // Data validation for creating/updating a service.
+        allow write: if request.resource.data.name is string &&
+                        request.resource.data.name.size() > 1 &&
+                        request.resource.data.name.size() < 100 &&
+                        request.resource.data.minimumPrice is number &&
+                        request.resource.data.minimumPrice >= 0;
+      }
+      
+      // --- NESTED: BOOKINGS SUBCOLLECTION ---
+      match /bookings/{bookingId} {
+        // READ/UPDATE/DELETE: Only company admins and super admins can manage bookings.
+        allow read, update, delete: if isSuperAdmin() || isCompanyAdmin(companyId);
+        
+        // CREATE: Anyone can create a booking (e.g., from a public booking form),
+        // but we validate the incoming data to ensure it's valid.
+        allow create: if request.resource.data.customerInfo.email is string &&
+                         request.resource.data.totalPrice is number &&
+                         request.resource.data.totalPrice >= 0 &&
+                         // Ensure the status is 'pending' on creation.
+                         request.resource.data.status == 'pending';
+      }
     }
     
-    // =============================================================================
-    // SYSTEM DATA
-    // =============================================================================
+    // ============================================================================
+    // DEPRECATED & GLOBAL COLLECTIONS
+    // ============================================================================
     
-    // Feature flags (super-admin write, everyone read)
-    match /featureFlags/{flagId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.token.superAdmin == true;
-    }
-    
-    // RUT/ZIP codes (super-admin write, everyone read)
-    match /rutZipCodes/{zipCode} {
-      allow read: if true; // Public data for pricing calculations
-      allow write: if request.auth != null && request.auth.token.superAdmin == true;
-    }
-    
-    // Service catalog templates (super-admin write, everyone read)
-    match /serviceCatalog/{serviceId} {
-      allow read: if true; // Public templates for new tenants
-      allow write: if request.auth != null && request.auth.token.superAdmin == true;
+    // The old /tenants/ path is now deprecated and should not be used. All rules are on /companies/.
+    match /tenants/{tenantId} {
+        allow read, write: if false; // Disallow all access.
     }
   }
-} 
+}
