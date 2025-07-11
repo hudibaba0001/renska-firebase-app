@@ -134,6 +134,117 @@ exports.handleStripeWebhook = onRequest({
 });
 
 /**
+ * Secure Company Signup Function
+ * Allows public users to sign up a new company and admin user via a callable HTTPS function.
+ * Performs input validation, duplicate checks, and writes to Firestore.
+ */
+exports.signupCompany = onCall({ timeoutSeconds: 30, memory: '256MiB' }, async (request) => {
+  const data = request.data || {};
+  const {
+    companyName,
+    address,
+    orgNumber,
+    adminName,
+    email,
+    phone,
+    password
+  } = data;
+
+  // Basic input validation
+  function isValidEmail(email) {
+    return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email);
+  }
+  function isValidPhone(phone) {
+    return /^\+?[0-9\- ]{6,20}$/.test(phone);
+  }
+  function isValidOrgNumber(org) {
+    return /^[0-9A-Za-z\-]{4,20}$/.test(org);
+  }
+  if (!companyName || companyName.length < 2 || companyName.length > 100) {
+    throw new functions.https.HttpsError('invalid-argument', 'Invalid company name.');
+  }
+  if (!address || address.length < 3) {
+    throw new functions.https.HttpsError('invalid-argument', 'Invalid address.');
+  }
+  if (!orgNumber || !isValidOrgNumber(orgNumber)) {
+    throw new functions.https.HttpsError('invalid-argument', 'Invalid organization number.');
+  }
+  if (!adminName || adminName.length < 2) {
+    throw new functions.https.HttpsError('invalid-argument', 'Invalid admin name.');
+  }
+  if (!email || !isValidEmail(email)) {
+    throw new functions.https.HttpsError('invalid-argument', 'Invalid email address.');
+  }
+  if (!phone || !isValidPhone(phone)) {
+    throw new functions.https.HttpsError('invalid-argument', 'Invalid phone number.');
+  }
+  if (!password || password.length < 6) {
+    throw new functions.https.HttpsError('invalid-argument', 'Password must be at least 6 characters.');
+  }
+
+  // Generate companyId (slug)
+  const companyId = companyName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-');
+
+  // Check for duplicate company
+  const companyRef = db.collection('companies').doc(companyId);
+  const companySnap = await companyRef.get();
+  if (companySnap.exists) {
+    throw new functions.https.HttpsError('already-exists', 'A company with this name already exists.');
+  }
+
+  // Create admin user in Firebase Auth
+  let userRecord;
+  try {
+    userRecord = await admin.auth().createUser({
+      email,
+      password,
+      displayName: adminName,
+      phoneNumber: phone.startsWith('+') ? phone : undefined // Only set if valid E.164
+    });
+  } catch (err) {
+    if (err.code === 'auth/email-already-exists') {
+      throw new functions.https.HttpsError('already-exists', 'Email already in use.');
+    }
+    throw new functions.https.HttpsError('internal', 'Failed to create user: ' + err.message);
+  }
+
+  // Create company document
+  await companyRef.set({
+    companyName,
+    address,
+    orgNumber,
+    adminName,
+    adminEmail: email,
+    adminPhone: phone,
+    adminUid: userRecord.uid,
+    created: admin.firestore.FieldValue.serverTimestamp(),
+    pricePerSqm: 0,
+    services: [],
+    frequencyMultiplier: {},
+    addOns: {},
+    windowCleaningPrices: {},
+    zipAreas: [],
+    rutEnabled: false,
+    isPublic: false
+  });
+
+  // Create user profile document
+  await db.collection('users').doc(userRecord.uid).set({
+    email,
+    name: adminName,
+    companyId,
+    phone,
+    created: admin.firestore.FieldValue.serverTimestamp(),
+    adminOf: companyId
+  });
+
+  // Optionally, set custom claims for admin
+  await admin.auth().setCustomUserClaims(userRecord.uid, { adminOf: companyId });
+
+  return { success: true, companyId, adminUid: userRecord.uid };
+});
+
+/**
  * Handle successful checkout session
  */
 async function handleCheckoutCompleted(session) {
