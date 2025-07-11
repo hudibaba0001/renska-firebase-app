@@ -163,7 +163,7 @@ export default function TenantOnboardPage() {
                     }`}>
                         {step > 1 ? <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg> : <BuildingOfficeIcon className="w-5 h-5" />}
                     </div>
-                    <div className="ml-3"><p className={`text-sm font-medium ${step === 1 ? 'text-brand' : step > 1 ? 'text-green-600' : 'text-gray-500'}`}>Step 1</p><p className={`text-xs ${step === 1 ? 'text-gray-900' : 'text-gray-500'}`}>Basic Info</p></div>
+                    <div className="ml-3"><p className={`text-sm font-medium ${step === 1 ? 'text-brand' : step > 1 ? 'text-green-600' : 'text-text-subtle'}`}>Step 1</p><p className={`text-xs ${step === 1 ? 'text-text-heading' : 'text-text-subtle'}`}>Basic Info</p></div>
                 </div>
                 <div className={`flex-1 h-0.5 mx-4 ${step > 1 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
                 {/* Step 2 */}
@@ -175,7 +175,7 @@ export default function TenantOnboardPage() {
                     }`}>
                         {step > 2 ? <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg> : <CreditCardIcon className="w-5 h-5" />}
                     </div>
-                    <div className="ml-3"><p className={`text-sm font-medium ${step === 2 ? 'text-brand' : step > 2 ? 'text-green-600' : 'text-gray-500'}`}>Step 2</p><p className={`text-xs ${step === 2 ? 'text-gray-900' : 'text-gray-500'}`}>Plan & Trial</p></div>
+                    <div className="ml-3"><p className={`text-sm font-medium ${step === 2 ? 'text-brand' : step > 2 ? 'text-green-600' : 'text-text-subtle'}`}>Step 2</p><p className={`text-xs ${step === 2 ? 'text-text-heading' : 'text-text-subtle'}`}>Plan & Trial</p></div>
                 </div>
                 <div className={`flex-1 h-0.5 mx-4 ${step > 2 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
                 {/* Step 3 */}
@@ -183,7 +183,7 @@ export default function TenantOnboardPage() {
                     <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${ step === 3 ? 'bg-brand border-brand text-white' : 'border-gray-300 text-gray-500' }`}>
                         <UserIcon className="w-5 h-5" />
                     </div>
-                    <div className="ml-3"><p className={`text-sm font-medium ${step === 3 ? 'text-brand' : 'text-gray-500'}`}>Step 3</p><p className={`text-xs ${step === 3 ? 'text-gray-900' : 'text-gray-500'}`}>Billing Contact</p></div>
+                    <div className="ml-3"><p className={`text-sm font-medium ${step === 3 ? 'text-brand' : 'text-text-subtle'}`}>Step 3</p><p className={`text-xs ${step === 3 ? 'text-text-heading' : 'text-text-subtle'}`}>Billing Contact</p></div>
                 </div>
             </div>
         </div>
@@ -192,7 +192,7 @@ export default function TenantOnboardPage() {
         <div className="p-6">
           {step === 1 && (
             <div className="space-y-6">
-              <div className="text-center mb-6"><h2 className="text-2xl font-bold text-gray-900 mb-2">Company Information</h2><p className="text-gray-600">Enter the basic details for the new tenant</p></div>
+              <div className="text-center mb-6"><h2 className="text-2xl font-bold text-text-heading dark:text-white">Company Information</h2><p className="text-sm text-text-main dark:text-white">Enter the basic details for the new tenant</p></div>
               <div className="max-w-md mx-auto space-y-4">
                 <div>
                   <Label htmlFor="name" value="Company Name *" className="font-mono font-medium" />
@@ -204,7 +204,7 @@ export default function TenantOnboardPage() {
                   {formError ? (
                     <Alert color="failure" className="mt-2">{formError}</Alert>
                   ) : (
-                    <div className="text-sm text-gray-500 mt-1 font-mono">/booking/<strong>{form.slug || 'your-slug'}</strong></div>
+                    <div className="text-sm text-text-subtle mt-1 font-mono">/booking/<strong>{form.slug || 'your-slug'}</strong></div>
                   )}
                 </div>
               </div>
@@ -214,7 +214,7 @@ export default function TenantOnboardPage() {
 
           {step === 2 && (
             <div className="space-y-6">
-              <div className="text-center mb-6"><h2 className="text-2xl font-bold text-gray-900 mb-2">Subscription Plan</h2><p className="text-gray-600">Choose the plan and trial period for this tenant</p></div>
+              <div className="text-center mb-6"><h2 className="text-2xl font-bold text-text-heading dark:text-white">Subscription Plan</h2><p className="text-sm text-text-main dark:text-white">Choose the plan and trial period for this tenant</p></div>
               <div className="max-w-md mx-auto space-y-4">
                 <div>
                   <Label htmlFor="plan" value="Subscription Plan *" className="font-mono font-medium" />
@@ -235,7 +235,7 @@ export default function TenantOnboardPage() {
 
           {step === 3 && (
             <div className="space-y-6">
-              <div className="text-center mb-6"><h2 className="text-2xl font-bold text-gray-900 mb-2">Billing Contact</h2><p className="text-gray-600">Who should we contact for billing and administrative matters?</p></div>
+              <div className="text-center mb-6"><h2 className="text-2xl font-bold text-text-heading dark:text-white">Billing Contact</h2><p className="text-sm text-text-main dark:text-white">Who should we contact for billing and administrative matters?</p></div>
               <div className="max-w-md mx-auto space-y-4">
                 <div>
                   <Label htmlFor="contactName" value="Billing Contact Name *" className="font-mono font-medium" />
@@ -248,14 +248,14 @@ export default function TenantOnboardPage() {
               </div>
               <div className="max-w-md mx-auto mt-8">
                 <Card>
-                  <h3 className="font-bold text-gray-900 font-mono mb-4">Review & Confirm</h3>
+                  <h3 className="font-bold text-text-heading font-mono mb-4">Review & Confirm</h3>
                   <div className="space-y-2 text-sm font-mono">
-                    <div className="flex justify-between"><span className="text-gray-600">Company:</span><span className="font-medium">{form.name}</span></div>
-                    <div className="flex justify-between"><span className="text-gray-600">URL Slug:</span><span className="font-medium">{form.slug}</span></div>
-                    <div className="flex justify-between"><span className="text-gray-600">Plan:</span><span className="font-medium capitalize">{form.plan}</span></div>
-                    <div className="flex justify-between"><span className="text-gray-600">Trial:</span><span className="font-medium">{form.trialDays} days</span></div>
-                    <div className="flex justify-between"><span className="text-gray-600">Contact:</span><span className="font-medium">{form.contactName}</span></div>
-                    <div className="flex justify-between"><span className="text-gray-600">Email:</span><span className="font-medium">{form.contactEmail}</span></div>
+                    <div className="flex justify-between"><span className="text-text-subtle">Company:</span><span className="font-medium">{form.name}</span></div>
+                    <div className="flex justify-between"><span className="text-text-subtle">URL Slug:</span><span className="font-medium">{form.slug}</span></div>
+                    <div className="flex justify-between"><span className="text-text-subtle">Plan:</span><span className="font-medium capitalize">{form.plan}</span></div>
+                    <div className="flex justify-between"><span className="text-text-subtle">Trial:</span><span className="font-medium">{form.trialDays} days</span></div>
+                    <div className="flex justify-between"><span className="text-text-subtle">Contact:</span><span className="font-medium">{form.contactName}</span></div>
+                    <div className="flex justify-between"><span className="text-text-subtle">Email:</span><span className="font-medium">{form.contactEmail}</span></div>
                   </div>
                 </Card>
               </div>

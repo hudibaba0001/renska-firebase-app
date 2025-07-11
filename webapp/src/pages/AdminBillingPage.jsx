@@ -159,8 +159,8 @@ export default function AdminBillingPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Billing & Subscription</h1>
-          <p className="text-gray-600">Manage your subscription and billing information</p>
+          <h1 className="text-2xl font-bold text-text-heading dark:text-white">Billing & Subscription</h1>
+          <p className="text-sm text-text-main dark:text-white">Manage your subscription and billing information</p>
         </div>
         <Button
           color="gray"
@@ -186,8 +186,8 @@ export default function AdminBillingPage() {
                   <StarIcon className="h-6 w-6 text-primary-600" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900">Current Plan</h2>
-                  <p className="text-sm text-gray-500">Your active subscription</p>
+                  <h2 className="text-xl font-bold text-text-heading dark:text-white">Current Plan</h2>
+                  <p className="text-sm text-text-main dark:text-white">Your active subscription</p>
                 </div>
               </div>
               <Button
@@ -203,7 +203,7 @@ export default function AdminBillingPage() {
               {/* Plan Info */}
               <div className="bg-gradient-to-r from-primary-50 to-secondary-50 rounded-xl p-6">
                 <div className="flex items-center space-x-2 mb-2">
-                  <h3 className="text-lg font-bold text-gray-900">{currentPlan?.name}</h3>
+                  <h3 className="text-lg font-bold text-text-heading dark:text-white">{currentPlan?.name}</h3>
                   {currentPlan?.popular && (
                     <Badge color="primary" size="sm">Popular</Badge>
                   )}
@@ -211,7 +211,7 @@ export default function AdminBillingPage() {
                 <div className="text-2xl font-bold text-primary-600 mb-2">
                   {formatPrice(currentPlan?.price)}/month
                 </div>
-                <div className="text-sm text-gray-600">
+                <div className="text-sm text-text-main dark:text-white">
                   {currentPlan?.features?.length} features included
                 </div>
               </div>
@@ -220,12 +220,12 @@ export default function AdminBillingPage() {
               <div className="bg-gray-50 rounded-xl p-6">
                 <div className="flex items-center space-x-2 mb-2">
                   <CalendarDaysIcon className="h-5 w-5 text-gray-600" />
-                  <h3 className="font-semibold text-gray-900">Next Billing</h3>
+                  <h3 className="font-semibold text-text-heading dark:text-white">Next Billing</h3>
                 </div>
-                <div className="text-lg font-bold text-gray-900 mb-1">
+                <div className="text-lg font-bold text-text-heading dark:text-white mb-1">
                   {new Date(billingInfo?.nextBillingDate).toLocaleDateString('sv-SE')}
                 </div>
-                <div className="text-sm text-gray-600">
+                <div className="text-sm text-text-main dark:text-white">
                   Auto-renewal active
                 </div>
               </div>
@@ -234,12 +234,12 @@ export default function AdminBillingPage() {
               <div className="bg-gray-50 rounded-xl p-6">
                 <div className="flex items-center space-x-2 mb-2">
                   <CreditCardIcon className="h-5 w-5 text-gray-600" />
-                  <h3 className="font-semibold text-gray-900">Payment Method</h3>
+                  <h3 className="font-semibold text-text-heading dark:text-white">Payment Method</h3>
                 </div>
-                <div className="text-lg font-bold text-gray-900 mb-1">
+                <div className="text-lg font-bold text-text-heading dark:text-white mb-1">
                   •••• {billingInfo?.paymentMethod?.last4}
                 </div>
-                <div className="text-sm text-gray-600 capitalize">
+                <div className="text-sm text-text-main dark:text-white capitalize">
                   {billingInfo?.paymentMethod?.brand} ending {billingInfo?.paymentMethod?.expMonth}/{billingInfo?.paymentMethod?.expYear}
                 </div>
               </div>
@@ -247,12 +247,12 @@ export default function AdminBillingPage() {
 
             {/* Plan Features */}
             <div className="mt-6 pt-6 border-t border-gray-200">
-              <h3 className="font-semibold text-gray-900 mb-3">Your Plan Includes:</h3>
+              <h3 className="font-semibold text-text-heading dark:text-white mb-3">Your Plan Includes:</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 {currentPlan?.features?.map((feature, index) => (
                   <div key={index} className="flex items-center space-x-2">
                     <CheckCircleIcon className="h-4 w-4 text-success-500 flex-shrink-0" />
-                    <span className="text-sm text-gray-700">{feature}</span>
+                    <span className="text-sm text-text-main dark:text-white">{feature}</span>
                   </div>
                 ))}
               </div>
@@ -274,8 +274,8 @@ export default function AdminBillingPage() {
                 <CheckCircleIcon className="h-6 w-6 text-success-600" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-gray-900">Account Status</h2>
-                <p className="text-sm text-gray-500">Your subscription is active</p>
+                <h2 className="text-xl font-bold text-text-heading dark:text-white">Account Status</h2>
+                <p className="text-sm text-text-main dark:text-white">Your subscription is active</p>
               </div>
             </div>
 
@@ -307,8 +307,8 @@ export default function AdminBillingPage() {
                 <BanknotesIcon className="h-6 w-6 text-secondary-600" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-gray-900">Invoice History</h2>
-                <p className="text-sm text-gray-500">Download your past invoices</p>
+                <h2 className="text-xl font-bold text-text-heading dark:text-white">Invoice History</h2>
+                <p className="text-sm text-text-main dark:text-white">Download your past invoices</p>
               </div>
             </div>
 
@@ -373,7 +373,7 @@ export default function AdminBillingPage() {
                     <Badge color="primary" className="mb-4">Most Popular</Badge>
                   )}
                   
-                  <h3 className="text-lg font-bold text-gray-900 mb-2">{plan.name}</h3>
+                  <h3 className="text-lg font-bold text-text-heading dark:text-white mb-2">{plan.name}</h3>
                   <div className="text-2xl font-bold text-primary-600 mb-4">
                     {formatPrice(plan.price)}/month
                   </div>
@@ -382,7 +382,7 @@ export default function AdminBillingPage() {
                     {plan.features.slice(0, 4).map((feature, index) => (
                       <div key={index} className="flex items-center space-x-2">
                         <CheckCircleIcon className="h-4 w-4 text-success-500" />
-                        <span className="text-sm text-gray-700">{feature}</span>
+                        <span className="text-sm text-text-main dark:text-white">{feature}</span>
                       </div>
                     ))}
                   </div>

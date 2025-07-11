@@ -182,10 +182,10 @@ export default function FormBuilderPage() {
       <div className="mb-6">
         <div className="flex justify-between items-center mb-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1 className="text-2xl font-bold text-text-heading dark:text-white">
               {config.name || 'New Form Builder'}
             </h1>
-            <p className="text-gray-600">
+            <p className="text-sm text-text-main dark:text-white">
               {config.description || 'Create a custom booking calculator'}
             </p>
           </div>

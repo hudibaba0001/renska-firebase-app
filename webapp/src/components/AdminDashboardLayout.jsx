@@ -156,7 +156,7 @@ export default function AdminDashboardLayout() {
                 </div>
               </div>
             </div>
-            <h3 className="text-lg font-semibold text-black dark:text-white mt-4 mb-2">
+            <h3 className="text-lg font-semibold text-text-heading dark:text-white mt-4 mb-2">
               Loading SwedPrime Dashboard
             </h3>
             <p className="text-gray-500 dark:text-gray-400">
@@ -241,8 +241,8 @@ export default function AdminDashboardLayout() {
                   <BuildingOfficeIcon className="w-6 h-6" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-sm truncate">{company?.companyName || 'Company'}</h3>
-                  <p className="text-xs text-black dark:text-white capitalize">{company?.serviceType || 'Cleaning Service'}</p>
+                  <h3 className="font-semibold text-sm truncate text-text-heading dark:text-white">{company?.companyName || 'Company'}</h3>
+                  <p className="text-xs text-text-subtle dark:text-white capitalize">{company?.serviceType || 'Cleaning Service'}</p>
                 </div>
               </div>
               <div className="flex items-center justify-between">
@@ -285,10 +285,10 @@ export default function AdminDashboardLayout() {
             {/* Bottom Section */}
             <div className="mt-8 pt-4 border-t border-gray-200 dark:border-gray-700">
               <div className="p-4 bg-blue-50 dark:bg-blue-900 rounded-lg">
-                <h4 className="text-sm font-semibold text-black dark:text-white mb-2">
+                <h4 className="text-sm font-semibold text-text-heading dark:text-white mb-2">
                   Need Help?
                 </h4>
-                <p className="text-xs text-black dark:text-white mb-3">
+                <p className="text-xs text-text-subtle dark:text-white mb-3">
                   Check our documentation or contact support for assistance.
                 </p>
                 <Button size="xs" color="blue" className="w-full">
@@ -399,13 +399,13 @@ export default function AdminDashboardLayout() {
                       <div className="flex items-start space-x-3 p-2">
                         <div className={`w-2 h-2 rounded-full mt-2 ${notification.unread ? 'bg-blue-600' : 'bg-gray-300'}`} />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-black dark:text-white">
+                          <p className="text-sm font-medium text-text-heading dark:text-white">
                             {notification.title}
                           </p>
-                          <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                          <p className="text-sm text-text-subtle dark:text-white truncate">
                             {notification.message}
                           </p>
-                          <p className="text-xs text-gray-400 dark:text-gray-500">
+                          <p className="text-xs text-text-subtle dark:text-white">
                             {notification.time}
                           </p>
                         </div>
@@ -438,7 +438,7 @@ export default function AdminDashboardLayout() {
                     <span className="block text-sm font-medium">
                       {user?.email || 'Admin User'}
                     </span>
-                    <span className="block text-sm text-gray-500 truncate">
+                    <span className="block text-sm text-text-subtle dark:text-white truncate">
                       {user?.email || 'admin@swedprime.com'}
                     </span>
                   </Dropdown.Header>
@@ -476,7 +476,7 @@ export default function AdminDashboardLayout() {
                   </Breadcrumb.Item>
                 ))}
               </Breadcrumb>
-              <h1 className="text-2xl font-bold text-black dark:text-white">
+              <h1 className="text-2xl font-bold text-text-heading dark:text-white">
                 {getPageTitle()}
               </h1>
             </div>
@@ -498,7 +498,7 @@ export default function AdminDashboardLayout() {
                 placeholder="Search bookings, customers, calculators..."
                 className="w-full"
               />
-              <div className="text-sm text-gray-500">
+              <div className="text-sm text-text-subtle dark:text-white">
                 <p>Try searching for:</p>
                 <ul className="mt-2 space-y-1">
                   <li>• Customer names (e.g., "Anna Andersson")</li>

@@ -229,20 +229,20 @@ export default function AdminDashboardPage() {
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-6 text-white">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold mb-2">Welcome back! 👋</h1>
-            <p className="text-blue-100">
+            <h1 className="text-2xl font-bold text-text-heading dark:text-white">Welcome back! 👋</h1>
+            <p className="text-sm text-text-main dark:text-white">
               Here's what's happening with your cleaning business today.
             </p>
           </div>
           <div className="hidden md:flex items-center space-x-4">
             <div className="text-right">
-              <p className="text-sm text-blue-100">Today's Revenue</p>
-              <p className="text-2xl font-bold">2,340 kr</p>
+              <p className="text-sm text-text-main dark:text-white">Today's Revenue</p>
+              <p className="text-2xl font-bold text-text-heading dark:text-white">2,340 kr</p>
             </div>
             <div className="w-px h-12 bg-blue-400"></div>
             <div className="text-right">
-              <p className="text-sm text-blue-100">New Bookings</p>
-              <p className="text-2xl font-bold">7</p>
+              <p className="text-sm text-text-main dark:text-white">New Bookings</p>
+              <p className="text-2xl font-bold text-text-heading dark:text-white">7</p>
             </div>
           </div>
         </div>
@@ -264,7 +264,7 @@ export default function AdminDashboardPage() {
                     {stat.name}
                   </p>
                   <div className="flex items-baseline mt-1">
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    <p className="text-2xl font-bold text-text-heading dark:text-white">
                       {stat.value}
                     </p>
                     {stat.unit && (
@@ -304,8 +304,8 @@ export default function AdminDashboardPage() {
           <Card>
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Quick Actions</h2>
-                <p className="text-gray-500 dark:text-gray-400">Common tasks to manage your business</p>
+                <h2 className="text-xl font-bold text-text-heading dark:text-white">Quick Actions</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Common tasks to manage your business</p>
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -344,7 +344,7 @@ export default function AdminDashboardPage() {
         <div>
           <Card>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              <h3 className="text-lg font-semibold text-text-heading dark:text-white">
                 Performance Overview
               </h3>
               <Dropdown
@@ -362,7 +362,7 @@ export default function AdminDashboardPage() {
             <div className="space-y-4">
               <div>
                 <div className="flex justify-between text-sm mb-1">
-                  <span className="text-gray-600 dark:text-gray-400">Form Views</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Form Views</span>
                   <span className="font-medium">2,315</span>
                 </div>
                 <Progress progress={75} color="blue" size="sm" />
@@ -370,7 +370,7 @@ export default function AdminDashboardPage() {
               
               <div>
                 <div className="flex justify-between text-sm mb-1">
-                  <span className="text-gray-600 dark:text-gray-400">Conversions</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Conversions</span>
                   <span className="font-medium">151</span>
                 </div>
                 <Progress progress={45} color="green" size="sm" />
@@ -378,7 +378,7 @@ export default function AdminDashboardPage() {
               
               <div>
                 <div className="flex justify-between text-sm mb-1">
-                  <span className="text-gray-600 dark:text-gray-400">Revenue Goal</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Revenue Goal</span>
                   <span className="font-medium">45,230 kr</span>
                 </div>
                 <Progress progress={68} color="yellow" size="sm" />
@@ -406,8 +406,8 @@ export default function AdminDashboardPage() {
       <Card>
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Recent Bookings</h2>
-            <p className="text-gray-500 dark:text-gray-400">Latest customer bookings and their status</p>
+            <h2 className="text-xl font-bold text-text-heading dark:text-white">Recent Bookings</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Latest customer bookings and their status</p>
           </div>
           <Button as={Link} to={`/admin/${companyId}/bookings`} color="blue" size="sm">
             View All
@@ -427,7 +427,7 @@ export default function AdminDashboardPage() {
             <Table.Body className="divide-y">
               {recentBookings.map((booking) => (
                 <Table.Row key={booking.id} className="bg-white dark:border-gray-700 dark:bg-gray-800">
-                  <Table.Cell className="whitespace-nowrap font-medium text-gray-900 dark:text-white">
+                  <Table.Cell className="whitespace-nowrap font-medium text-text-heading dark:text-white">
                     <div className="flex items-center space-x-3">
                       <Avatar img={booking.avatar} size="sm" rounded />
                       <div>
@@ -476,8 +476,8 @@ export default function AdminDashboardPage() {
       <Card>
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Calculator Performance</h2>
-            <p className="text-gray-500 dark:text-gray-400">How your booking forms are performing</p>
+            <h2 className="text-xl font-bold text-text-heading dark:text-white">Calculator Performance</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400">How your booking forms are performing</p>
           </div>
           <Button as={Link} to={`/admin/${companyId}/forms/new`} color="blue" size="sm">
             <PlusIcon className="w-4 h-4 mr-2" />
@@ -495,7 +495,7 @@ export default function AdminDashboardPage() {
               className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:shadow-md transition-shadow"
             >
               <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-gray-900 dark:text-white">{calc.name}</h3>
+                <h3 className="font-semibold text-text-heading dark:text-white">{calc.name}</h3>
                 <Badge color={calc.status === 'published' ? 'success' : 'warning'} size="sm">
                   {calc.status}
                 </Badge>
@@ -503,15 +503,15 @@ export default function AdminDashboardPage() {
               
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600 dark:text-gray-400">Views</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Views</span>
                   <span className="font-medium">{calc.views.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600 dark:text-gray-400">Conversions</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Conversions</span>
                   <span className="font-medium">{calc.conversions}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600 dark:text-gray-400">Revenue</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Revenue</span>
                   <span className="font-medium">{calc.revenue}</span>
                 </div>
               </div>

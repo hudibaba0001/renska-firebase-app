@@ -125,9 +125,9 @@ export default function TenantDetailPage() {
             <div className="flex items-center space-x-4">
               <BuildingOfficeIcon className="h-8 w-8 text-white p-2 bg-brand rounded-xl" />
               <div>
-                <h2 className="text-2xl font-bold">{tenant.name}</h2>
+                <h2 className="text-2xl font-bold text-text-heading dark:text-white">{tenant.name}</h2>
                 <div className="flex items-center space-x-3 mt-1">
-                  <p className="text-sm text-gray-600">/booking/{tenant.slug}</p>
+                  <p className="text-sm text-text-main dark:text-white">/booking/{tenant.slug}</p>
                   <Badge color={getStatusColor()}>{getStatusText()}</Badge>
                   <Badge color="info">{tenant.subscription?.plan} Plan</Badge>
                 </div>

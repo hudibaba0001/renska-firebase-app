@@ -66,7 +66,7 @@ export default function PricingPage() {
               <div className="w-10 h-10 bg-gradient-to-r from-primary-500 to-secondary-500 rounded-xl flex items-center justify-center">
                 <span className="text-white font-bold text-lg">S</span>
               </div>
-              <span className="text-xl font-bold text-gray-900">SwedPrime</span>
+              <span className="text-xl font-bold text-text-heading dark:text-white">SwedPrime</span>
             </Link>
             <div className="flex items-center space-x-4">
               <Link to="/login" className="text-gray-600 hover:text-gray-900">Sign In</Link>
@@ -86,11 +86,11 @@ export default function PricingPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <h1 className="text-4xl lg:text-6xl font-bold text-gray-900 mb-6">
+            <h1 className="text-4xl lg:text-6xl font-bold text-text-heading dark:text-white mb-6">
               Choose Your
               <span className="bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent"> Plan</span>
             </h1>
-            <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
+            <p className="text-xl text-text-main dark:text-white mb-8 max-w-2xl mx-auto">
               Transform your cleaning business with our powerful booking calculator. 
               Start your free trial today and see the difference!
             </p>
@@ -175,13 +175,13 @@ export default function PricingPage() {
                         )}
                       </div>
                       
-                      <h3 className="text-2xl font-bold text-gray-900 mb-2">{plan.name}</h3>
+                      <h3 className="text-2xl font-bold text-text-heading dark:text-white mb-2">{plan.name}</h3>
                       
                       <div className="mb-4">
-                        <span className="text-4xl font-bold text-gray-900">
+                        <span className="text-4xl font-bold text-text-heading dark:text-white">
                           {formatPrice(selectedInterval === 'year' ? plan.price * 12 * 0.8 : plan.price)}
                         </span>
-                        <span className="text-gray-600">
+                        <span className="text-text-subtle dark:text-white">
                           /{selectedInterval === 'year' ? 'year' : 'month'}
                         </span>
                       </div>
@@ -200,7 +200,7 @@ export default function PricingPage() {
                           <div className="flex-shrink-0 mt-1">
                             <CheckIcon className="h-5 w-5 text-success-500" />
                           </div>
-                          <span className="text-gray-700">{feature}</span>
+                          <span className="text-text-main dark:text-white">{feature}</span>
                         </div>
                       ))}
                     </div>
@@ -242,7 +242,7 @@ export default function PricingPage() {
           >
             <Card className="shadow-soft">
               <div className="p-8">
-                <h2 className="text-3xl font-bold text-gray-900 text-center mb-8">
+                <h2 className="text-3xl font-bold text-text-heading dark:text-white text-center mb-8">
                   Compare All Features
                 </h2>
                 
@@ -253,8 +253,8 @@ export default function PricingPage() {
                         <th className="text-left py-4 pr-4">Features</th>
                         {plans.map(plan => (
                           <th key={plan.id} className="text-center py-4 px-4">
-                            <div className="font-bold text-gray-900">{plan.name}</div>
-                            <div className="text-sm text-gray-500">
+                            <div className="font-bold text-text-heading dark:text-white">{plan.name}</div>
+                            <div className="text-sm text-text-subtle dark:text-white">
                               {formatPrice(plan.price)}/month
                             </div>
                           </th>
@@ -328,10 +328,10 @@ export default function PricingPage() {
             transition={{ duration: 0.6, delay: 0.6 }}
             className="text-center mb-12"
           >
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+            <h2 className="text-3xl font-bold text-text-heading dark:text-white mb-4">
               Frequently Asked Questions
             </h2>
-            <p className="text-gray-600">
+            <p className="text-text-main dark:text-white">
               Everything you need to know about our pricing and plans
             </p>
           </motion.div>
@@ -339,8 +339,8 @@ export default function PricingPage() {
           <div className="space-y-6">
             <Card>
               <div className="p-6">
-                <h3 className="font-bold text-gray-900 mb-2">Can I change my plan anytime?</h3>
-                <p className="text-gray-600">
+                <h3 className="font-bold text-text-heading dark:text-white mb-2">Can I change my plan anytime?</h3>
+                <p className="text-text-main dark:text-white">
                   Yes! You can upgrade or downgrade your plan at any time. Changes take effect immediately, 
                   and you'll be charged or credited accordingly.
                 </p>
@@ -349,8 +349,8 @@ export default function PricingPage() {
 
             <Card>
               <div className="p-6">
-                <h3 className="font-bold text-gray-900 mb-2">Is there a free trial?</h3>
-                <p className="text-gray-600">
+                <h3 className="font-bold text-text-heading dark:text-white mb-2">Is there a free trial?</h3>
+                <p className="text-text-main dark:text-white">
                   We offer a 14-day free trial for all plans. No credit card required to start your trial.
                 </p>
               </div>
@@ -358,8 +358,8 @@ export default function PricingPage() {
 
             <Card>
               <div className="p-6">
-                <h3 className="font-bold text-gray-900 mb-2">What payment methods do you accept?</h3>
-                <p className="text-gray-600">
+                <h3 className="font-bold text-text-heading dark:text-white mb-2">What payment methods do you accept?</h3>
+                <p className="text-text-main dark:text-white">
                   We accept all major credit cards, including Visa, Mastercard, and American Express. 
                   All payments are processed securely through Stripe.
                 </p>
@@ -373,7 +373,7 @@ export default function PricingPage() {
       <footer className="bg-gray-900 text-white py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <p className="text-gray-400">
+            <p className="text-text-subtle dark:text-white">
               © 2024 SwedPrime. All rights reserved.
             </p>
           </div>
