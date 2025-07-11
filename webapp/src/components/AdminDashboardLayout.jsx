@@ -177,16 +177,163 @@ export default function AdminDashboardLayout() {
     setError('')
   }
 
+  const navigationItems = [
+    {
+      label: 'Dashboard',
+      href: `/admin/${companyId}`,
+      icon: HomeIcon,
+      exact: true,
+      badge: null,
+      description: 'Overview and quick actions'
+    },
+    {
+      label: 'Form Builder',
+      href: `/admin/${companyId}/forms`,
+      icon: CogIcon,
+      badge: null,
+      description: 'Create booking calculators'
+    },
+    {
+      label: 'Bookings',
+      href: `/admin/${companyId}/bookings`,
+      icon: DocumentTextIcon,
+      badge: '12',
+      description: 'Manage customer bookings'
+    },
+    {
+      label: 'Analytics',
+      href: `/admin/${companyId}/analytics`,
+      icon: ChartBarIcon,
+      badge: null,
+      description: 'Performance metrics and reports'
+    },
+    {
+      label: 'Customers',
+      href: `/admin/${companyId}/customers`,
+      icon: UserGroupIcon,
+      badge: null,
+      description: 'Customer management'
+    },
+    {
+      label: 'Settings',
+      href: `/admin/${companyId}/config`,
+      icon: CogIcon,
+      badge: null,
+      description: 'Configuration and settings'
+    },
+    {
+      label: 'Billing',
+      href: `/admin/${companyId}/billing`,
+      icon: CreditCardIcon,
+      badge: null,
+      description: 'Subscription and payments'
+    }
+  ]
+
   return (
     <div className={`flex min-h-screen ${darkMode ? 'dark' : ''}`}> 
-      {/* 1. Move the <nav> (top bar) outside and above the sidebar/content flex container, make it fixed, w-full, z-50, and set a fixed height (e.g., h-16). */}
-      {/* 2. Add 'mt-16' to the sidebar <aside> so it starts below the top bar. */}
-      {/* 3. Add 'pt-8 px-6' to the main content area for padding, and ensure it does not go under the top bar or sidebar. */}
-      {/* 4. Ensure all search and icon buttons are inside the top bar nav. */}
-      {/* 5. Add 'bg-gray-50 dark:bg-gray-900 min-h-screen' to the main content wrapper, and use 'rounded-xl shadow' for card sections. */}
-      <nav className={`fixed ${isImpersonating ? 'top-10' : 'top-0'} z-50 w-full bg-white border-b border-gray-200 dark:bg-gray-800 dark:border-gray-700`}>
-        <div className="px-3 py-3 lg:px-5 lg:pl-3">
-          <div className="flex items-center justify-between">
+      <aside className="fixed left-0 top-16 h-[calc(100vh-64px)] w-64 z-40 bg-white border-r border-gray-200 dark:bg-gray-800 dark:border-gray-700 overflow-y-auto">
+        <div className="h-full px-3 pb-4 overflow-y-auto bg-white dark:bg-gray-800">
+            {/* Company Info Card */}
+            <div className="mb-6 p-4 bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg text-white">
+              <div className="flex items-center space-x-3 mb-3">
+                <div className="w-10 h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
+                  <BuildingOfficeIcon className="w-6 h-6" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-base truncate text-text-heading dark:text-white">{company?.companyName || 'Company'}</h3>
+                  <p className="text-base text-text-subtle dark:text-white capitalize">{company?.serviceType || 'Cleaning Service'}</p>
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <Badge color="success" size="sm">Pro Plan</Badge>
+                <Link
+                  to={`/booking/${companyId}`}
+                  className="text-base text-black dark:text-white underline"
+                >
+                  View Live Form →
+                </Link>
+              </div>
+            </div>
+
+            {/* Navigation */}
+            <nav className="space-y-2">
+              {navigationItems.map((item) => (
+                <NavLink
+                  key={item.href}
+                  to={item.href}
+                  end={item.exact}
+                  className={({ isActive }) =>
+                    `group flex items-center w-full p-2 text-base font-normal rounded-lg transition duration-75 ${
+                      isActive
+                        ? 'text-black bg-gray-100 dark:bg-gray-700 dark:text-white'
+                        : 'text-black hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'
+                    }`
+                  }
+                >
+                  <item.icon className="w-5 h-5 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white" />
+                  <span className="ml-3 flex-1 whitespace-nowrap">{item.label}</span>
+                  {item.badge && (
+                    <Badge color="info" size="sm">
+                      {item.badge}
+                    </Badge>
+                  )}
+                </NavLink>
+              ))}
+            </nav>
+
+            {/* Bottom Section */}
+            <div className="mt-8 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="p-4 bg-blue-50 dark:bg-blue-900 rounded-lg">
+                <h4 className="text-base font-semibold text-text-heading dark:text-white mb-2">
+                  Need Help?
+                </h4>
+                <p className="text-base text-text-subtle dark:text-white mb-3">
+                  Check our documentation or contact support for assistance.
+                </p>
+                <Button size="xs" color="blue" className="w-full">
+                  Get Support
+                </Button>
+              </div>
+            </div>
+          </div>
+        </aside>
+      <div className="ml-64 pt-16 min-h-screen bg-gray-50 dark:bg-gray-900 p-6 transition-colors duration-200">
+        <Toaster 
+          position="top-right"
+          toastOptions={{
+            duration: 4000,
+            style: {
+              background: darkMode ? '#374151' : '#ffffff',
+              color: darkMode ? '#ffffff' : '#000000',
+            },
+          }}
+        />
+        
+        {/* Super Admin Impersonation Banner */}
+        {isImpersonating && (
+          <div className="bg-red-600 text-white px-4 py-2 text-base flex items-center justify-between relative z-50">
+            <div className="flex items-center gap-2">
+              <span>🦹‍♀️</span>
+              <span>
+                Super Admin Mode: Impersonating <strong>{impersonationData.tenantName}</strong>
+              </span>
+            </div>
+            <button
+              onClick={() => {
+                sessionStorage.removeItem('superAdminImpersonation');
+                window.location.href = '/super-admin/tenants';
+              }}
+              className="underline hover:no-underline"
+            >
+              Exit Impersonation
+            </button>
+          </div>
+        )}
+        
+        {/* Top Navigation Bar */}
+        <nav className={`fixed top-0 left-0 w-full h-16 bg-white border-b border-gray-200 dark:bg-gray-800 dark:border-gray-700 z-50`}>
+          <div className="px-3 py-3 lg:px-5 lg:pl-3 flex items-center justify-between">
             <div className="flex items-center justify-start rtl:justify-end">
               {/* Logo */}
               <Link to="/" className="flex items-center ml-2 md:mr-24">
@@ -313,63 +460,30 @@ export default function AdminDashboardLayout() {
               </Dropdown>
             </div>
           </div>
-        </div>
-      </nav>
+        </nav>
 
-      {/* Main Content - Always has left margin on desktop to account for fixed sidebar */}
-      <div className="flex-1 min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
-        <Toaster 
-          position="top-right"
-          toastOptions={{
-            duration: 4000,
-            style: {
-              background: darkMode ? '#374151' : '#ffffff',
-              color: darkMode ? '#ffffff' : '#000000',
-            },
-          }}
-        />
-        
-        {/* Super Admin Impersonation Banner */}
-        {isImpersonating && (
-          <div className="bg-red-600 text-white px-4 py-2 text-base flex items-center justify-between relative z-50">
-            <div className="flex items-center gap-2">
-              <span>🦹‍♀️</span>
-              <span>
-                Super Admin Mode: Impersonating <strong>{impersonationData.tenantName}</strong>
-              </span>
+        {/* Main Content - Always has left margin on desktop to account for fixed sidebar */}
+        <div className={`min-h-screen transition-all duration-300 ease-in-out w-full ${isImpersonating ? 'pt-20' : 'pt-16'} overflow-x-hidden`}>
+          <div className="p-6">
+            {/* Page Header */}
+            <div className="mb-6">
+              <Breadcrumb className="mb-2">
+                {getBreadcrumbItems().map((item, index) => (
+                  <Breadcrumb.Item key={index} href={item.href}>
+                    {item.label}
+                  </Breadcrumb.Item>
+                ))}
+              </Breadcrumb>
+              <h1 className="text-2xl font-bold text-text-heading dark:text-white">
+                {getPageTitle()}
+              </h1>
             </div>
-            <button
-              onClick={() => {
-                sessionStorage.removeItem('superAdminImpersonation');
-                window.location.href = '/super-admin/tenants';
-              }}
-              className="underline hover:no-underline"
-            >
-              Exit Impersonation
-            </button>
-          </div>
-        )}
-        
-        {/* Main Content Area */}
-        <div className="pt-8 px-6">
-          {/* Page Header */}
-          <div className="mb-6">
-            <Breadcrumb className="mb-2">
-              {getBreadcrumbItems().map((item, index) => (
-                <Breadcrumb.Item key={index} href={item.href}>
-                  {item.label}
-                </Breadcrumb.Item>
-              ))}
-            </Breadcrumb>
-            <h1 className="text-2xl font-bold text-text-heading dark:text-white">
-              {getPageTitle()}
-            </h1>
-          </div>
 
-          {/* Page Content */}
-          <AnimatePresence>
-            <Outlet context={{ company }} />
-          </AnimatePresence>
+            {/* Page Content */}
+            <AnimatePresence>
+              <Outlet context={{ company }} />
+            </AnimatePresence>
+          </div>
         </div>
 
         {/* Search Modal */}

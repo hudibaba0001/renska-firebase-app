@@ -281,9 +281,9 @@ export default function BookingCalculator() {
       setLoading(true);
       setError('');
       try {
-        const ref = doc(db, 'companies', companyId);
-        const snap = await getDoc(ref);
-        if (snap.exists()) {
+          const ref = doc(db, 'companies', companyId);
+          const snap = await getDoc(ref);
+          if (snap.exists()) {
           setConfig(snap.data());
         } else {
           setError('Företagsdata kunde inte hämtas.');
@@ -310,36 +310,36 @@ export default function BookingCalculator() {
   return (
     <div className="flex gap-8">
       <div className="flex-1">
-        {step === 1 && (
+            {step === 1 && (
           <ZipCodeStep
             onNext={() => setStep(2)}
-            formData={formData}
+                formData={formData}
             setFormData={setFormData}
             allowedZipCodes={allowedZipCodes}
             error={zipError}
             setError={setZipError}
           />
         )}
-        {step === 2 && (
+            {step === 2 && (
           <ServiceSelectStep
             onNext={() => setStep(3)}
             onBack={() => setStep(1)}
             formData={formData}
             setFormData={setFormData}
-            config={config}
-          />
-        )}
-        {step === 3 && (
+                config={config}
+              />
+            )}
+            {step === 3 && (
           <ServiceDetailsStep
             onNext={() => setStep(4)}
             onBack={() => setStep(2)}
-            formData={formData}
+                formData={formData}
             setFormData={setFormData}
-            config={config}
-          />
-        )}
-        {step === 4 && (
-          <CustomerInfoStep
+                config={config}
+              />
+            )}
+            {step === 4 && (
+              <CustomerInfoStep
             onBack={() => setStep(3)}
             formData={formData}
             setFormData={setFormData}
