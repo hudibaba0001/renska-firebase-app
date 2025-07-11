@@ -34,7 +34,7 @@ import {
   BuildingOfficeIcon,
   QuestionMarkCircleIcon
 } from '@heroicons/react/24/outline'
-import { motion, AnimatePresence } from 'framer-motion'
+import { AnimatePresence } from 'framer-motion'
 import toast, { Toaster } from 'react-hot-toast'
 
 export default function AdminDashboardLayout() {
@@ -156,7 +156,7 @@ export default function AdminDashboardLayout() {
                 </div>
               </div>
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mt-4 mb-2">
+            <h3 className="text-lg font-semibold text-black dark:text-white mt-4 mb-2">
               Loading SwedPrime Dashboard
             </h3>
             <p className="text-gray-500 dark:text-gray-400">
@@ -231,8 +231,74 @@ export default function AdminDashboardLayout() {
   ]
 
   return (
-    <div className={`min-h-screen ${darkMode ? 'dark' : ''}`}>
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+    <div className={`flex min-h-screen ${darkMode ? 'dark' : ''}`}> 
+      <aside className="sticky top-0 h-screen w-64 flex-shrink-0 bg-white border-r border-gray-200 dark:bg-gray-800 dark:border-gray-700 ${isImpersonating ? 'pt-10' : 'pt-20'}">
+        <div className="h-full px-3 pb-4 overflow-y-auto bg-white dark:bg-gray-800">
+            {/* Company Info Card */}
+            <div className="mb-6 p-4 bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg text-white">
+              <div className="flex items-center space-x-3 mb-3">
+                <div className="w-10 h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
+                  <BuildingOfficeIcon className="w-6 h-6" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-sm truncate">{company?.companyName || 'Company'}</h3>
+                  <p className="text-xs text-black dark:text-white capitalize">{company?.serviceType || 'Cleaning Service'}</p>
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <Badge color="success" size="sm">Pro Plan</Badge>
+                <Link
+                  to={`/booking/${companyId}`}
+                  className="text-xs text-black dark:text-white underline"
+                >
+                  View Live Form →
+                </Link>
+              </div>
+            </div>
+
+            {/* Navigation */}
+            <nav className="space-y-2">
+              {navigationItems.map((item) => (
+                <NavLink
+                  key={item.href}
+                  to={item.href}
+                  end={item.exact}
+                  className={({ isActive }) =>
+                    `group flex items-center w-full p-2 text-sm font-normal rounded-lg transition duration-75 ${
+                      isActive
+                        ? 'text-black bg-gray-100 dark:bg-gray-700 dark:text-white'
+                        : 'text-black hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'
+                    }`
+                  }
+                >
+                  <item.icon className="w-5 h-5 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white" />
+                  <span className="ml-3 flex-1 whitespace-nowrap">{item.label}</span>
+                  {item.badge && (
+                    <Badge color="info" size="sm">
+                      {item.badge}
+                    </Badge>
+                  )}
+                </NavLink>
+              ))}
+            </nav>
+
+            {/* Bottom Section */}
+            <div className="mt-8 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="p-4 bg-blue-50 dark:bg-blue-900 rounded-lg">
+                <h4 className="text-sm font-semibold text-black dark:text-white mb-2">
+                  Need Help?
+                </h4>
+                <p className="text-xs text-black dark:text-white mb-3">
+                  Check our documentation or contact support for assistance.
+                </p>
+                <Button size="xs" color="blue" className="w-full">
+                  Get Support
+                </Button>
+              </div>
+            </div>
+          </div>
+        </aside>
+      <div className="flex-1 min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
         <Toaster 
           position="top-right"
           toastOptions={{
@@ -333,7 +399,7 @@ export default function AdminDashboardLayout() {
                       <div className="flex items-start space-x-3 p-2">
                         <div className={`w-2 h-2 rounded-full mt-2 ${notification.unread ? 'bg-blue-600' : 'bg-gray-300'}`} />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 dark:text-white">
+                          <p className="text-sm font-medium text-black dark:text-white">
                             {notification.title}
                           </p>
                           <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
@@ -398,80 +464,8 @@ export default function AdminDashboardLayout() {
           </div>
         </nav>
 
-        {/* Sidebar - Always visible on desktop, toggleable on mobile */}
-        <aside className={`
-          fixed ${isImpersonating ? 'top-20' : 'top-0'} left-0 z-40 w-64 h-screen ${isImpersonating ? 'pt-10' : 'pt-20'} transition-transform duration-300 ease-in-out
-          bg-white border-r border-gray-200 
-          dark:bg-gray-800 dark:border-gray-700
-        `}>
-          <div className="h-full px-3 pb-4 overflow-y-auto bg-white dark:bg-gray-800">
-            {/* Company Info Card */}
-            <div className="mb-6 p-4 bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg text-white">
-              <div className="flex items-center space-x-3 mb-3">
-                <div className="w-10 h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
-                  <BuildingOfficeIcon className="w-6 h-6" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-sm truncate">{company?.companyName || 'Company'}</h3>
-                  <p className="text-xs text-blue-100 capitalize">{company?.serviceType || 'Cleaning Service'}</p>
-                </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <Badge color="success" size="sm">Pro Plan</Badge>
-                <Link
-                  to={`/booking/${companyId}`}
-                  className="text-xs text-blue-100 hover:text-white underline"
-                >
-                  View Live Form →
-                </Link>
-              </div>
-            </div>
-
-            {/* Navigation */}
-            <nav className="space-y-2">
-              {navigationItems.map((item) => (
-                <NavLink
-                  key={item.href}
-                  to={item.href}
-                  end={item.exact}
-                  className={({ isActive }) =>
-                    `group flex items-center w-full p-2 text-sm font-normal rounded-lg transition duration-75 ${
-                      isActive
-                        ? 'text-gray-900 bg-gray-100 dark:bg-gray-700 dark:text-white'
-                        : 'text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'
-                    }`
-                  }
-                >
-                  <item.icon className="w-5 h-5 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white" />
-                  <span className="ml-3 flex-1 whitespace-nowrap">{item.label}</span>
-                  {item.badge && (
-                    <Badge color="info" size="sm">
-                      {item.badge}
-                    </Badge>
-                  )}
-                </NavLink>
-              ))}
-            </nav>
-
-            {/* Bottom Section */}
-            <div className="mt-8 pt-4 border-t border-gray-200 dark:border-gray-700">
-              <div className="p-4 bg-blue-50 dark:bg-blue-900 rounded-lg">
-                <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">
-                  Need Help?
-                </h4>
-                <p className="text-xs text-blue-700 dark:text-blue-200 mb-3">
-                  Check our documentation or contact support for assistance.
-                </p>
-                <Button size="xs" color="blue" className="w-full">
-                  Get Support
-                </Button>
-              </div>
-            </div>
-          </div>
-        </aside>
-
         {/* Main Content - Always has left margin on desktop to account for fixed sidebar */}
-        <div className={`min-h-screen transition-all duration-300 ease-in-out ${isImpersonating ? 'pt-20' : 'pt-16'} pl-0 lg:pl-64`}>
+        <div className={`min-h-screen transition-all duration-300 ease-in-out w-full ${isImpersonating ? 'pt-20' : 'pt-16'} overflow-x-auto`}>
           <div className="p-6">
             {/* Page Header */}
             <div className="mb-6">
@@ -482,20 +476,15 @@ export default function AdminDashboardLayout() {
                   </Breadcrumb.Item>
                 ))}
               </Breadcrumb>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+              <h1 className="text-2xl font-bold text-black dark:text-white">
                 {getPageTitle()}
               </h1>
             </div>
 
             {/* Page Content */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-              className="w-full"
-            >
+            <AnimatePresence>
               <Outlet context={{ company }} />
-            </motion.div>
+            </AnimatePresence>
           </div>
         </div>
 
