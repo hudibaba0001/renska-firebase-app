@@ -46,7 +46,10 @@ export default function AdminDashboardLayout() {
   const [company, setCompany] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  // Remove sidebarOpen state and all logic related to toggling sidebar visibility on desktop
+  // Remove AnimatePresence and motion.div for mobile overlay
+  // Sidebar should always be visible on the left for lg: and up, and main content should always be visible on the right
+  // Adjust the main content div to always have left padding/margin for the sidebar
   const [darkMode, setDarkMode] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [notifications] = useState([
@@ -267,17 +270,6 @@ export default function AdminDashboardLayout() {
           <div className="px-3 py-3 lg:px-5 lg:pl-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center justify-start rtl:justify-end">
-                {/* Mobile menu button - only visible on mobile */}
-                <Button
-                  color="gray"
-                  size="sm"
-                  onClick={() => setSidebarOpen(!sidebarOpen)}
-                  className="inline-flex items-center p-2 text-sm text-gray-500 rounded-lg lg:hidden hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-600"
-                >
-                  <span className="sr-only">Toggle sidebar</span>
-                  {sidebarOpen ? <XMarkIcon className="w-6 h-6" /> : <Bars3Icon className="w-6 h-6" />}
-                </Button>
-                
                 {/* Logo */}
                 <Link to="/" className="flex items-center ml-2 md:mr-24">
                   <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center mr-3">
@@ -406,23 +398,9 @@ export default function AdminDashboardLayout() {
           </div>
         </nav>
 
-        {/* Mobile overlay - only for mobile */}
-        <AnimatePresence>
-          {sidebarOpen && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-gray-900 bg-opacity-50 z-40 lg:hidden"
-              onClick={() => setSidebarOpen(false)}
-            />
-          )}
-        </AnimatePresence>
-        
         {/* Sidebar - Always visible on desktop, toggleable on mobile */}
         <aside className={`
           fixed ${isImpersonating ? 'top-20' : 'top-0'} left-0 z-40 w-64 h-screen ${isImpersonating ? 'pt-10' : 'pt-20'} transition-transform duration-300 ease-in-out
-          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
           bg-white border-r border-gray-200 
           dark:bg-gray-800 dark:border-gray-700
         `}>
@@ -463,12 +441,6 @@ export default function AdminDashboardLayout() {
                         : 'text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'
                     }`
                   }
-                  onClick={() => {
-                    // Only close sidebar on mobile
-                    if (window.innerWidth < 1024) {
-                      setSidebarOpen(false)
-                    }
-                  }}
                 >
                   <item.icon className="w-5 h-5 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white" />
                   <span className="ml-3 flex-1 whitespace-nowrap">{item.label}</span>
