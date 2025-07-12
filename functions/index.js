@@ -8,6 +8,8 @@
  */
 
 const {setGlobalOptions} = require("firebase-functions");
+const {onRequest} = require("firebase-functions/v2/https");
+const {onCall} = require("firebase-functions/v2/https");
 const logger = require("firebase-functions/logger");
 const admin = require("firebase-admin");
 
@@ -18,9 +20,14 @@ const db = admin.firestore();
 // Initialize Stripe with secret key from Firebase config
 const functions = require('firebase-functions');
 
+// Check for Stripe configuration
+const stripeConfig = functions.config().stripe;
+if (!stripeConfig || !stripeConfig.secret_key || !stripeConfig.webhook_secret) {
+    logger.error("Stripe configuration is missing. Ensure you have run 'firebase functions:config:set stripe.secret_key=YOUR_KEY stripe.webhook_secret=YOUR_SECRET'");
+}
+
 // Initialize Stripe with configuration
-const stripeConfig = functions.config().stripe || {};
-const stripe = require('stripe')(stripeConfig.secret_key || 'sk_test_dummy_key');
+const stripe = require('stripe')(stripeConfig.secret_key);
 
 // For cost control, you can set the maximum number of containers that can be
 // running at the same time. This helps mitigate the impact of unexpected
@@ -573,19 +580,20 @@ exports.createCheckoutSession = functions.region(region).https.onCall({
   try {
     // Validate input
     if (!planId || !companyId) {
-      throw new Error('Missing required parameters: planId and companyId');
+      throw new functions.https.HttpsError('invalid-argument', 'Missing required parameters: planId and companyId');
     }
 
-    // Map plan to price ID (you'll need to set these in your environment)
-    const planToPriceMapping = {
-      'basic': process.env.STRIPE_BASIC_PRICE_ID,
-      'standard': process.env.STRIPE_STANDARD_PRICE_ID,
-      'premium': process.env.STRIPE_PREMIUM_PRICE_ID
-    };
+    const appUrl = functions.config().app.url;
+    if(!appUrl){
+        logger.error("App URL is not configured. Please set 'firebase functions:config:set app.url=YOUR_APP_URL'");
+        throw new functions.https.HttpsError('internal', 'Application URL is not configured.');
+    }
 
-    const priceId = planToPriceMapping[planId];
+    // Map plan to price ID
+    const priceId = functions.config().stripe.price_ids[planId];
     if (!priceId) {
-      throw new Error(`Invalid plan: ${planId}`);
+        logger.error(`Invalid plan: ${planId}`);
+        throw new functions.https.HttpsError('invalid-argument', `Invalid plan: ${planId}`);
     }
 
     // Create checkout session
@@ -596,8 +604,8 @@ exports.createCheckoutSession = functions.region(region).https.onCall({
         price: priceId,
         quantity: 1,
       }],
-      success_url: successUrl || `${process.env.APP_URL}/admin/${companyId}/billing?success=true&plan=${planId}`,
-      cancel_url: cancelUrl || `${process.env.APP_URL}/pricing`,
+      success_url: successUrl || `${appUrl}/admin/${companyId}/billing?success=true&plan=${planId}`,
+      cancel_url: cancelUrl || `${appUrl}/pricing`,
       metadata: {
         companyId,
         planId,
@@ -626,7 +634,7 @@ exports.createCheckoutSession = functions.region(region).https.onCall({
       planId, 
       companyId 
     });
-    throw new Error(`Failed to create checkout session: ${error.message}`);
+    throw new functions.https.HttpsError('internal', `Failed to create checkout session: ${error.message}`);
   }
 });
 
