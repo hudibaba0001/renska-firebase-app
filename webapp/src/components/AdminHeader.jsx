@@ -39,7 +39,7 @@ export default function AdminHeader({
           </div>
 
           {/* Right: Search, Dark mode, Notifications, User */}
-          <div className="flex items-center space-x-3 flex-shrink-0 border-2 border-red-500 bg-yellow-100 min-w-0 overflow-visible">
+          <div className="flex items-center space-x-3 flex-shrink-0 min-w-0 overflow-visible">
             {/* Search */}
             <button
               type="button"
