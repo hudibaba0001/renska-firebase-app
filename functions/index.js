@@ -1,3 +1,4 @@
+
 /**
  * Import function triggers from their respective submodules:
  *
@@ -7,151 +8,44 @@
  * See a full list of supported triggers at https://firebase.google.com/docs/functions
  */
 
-const {setGlobalOptions} = require("firebase-functions");
-const {onRequest} = require("firebase-functions/v2/https");
-const {onCall} = require("firebase-functions/v2/https");
+const {setGlobalOptions} = require("firebase-functions/v2");
+const {onRequest, onCall, HttpsError} = require("firebase-functions/v2/https");
 const logger = require("firebase-functions/logger");
 const admin = require("firebase-admin");
+const functions = require('firebase-functions');
 
 // Initialize Firebase Admin
 admin.initializeApp();
 const db = admin.firestore();
 
 // Initialize Stripe with secret key from Firebase config
-const functions = require('firebase-functions');
-
-// Check for Stripe configuration
 const stripeConfig = functions.config().stripe;
 if (!stripeConfig || !stripeConfig.secret_key || !stripeConfig.webhook_secret) {
     logger.error("Stripe configuration is missing. Ensure you have run 'firebase functions:config:set stripe.secret_key=YOUR_KEY stripe.webhook_secret=YOUR_SECRET'");
 }
 
-// Initialize Stripe with configuration
 const stripe = require('stripe')(stripeConfig.secret_key);
 
-// For cost control, you can set the maximum number of containers that can be
-// running at the same time. This helps mitigate the impact of unexpected
-// traffic spikes by instead downgrading performance. This limit is a
-// per-function limit. You can override the limit for each function using the
-// `maxInstances` option in the function's options, e.g.
-// `onRequest({ maxInstances: 5 }, (req, res) => { ... })`.
-// NOTE: setGlobalOptions does not apply to functions using the v1 API. V1
-// functions should each use functions.runWith({ maxInstances: 10 }) instead.
-// In the v1 API, each function can only serve one request per container, so
-// this will be the maximum concurrent request count.
-setGlobalOptions({ maxInstances: 10 });
-
-// Create and deploy your first functions
-// https://firebase.google.com/docs/functions/get-started
-
-// exports.helloWorld = onRequest((request, response) => {
-//   logger.info("Hello logs!", {structuredData: true});
-//   response.send("Hello from Firebase!");
-// });
+setGlobalOptions({ maxInstances: 10, region: 'europe-west1' });
 
 /**
- * SwedPrime SaaS Platform - Firebase Cloud Functions
- * Handles Stripe webhooks for subscription billing management
+ * Health check endpoint
  */
+exports.healthCheck = onRequest((req, res) => {
+  res.status(200).json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    service: 'swedprime-billing'
+  });
+});
 
-/**
- * Stripe Webhook Handler
- * Handles all subscription-related events from Stripe
- */
-// exports.handleStripeWebhook = onRequest({
-//   cors: true,
-//   timeoutSeconds: 60,
-//   memory: "256MiB"
-// }, async (req, res) => {
-//   logger.info("🔔 Stripe webhook received", { method: req.method, headers: req.headers });
-
-//   // Only accept POST requests
-//   if (req.method !== 'POST') {
-//     logger.warn("❌ Invalid request method", { method: req.method });
-//     return res.status(405).send('Method Not Allowed');
-//   }
-
-//   const sig = req.headers['stripe-signature'];
-//   const webhookSecret = stripeConfig.webhook_secret;
-  
-//   if (!webhookSecret) {
-//     logger.error("❌ Stripe webhook secret not configured");
-//     return res.status(500).send('Webhook secret not configured');
-//   }
-
-//   let event;
-
-//   try {
-//     // Verify webhook signature
-//     event = stripe.webhooks.constructEvent(req.rawBody, sig, webhookSecret);
-//     logger.info("✅ Webhook signature verified", { eventType: event.type, eventId: event.id });
-//   } catch (err) {
-//     logger.error("❌ Webhook signature verification failed", { error: err.message });
-//     return res.status(400).send(`Webhook Error: ${err.message}`);
-//   }
-
-//   try {
-//     // Handle the event
-//     switch (event.type) {
-//       case 'checkout.session.completed':
-//         await handleCheckoutCompleted(event.data.object);
-//         break;
-
-//       case 'customer.subscription.created':
-//         await handleSubscriptionCreated(event.data.object);
-//         break;
-
-//       case 'customer.subscription.updated':
-//         await handleSubscriptionUpdated(event.data.object);
-//         break;
-
-//       case 'customer.subscription.deleted':
-//         await handleSubscriptionDeleted(event.data.object);
-//         break;
-
-//       case 'invoice.payment_succeeded':
-//         await handlePaymentSucceeded(event.data.object);
-//         break;
-
-//       case 'invoice.payment_failed':
-//         await handlePaymentFailed(event.data.object);
-//         break;
-
-//       case 'customer.subscription.trial_will_end':
-//         await handleTrialWillEnd(event.data.object);
-//         break;
-
-//       default:
-//         logger.info("🤷 Unhandled event type", { eventType: event.type });
-//     }
-
-//     // Return success response
-//     res.status(200).json({ received: true, eventType: event.type });
-
-//   } catch (error) {
-//     logger.error("❌ Error processing webhook", { 
-//       error: error.message, 
-//       eventType: event.type,
-//       eventId: event.id 
-//     });
-//     res.status(500).send('Internal Server Error');
-//   }
-// });
 
 /**
  * Secure Company Signup Function
  * Allows public users to sign up a new company and admin user via a callable HTTPS function.
  * Performs input validation, duplicate checks, and writes to Firestore.
  */
-const region = 'europe-north2';
-
-/**
- * Secure Company Signup Function
- * Allows public users to sign up a new company and admin user via a callable HTTPS function.
- * Performs input validation, duplicate checks, and writes to Firestore.
- */
-exports.signupCompany = functions.region(region).https.onCall({ timeoutSeconds: 30, memory: '256MiB' }, async (request) => {
-  const data = request.data || {};
+exports.signupCompany = onCall({ timeoutSeconds: 30, memory: '256MiB' }, async (request) => {
   const {
     companyName,
     address,
@@ -160,491 +54,262 @@ exports.signupCompany = functions.region(region).https.onCall({ timeoutSeconds: 
     email,
     phone,
     password
-  } = data;
+  } = request.data || {};
 
-  // Basic input validation
-  function isValidEmail(email) {
-    return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email);
-  }
-  function isValidPhone(phone) {
-    return /^\+?[0-9\- ]{6,20}$/.test(phone);
-  }
-  function isValidOrgNumber(org) {
-    return /^[0-9A-Za-z\-]{4,20}$/.test(org);
-  }
-  if (!companyName || companyName.length < 2 || companyName.length > 100) {
-    throw new functions.https.HttpsError('invalid-argument', 'Invalid company name.');
-  }
-  if (!address || address.length < 3) {
-    throw new functions.https.HttpsError('invalid-argument', 'Invalid address.');
-  }
-  if (!orgNumber || !isValidOrgNumber(orgNumber)) {
-    throw new functions.https.HttpsError('invalid-argument', 'Invalid organization number.');
-  }
-  if (!adminName || adminName.length < 2) {
-    throw new functions.https.HttpsError('invalid-argument', 'Invalid admin name.');
-  }
-  if (!email || !isValidEmail(email)) {
-    throw new functions.https.HttpsError('invalid-argument', 'Invalid email address.');
-  }
-  if (!phone || !isValidPhone(phone)) {
-    throw new functions.https.HttpsError('invalid-argument', 'Invalid phone number.');
-  }
-  if (!password || password.length < 6) {
-    throw new functions.https.HttpsError('invalid-argument', 'Password must be at least 6 characters.');
-  }
+  // Validation functions
+  const isValidEmail = (email) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email);
+  const isValidPhone = (phone) => /^\+?[0-9\- ]{6,20}$/.test(phone);
+  const isValidOrgNumber = (org) => /^[0-9A-Za-z\-]{4,20}$/.test(org);
 
-  // Generate companyId (slug)
+  // Input validation checks
+  if (!companyName || companyName.length < 2 || companyName.length > 100) throw new HttpsError('invalid-argument', 'Invalid company name.');
+  if (!address || address.length < 3) throw new HttpsError('invalid-argument', 'Invalid address.');
+  if (!orgNumber || !isValidOrgNumber(orgNumber)) throw new HttpsError('invalid-argument', 'Invalid organization number.');
+  if (!adminName || adminName.length < 2) throw new HttpsError('invalid-argument', 'Invalid admin name.');
+  if (!email || !isValidEmail(email)) throw new HttpsError('invalid-argument', 'Invalid email address.');
+  if (!phone || !isValidPhone(phone)) throw new HttpsError('invalid-argument', 'Invalid phone number.');
+  if (!password || password.length < 6) throw new HttpsError('invalid-argument', 'Password must be at least 6 characters.');
+
   const companyId = companyName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-');
-
-  // Check for duplicate company
   const companyRef = db.collection('companies').doc(companyId);
-  const companySnap = await companyRef.get();
-  if (companySnap.exists) {
-    throw new functions.https.HttpsError('already-exists', 'A company with this name already exists.');
-  }
 
-  // Create admin user in Firebase Auth
-  let userRecord;
-  try {
-    userRecord = await admin.auth().createUser({
-      email,
-      password,
-      displayName: adminName,
-      phoneNumber: phone.startsWith('+') ? phone : undefined // Only set if valid E.164
-    });
-  } catch (err) {
-    if (err.code === 'auth/email-already-exists') {
-      throw new functions.https.HttpsError('already-exists', 'Email already in use.');
+  // Firestore transaction for atomicity
+  return db.runTransaction(async (transaction) => {
+    const companySnap = await transaction.get(companyRef);
+    if (companySnap.exists) {
+      throw new HttpsError('already-exists', 'A company with this name already exists.');
     }
-    throw new functions.https.HttpsError('internal', 'Failed to create user: ' + err.message);
-  }
 
-  // Create company document
-  await companyRef.set({
-    companyName,
-    address,
-    orgNumber,
-    adminName,
-    adminEmail: email,
-    adminPhone: phone,
-    adminUid: userRecord.uid,
-    created: admin.firestore.FieldValue.serverTimestamp(),
-    pricePerSqm: 0,
-    services: [],
-    frequencyMultiplier: {},
-    addOns: {},
-    windowCleaningPrices: {},
-    zipAreas: [],
-    rutEnabled: false,
-    isPublic: false
+    let userRecord;
+    try {
+      userRecord = await admin.auth().createUser({
+        email,
+        password,
+        displayName: adminName,
+        phoneNumber: phone.startsWith('+') ? phone : undefined
+      });
+    } catch (err) {
+      if (err.code === 'auth/email-already-exists') {
+        throw new HttpsError('already-exists', 'Email already in use.');
+      }
+      logger.error("Failed to create user", {error: err});
+      throw new HttpsError('internal', 'Failed to create user.');
+    }
+
+    const timestamp = admin.firestore.FieldValue.serverTimestamp();
+
+    // Create company document
+    transaction.set(companyRef, {
+      companyName, address, orgNumber, adminName,
+      adminEmail: email, adminPhone: phone, adminUid: userRecord.uid,
+      created: timestamp, pricePerSqm: 0, services: [],
+      frequencyMultiplier: {}, addOns: {}, windowCleaningPrices: {},
+      zipAreas: [], rutEnabled: false, isPublic: false
+    });
+
+    // Create user profile document
+    const userRef = db.collection('users').doc(userRecord.uid);
+    transaction.set(userRef, {
+      email, name: adminName, companyId, phone,
+      created: timestamp, adminOf: companyId
+    });
+    
+    // Set custom claims
+    await admin.auth().setCustomUserClaims(userRecord.uid, { adminOf: companyId });
+
+    return { success: true, companyId, adminUid: userRecord.uid };
   });
-
-  // Create user profile document
-  await db.collection('users').doc(userRecord.uid).set({
-    email,
-    name: adminName,
-    companyId,
-    phone,
-    created: admin.firestore.FieldValue.serverTimestamp(),
-    adminOf: companyId
-  });
-
-  // Optionally, set custom claims for admin
-  await admin.auth().setCustomUserClaims(userRecord.uid, { adminOf: companyId });
-
-  return { success: true, companyId, adminUid: userRecord.uid };
 });
 
 /**
- * Handle successful checkout session
+ * Create Stripe Checkout Session (Callable Function)
  */
+exports.createCheckoutSession = onCall({ cors: true, timeoutSeconds: 30, memory: "256MiB" }, async (request) => {
+  const { planId, companyId, successUrl, cancelUrl } = request.data;
+  logger.info("🛒 Creating checkout session", { planId, companyId });
+
+  if (!planId || !companyId) {
+    throw new HttpsError('invalid-argument', 'Missing required parameters: planId and companyId');
+  }
+
+  const appUrl = functions.config().app.url;
+  if (!appUrl) {
+    logger.error("App URL not configured");
+    throw new HttpsError('internal', 'Application URL is not configured.');
+  }
+
+  const priceId = functions.config().stripe.price_ids[planId];
+  if (!priceId) {
+    logger.error(`Invalid plan: ${planId}`);
+    throw new HttpsError('invalid-argument', `Invalid plan: ${planId}`);
+  }
+
+  try {
+    const session = await stripe.checkout.sessions.create({
+      mode: 'subscription',
+      payment_method_types: ['card'],
+      line_items: [{ price: priceId, quantity: 1 }],
+      success_url: successUrl || `${appUrl}/admin/${companyId}/billing?success=true&plan=${planId}`,
+      cancel_url: cancelUrl || `${appUrl}/pricing`,
+      metadata: { companyId, planId },
+      subscription_data: {
+        trial_period_days: planId === 'basic' ? 14 : 7,
+        metadata: { companyId, planId }
+      },
+      allow_promotion_codes: true,
+    });
+
+    logger.info("✅ Checkout session created", { sessionId: session.id, planId, companyId });
+    return { sessionId: session.id, url: session.url };
+  } catch (error) {
+    logger.error("❌ Error creating checkout session", { error: error.message, planId, companyId });
+    throw new HttpsError('internal', `Failed to create checkout session: ${error.message}`);
+  }
+});
+
+
+
+// The following are Stripe webhook handlers. They are not exported as individual functions.
+// Instead, you should have a single webhook endpoint that handles all events.
+
+const handleWebhookEvent = async (event) => {
+  const handlers = {
+    'checkout.session.completed': handleCheckoutCompleted,
+    'customer.subscription.created': handleSubscriptionEvent,
+    'customer.subscription.updated': handleSubscriptionEvent,
+    'customer.subscription.deleted': handleSubscriptionEvent,
+    'invoice.payment_succeeded': handleInvoiceEvent,
+    'invoice.payment_failed': handleInvoiceEvent,
+    'customer.subscription.trial_will_end': handleTrialWillEnd,
+  };
+
+  const handler = handlers[event.type] || ((e) => logger.info(`🤷 Unhandled event type: ${e.type}`));
+  await handler(event.data.object);
+};
+
+exports.handleStripeWebhook = onRequest({ timeoutSeconds: 60, memory: "256MiB" }, async (req, res) => {
+  if (req.method !== 'POST') {
+    return res.status(405).send('Method Not Allowed');
+  }
+
+  const sig = req.headers['stripe-signature'];
+  const webhookSecret = stripeConfig.webhook_secret;
+
+  if (!webhookSecret) {
+    logger.error("❌ Stripe webhook secret not configured");
+    return res.status(500).send('Webhook secret not configured');
+  }
+
+  try {
+    const event = stripe.webhooks.constructEvent(req.rawBody, sig, webhookSecret);
+    logger.info("✅ Webhook signature verified", { eventType: event.type, eventId: event.id });
+    
+    await handleWebhookEvent(event);
+    
+    res.status(200).json({ received: true });
+  } catch (err) {_
+    logger.error("❌ Webhook error", { error: err.message });
+    res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+});
+
+
+async function getCompanyRefBySubscription(subscriptionId) {
+    const query = db.collection('companies').where('subscription.stripeSubscriptionId', '==', subscriptionId).limit(1);
+    const snapshot = await query.get();
+    return snapshot.empty ? null : snapshot.docs[0].ref;
+}
+
+async function getCompanyRefByCustomer(customerId) {
+    const query = db.collection('companies').where('subscription.stripeCustomerId', '==', customerId).limit(1);
+    const snapshot = await query.get();
+    return snapshot.empty ? null : snapshot.docs[0].ref;
+}
+
 async function handleCheckoutCompleted(session) {
-  logger.info("💰 Processing checkout completion", { sessionId: session.id });
-
-  const companyId = session.metadata && session.metadata.companyId;
-  const planId = session.metadata && session.metadata.planId;
-
+  const { companyId, planId } = session.metadata;
   if (!companyId) {
     logger.error("❌ No companyId in session metadata", { sessionId: session.id });
     return;
   }
 
-  try {
-    // Get subscription details
-    const subscription = await stripe.subscriptions.retrieve(session.subscription);
-    const customer = await stripe.customers.retrieve(session.customer);
+  const subscription = await stripe.subscriptions.retrieve(session.subscription);
+  const companyRef = db.collection('companies').doc(companyId);
 
-    // Update company record
-    await db.collection('companies').doc(companyId).set({
-      subscription: {
-        active: true,
-        status: subscription.status,
-        plan: planId,
-        stripeCustomerId: customer.id,
-        stripeSubscriptionId: subscription.id,
-        currentPeriodStart: new Date(subscription.current_period_start * 1000),
-        currentPeriodEnd: new Date(subscription.current_period_end * 1000),
-        trialEnd: subscription.trial_end ? new Date(subscription.trial_end * 1000) : null,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp()
-      }
-    }, { merge: true });
-
-    logger.info("✅ Company subscription activated", { 
-      companyId, 
+  await companyRef.set({
+    subscription: {
+      active: true,
+      status: subscription.status,
       plan: planId,
-      subscriptionId: subscription.id 
-    });
+      stripeCustomerId: session.customer,
+      stripeSubscriptionId: subscription.id,
+      currentPeriodStart: new Date(subscription.current_period_start * 1000),
+      currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+      trialEnd: subscription.trial_end ? new Date(subscription.trial_end * 1000) : null,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    }
+  }, { merge: true });
 
-    // TODO: Send welcome email to customer
-    // await sendWelcomeEmail(customer.email, companyId, planId);
-
-  } catch (error) {
-    logger.error("❌ Error handling checkout completion", { 
-      error: error.message, 
-      companyId, 
-      sessionId: session.id 
-    });
-    throw error;
-  }
+  logger.info("✅ Company subscription activated", { companyId, plan: planId, subscriptionId: subscription.id });
 }
 
-/**
- * Handle subscription creation
- */
-async function handleSubscriptionCreated(subscription) {
-  logger.info("🆕 Processing subscription creation", { subscriptionId: subscription.id });
-
-  try {
-    // Find company by customer ID
-    const companiesRef = db.collection('companies');
-    const query = companiesRef.where('subscription.stripeCustomerId', '==', subscription.customer);
-    const snapshot = await query.get();
-
-    if (snapshot.empty) {
-      logger.warn("⚠️ No company found for customer", { customerId: subscription.customer });
-      return;
+async function handleSubscriptionEvent(subscription) {
+    const companyRef = await getCompanyRefBySubscription(subscription.id) || await getCompanyRefByCustomer(subscription.customer);
+    if (!companyRef) {
+        logger.warn("⚠️ No company found for subscription", { subscriptionId: subscription.id, customerId: subscription.customer });
+        return;
     }
 
-    // Update all matching companies (should be only one)
-    const batch = db.batch();
-    snapshot.forEach(doc => {
-      batch.update(doc.ref, {
-        'subscription.status': subscription.status,
-        'subscription.active': subscription.status === 'active',
-        'subscription.currentPeriodStart': new Date(subscription.current_period_start * 1000),
-        'subscription.currentPeriodEnd': new Date(subscription.current_period_end * 1000),
-        'subscription.updatedAt': admin.firestore.FieldValue.serverTimestamp()
-      });
-    });
-
-    await batch.commit();
-    logger.info("✅ Subscription creation processed", { subscriptionId: subscription.id });
-
-  } catch (error) {
-    logger.error("❌ Error handling subscription creation", { 
-      error: error.message, 
-      subscriptionId: subscription.id 
-    });
-    throw error;
-  }
-}
-
-/**
- * Handle subscription updates (plan changes, etc.)
- */
-async function handleSubscriptionUpdated(subscription) {
-  logger.info("🔄 Processing subscription update", { subscriptionId: subscription.id });
-
-  try {
-    // Find company by subscription ID
-    const companiesRef = db.collection('companies');
-    const query = companiesRef.where('subscription.stripeSubscriptionId', '==', subscription.id);
-    const snapshot = await query.get();
-
-    if (snapshot.empty) {
-      logger.warn("⚠️ No company found for subscription", { subscriptionId: subscription.id });
-      return;
-    }
-
-    // Get the new price ID to determine plan
-    const priceId = subscription.items.data[0] && subscription.items.data[0].price && subscription.items.data[0].price.id;
-    let planId = 'basic'; // default
-
-    // Map price ID to plan ID (you'll need to maintain this mapping)
-    const priceToplanMapping = {
-      // Add your actual Stripe price IDs here
+    const priceId = subscription.items.data[0]?.price.id;
+    const priceToPlanMapping = {
       'price_basic_monthly': 'basic',
       'price_standard_monthly': 'standard',
       'price_premium_monthly': 'premium'
     };
-    
-    if (priceToplanMapping[priceId]) {
-      planId = priceToplanMapping[priceId];
-    }
+    const planId = priceToPlanMapping[priceId] || 'basic';
 
-    // Update all matching companies
-    const batch = db.batch();
-    snapshot.forEach(doc => {
-      batch.update(doc.ref, {
-        'subscription.status': subscription.status,
-        'subscription.active': subscription.status === 'active',
+    const status = subscription.status;
+    const isCancelled = subscription.cancel_at_period_end || status === 'canceled';
+
+    await companyRef.update({
+        'subscription.status': status,
+        'subscription.active': status === 'active' || status === 'trialing',
         'subscription.plan': planId,
         'subscription.currentPeriodStart': new Date(subscription.current_period_start * 1000),
         'subscription.currentPeriodEnd': new Date(subscription.current_period_end * 1000),
-        'subscription.cancelAtPeriodEnd': subscription.cancel_at_period_end,
+        'subscription.cancelAtPeriodEnd': isCancelled,
+        'subscription.canceledAt': isCancelled ? admin.firestore.FieldValue.serverTimestamp() : null,
         'subscription.updatedAt': admin.firestore.FieldValue.serverTimestamp()
-      });
     });
 
-    await batch.commit();
-    logger.info("✅ Subscription update processed", { 
-      subscriptionId: subscription.id, 
-      newPlan: planId,
-      status: subscription.status 
-    });
-
-  } catch (error) {
-    logger.error("❌ Error handling subscription update", { 
-      error: error.message, 
-      subscriptionId: subscription.id 
-    });
-    throw error;
-  }
+    logger.info(`✅ Subscription event '${subscription.status}' processed`, { companyId: companyRef.id, subscriptionId: subscription.id });
 }
 
-/**
- * Handle subscription deletion/cancellation
- */
-async function handleSubscriptionDeleted(subscription) {
-  logger.info("🗑️ Processing subscription deletion", { subscriptionId: subscription.id });
-
-  try {
-    // Find company by subscription ID
-    const companiesRef = db.collection('companies');
-    const query = companiesRef.where('subscription.stripeSubscriptionId', '==', subscription.id);
-    const snapshot = await query.get();
-
-    if (snapshot.empty) {
-      logger.warn("⚠️ No company found for subscription", { subscriptionId: subscription.id });
-      return;
-    }
-
-    // Deactivate subscription for all matching companies
-    const batch = db.batch();
-    snapshot.forEach(doc => {
-      batch.update(doc.ref, {
-        'subscription.active': false,
-        'subscription.status': 'canceled',
-        'subscription.canceledAt': admin.firestore.FieldValue.serverTimestamp(),
+async function handleInvoiceEvent(invoice) {
+    if (!invoice.subscription) return;
+    const companyRef = await getCompanyRefBySubscription(invoice.subscription);
+    if (!companyRef) return;
+    
+    const updateData = {
         'subscription.updatedAt': admin.firestore.FieldValue.serverTimestamp()
-      });
-    });
-
-    await batch.commit();
-    logger.info("✅ Subscription deletion processed", { subscriptionId: subscription.id });
-
-    // TODO: Send cancellation confirmation email
-    // TODO: Schedule data retention according to your policy
-
-  } catch (error) {
-    logger.error("❌ Error handling subscription deletion", { 
-      error: error.message, 
-      subscriptionId: subscription.id 
-    });
-    throw error;
-  }
-}
-
-/**
- * Handle successful payment
- */
-async function handlePaymentSucceeded(invoice) {
-  logger.info("💳 Processing successful payment", { invoiceId: invoice.id });
-
-  try {
-    if (invoice.subscription) {
-      // Find company by subscription ID
-      const companiesRef = db.collection('companies');
-      const query = companiesRef.where('subscription.stripeSubscriptionId', '==', invoice.subscription);
-      const snapshot = await query.get();
-
-      if (!snapshot.empty) {
-        const batch = db.batch();
-        snapshot.forEach(doc => {
-          batch.update(doc.ref, {
-            'subscription.active': true,
-            'subscription.status': 'active',
-            'subscription.lastPaymentAt': admin.firestore.FieldValue.serverTimestamp(),
-            'subscription.updatedAt': admin.firestore.FieldValue.serverTimestamp()
-          });
-        });
-
-        await batch.commit();
-        logger.info("✅ Payment success processed", { invoiceId: invoice.id });
-      }
+    };
+    
+    if (invoice.payment_succeeded) {
+        updateData['subscription.lastPaymentAt'] = admin.firestore.FieldValue.serverTimestamp();
+        updateData['subscription.status'] = 'active'; // Ensure status is active
+    } else if (invoice.payment_failed) {
+        updateData['subscription.lastPaymentFailedAt'] = admin.firestore.FieldValue.serverTimestamp();
+        updateData['subscription.status'] = 'past_due';
     }
 
-    // TODO: Send payment receipt email
-    // TODO: Log payment for accounting
-
-  } catch (error) {
-    logger.error("❌ Error handling payment success", { 
-      error: error.message, 
-      invoiceId: invoice.id 
-    });
-    throw error;
-  }
+    await companyRef.update(updateData);
+    logger.info(`✅ Invoice event processed`, { companyId: companyRef.id, invoiceId: invoice.id });
 }
 
-/**
- * Handle failed payment
- */
-async function handlePaymentFailed(invoice) {
-  logger.info("⚠️ Processing failed payment", { invoiceId: invoice.id });
-
-  try {
-    if (invoice.subscription) {
-      // Find company by subscription ID
-      const companiesRef = db.collection('companies');
-      const query = companiesRef.where('subscription.stripeSubscriptionId', '==', invoice.subscription);
-      const snapshot = await query.get();
-
-      if (!snapshot.empty) {
-        const batch = db.batch();
-        snapshot.forEach(doc => {
-          batch.update(doc.ref, {
-            'subscription.status': 'past_due',
-            'subscription.lastPaymentFailedAt': admin.firestore.FieldValue.serverTimestamp(),
-            'subscription.updatedAt': admin.firestore.FieldValue.serverTimestamp()
-          });
-        });
-
-        await batch.commit();
-        logger.info("✅ Payment failure processed", { invoiceId: invoice.id });
-      }
-    }
-
-    // TODO: Send payment failure notification email
-    // TODO: Implement grace period logic
-
-  } catch (error) {
-    logger.error("❌ Error handling payment failure", { 
-      error: error.message, 
-      invoiceId: invoice.id 
-    });
-    throw error;
-  }
-}
-
-/**
- * Handle trial ending soon
- */
 async function handleTrialWillEnd(subscription) {
-  logger.info("⏰ Processing trial ending notification", { subscriptionId: subscription.id });
-
-  try {
-    // Find company by subscription ID
-    const companiesRef = db.collection('companies');
-    const query = companiesRef.where('subscription.stripeSubscriptionId', '==', subscription.id);
-    const snapshot = await query.get();
-
-    if (!snapshot.empty) {
-      // TODO: Send trial ending notification email
-      // TODO: Show in-app notifications
-      logger.info("✅ Trial ending notification processed", { subscriptionId: subscription.id });
-    }
-
-  } catch (error) {
-    logger.error("❌ Error handling trial ending", { 
-      error: error.message, 
-      subscriptionId: subscription.id 
-    });
-    throw error;
+  const companyRef = await getCompanyRefBySubscription(subscription.id);
+  if (companyRef) {
+    logger.info("⏰ Trial ending notification processed", { companyId: companyRef.id, subscriptionId: subscription.id });
+    // TODO: Send trial ending notification email or in-app message
   }
 }
-
-/**
- * Create Stripe Checkout Session (Callable Function)
- * Called from the frontend to initiate checkout
- */
-exports.createCheckoutSession = functions.region(region).https.onCall({
-  cors: true,
-  timeoutSeconds: 30,
-  memory: "256MiB"
-}, async (request) => {
-  const { planId, companyId, successUrl, cancelUrl } = request.data;
-
-  logger.info("🛒 Creating checkout session", { planId, companyId });
-
-  try {
-    // Validate input
-    if (!planId || !companyId) {
-      throw new functions.https.HttpsError('invalid-argument', 'Missing required parameters: planId and companyId');
-    }
-
-    const appUrl = functions.config().app.url;
-    if(!appUrl){
-        logger.error("App URL is not configured. Please set 'firebase functions:config:set app.url=YOUR_APP_URL'");
-        throw new functions.https.HttpsError('internal', 'Application URL is not configured.');
-    }
-
-    // Map plan to price ID
-    const priceId = functions.config().stripe.price_ids[planId];
-    if (!priceId) {
-        logger.error(`Invalid plan: ${planId}`);
-        throw new functions.https.HttpsError('invalid-argument', `Invalid plan: ${planId}`);
-    }
-
-    // Create checkout session
-    const session = await stripe.checkout.sessions.create({
-      mode: 'subscription',
-      payment_method_types: ['card'],
-      line_items: [{
-        price: priceId,
-        quantity: 1,
-      }],
-      success_url: successUrl || `${appUrl}/admin/${companyId}/billing?success=true&plan=${planId}`,
-      cancel_url: cancelUrl || `${appUrl}/pricing`,
-      metadata: {
-        companyId,
-        planId,
-      },
-      subscription_data: {
-        trial_period_days: planId === 'basic' ? 14 : 7, // Basic gets longer trial
-        metadata: {
-          companyId,
-          planId,
-        }
-      },
-      allow_promotion_codes: true,
-    });
-
-    logger.info("✅ Checkout session created", { 
-      sessionId: session.id, 
-      planId, 
-      companyId 
-    });
-
-    return { sessionId: session.id, url: session.url };
-
-  } catch (error) {
-    logger.error("❌ Error creating checkout session", { 
-      error: error.message, 
-      planId, 
-      companyId 
-    });
-    throw new functions.https.HttpsError('internal', `Failed to create checkout session: ${error.message}`);
-  }
-});
-
-/**
- * Health check endpoint
- */
-exports.healthCheck = functions.region(region).https.onRequest((req, res) => {
-  res.status(200).json({ 
-    status: 'healthy', 
-    timestamp: new Date().toISOString(),
-    service: 'swedprime-billing'
-  });
-});
