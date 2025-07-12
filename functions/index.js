@@ -8,8 +8,6 @@
  */
 
 const {setGlobalOptions} = require("firebase-functions");
-const {onRequest} = require("firebase-functions/https");
-const {onCall} = require("firebase-functions/v2/https");
 const logger = require("firebase-functions/logger");
 const admin = require("firebase-admin");
 
@@ -53,92 +51,99 @@ setGlobalOptions({ maxInstances: 10 });
  * Stripe Webhook Handler
  * Handles all subscription-related events from Stripe
  */
-exports.handleStripeWebhook = onRequest({
-  cors: true,
-  timeoutSeconds: 60,
-  memory: "256MiB"
-}, async (req, res) => {
-  logger.info("🔔 Stripe webhook received", { method: req.method, headers: req.headers });
+// exports.handleStripeWebhook = onRequest({
+//   cors: true,
+//   timeoutSeconds: 60,
+//   memory: "256MiB"
+// }, async (req, res) => {
+//   logger.info("🔔 Stripe webhook received", { method: req.method, headers: req.headers });
 
-  // Only accept POST requests
-  if (req.method !== 'POST') {
-    logger.warn("❌ Invalid request method", { method: req.method });
-    return res.status(405).send('Method Not Allowed');
-  }
+//   // Only accept POST requests
+//   if (req.method !== 'POST') {
+//     logger.warn("❌ Invalid request method", { method: req.method });
+//     return res.status(405).send('Method Not Allowed');
+//   }
 
-  const sig = req.headers['stripe-signature'];
-  const webhookSecret = stripeConfig.webhook_secret;
+//   const sig = req.headers['stripe-signature'];
+//   const webhookSecret = stripeConfig.webhook_secret;
   
-  if (!webhookSecret) {
-    logger.error("❌ Stripe webhook secret not configured");
-    return res.status(500).send('Webhook secret not configured');
-  }
+//   if (!webhookSecret) {
+//     logger.error("❌ Stripe webhook secret not configured");
+//     return res.status(500).send('Webhook secret not configured');
+//   }
 
-  let event;
+//   let event;
 
-  try {
-    // Verify webhook signature
-    event = stripe.webhooks.constructEvent(req.rawBody, sig, webhookSecret);
-    logger.info("✅ Webhook signature verified", { eventType: event.type, eventId: event.id });
-  } catch (err) {
-    logger.error("❌ Webhook signature verification failed", { error: err.message });
-    return res.status(400).send(`Webhook Error: ${err.message}`);
-  }
+//   try {
+//     // Verify webhook signature
+//     event = stripe.webhooks.constructEvent(req.rawBody, sig, webhookSecret);
+//     logger.info("✅ Webhook signature verified", { eventType: event.type, eventId: event.id });
+//   } catch (err) {
+//     logger.error("❌ Webhook signature verification failed", { error: err.message });
+//     return res.status(400).send(`Webhook Error: ${err.message}`);
+//   }
 
-  try {
-    // Handle the event
-    switch (event.type) {
-      case 'checkout.session.completed':
-        await handleCheckoutCompleted(event.data.object);
-        break;
+//   try {
+//     // Handle the event
+//     switch (event.type) {
+//       case 'checkout.session.completed':
+//         await handleCheckoutCompleted(event.data.object);
+//         break;
 
-      case 'customer.subscription.created':
-        await handleSubscriptionCreated(event.data.object);
-        break;
+//       case 'customer.subscription.created':
+//         await handleSubscriptionCreated(event.data.object);
+//         break;
 
-      case 'customer.subscription.updated':
-        await handleSubscriptionUpdated(event.data.object);
-        break;
+//       case 'customer.subscription.updated':
+//         await handleSubscriptionUpdated(event.data.object);
+//         break;
 
-      case 'customer.subscription.deleted':
-        await handleSubscriptionDeleted(event.data.object);
-        break;
+//       case 'customer.subscription.deleted':
+//         await handleSubscriptionDeleted(event.data.object);
+//         break;
 
-      case 'invoice.payment_succeeded':
-        await handlePaymentSucceeded(event.data.object);
-        break;
+//       case 'invoice.payment_succeeded':
+//         await handlePaymentSucceeded(event.data.object);
+//         break;
 
-      case 'invoice.payment_failed':
-        await handlePaymentFailed(event.data.object);
-        break;
+//       case 'invoice.payment_failed':
+//         await handlePaymentFailed(event.data.object);
+//         break;
 
-      case 'customer.subscription.trial_will_end':
-        await handleTrialWillEnd(event.data.object);
-        break;
+//       case 'customer.subscription.trial_will_end':
+//         await handleTrialWillEnd(event.data.object);
+//         break;
 
-      default:
-        logger.info("🤷 Unhandled event type", { eventType: event.type });
-    }
+//       default:
+//         logger.info("🤷 Unhandled event type", { eventType: event.type });
+//     }
 
-    // Return success response
-    res.status(200).json({ received: true, eventType: event.type });
+//     // Return success response
+//     res.status(200).json({ received: true, eventType: event.type });
 
-  } catch (error) {
-    logger.error("❌ Error processing webhook", { 
-      error: error.message, 
-      eventType: event.type,
-      eventId: event.id 
-    });
-    res.status(500).send('Internal Server Error');
-  }
-});
+//   } catch (error) {
+//     logger.error("❌ Error processing webhook", { 
+//       error: error.message, 
+//       eventType: event.type,
+//       eventId: event.id 
+//     });
+//     res.status(500).send('Internal Server Error');
+//   }
+// });
 
 /**
  * Secure Company Signup Function
  * Allows public users to sign up a new company and admin user via a callable HTTPS function.
  * Performs input validation, duplicate checks, and writes to Firestore.
  */
-exports.signupCompany = onCall({ timeoutSeconds: 30, memory: '256MiB' }, async (request) => {
+const region = 'europe-north2';
+
+/**
+ * Secure Company Signup Function
+ * Allows public users to sign up a new company and admin user via a callable HTTPS function.
+ * Performs input validation, duplicate checks, and writes to Firestore.
+ */
+exports.signupCompany = functions.region(region).https.onCall({ timeoutSeconds: 30, memory: '256MiB' }, async (request) => {
   const data = request.data || {};
   const {
     companyName,
@@ -556,7 +561,7 @@ async function handleTrialWillEnd(subscription) {
  * Create Stripe Checkout Session (Callable Function)
  * Called from the frontend to initiate checkout
  */
-exports.createCheckoutSession = onCall({
+exports.createCheckoutSession = functions.region(region).https.onCall({
   cors: true,
   timeoutSeconds: 30,
   memory: "256MiB"
@@ -628,7 +633,7 @@ exports.createCheckoutSession = onCall({
 /**
  * Health check endpoint
  */
-exports.healthCheck = onRequest((req, res) => {
+exports.healthCheck = functions.region(region).https.onRequest((req, res) => {
   res.status(200).json({ 
     status: 'healthy', 
     timestamp: new Date().toISOString(),
