@@ -1,7 +1,7 @@
-@tailwind base;
-@tailwind components;
 @import "@fontsource/ubuntu-mono/index.css";
 @import 'flowbite/dist/flowbite.css';
+@tailwind base;
+@tailwind components;
 @tailwind utilities;
 
 /* Ubuntu Mono Font from @fontsource */
