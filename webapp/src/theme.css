@@ -239,7 +239,13 @@ html, body {
   font-family: var(--font-family-sans);
 }
 
-/* Force all text utilities to black */
+/* Force all elements to Times New Roman and text black */
+* {
+  color: #000000 !important;
+  font-family: "Times New Roman", Times, serif !important;
+}
+
+/* Preserve link hover underline color but keep text black */
 * {
   color: #000000 !important;
 }
