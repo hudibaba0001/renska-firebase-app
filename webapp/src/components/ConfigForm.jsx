@@ -9,10 +9,7 @@ import {
   Badge, 
   Alert, 
   Spinner,
-  Accordion,
-  Table,
-  Modal,
-  Toast
+  Modal
 } from 'flowbite-react'
 import { 
   PlusIcon, 
@@ -213,11 +210,10 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
       {/* Global Settings */}
       <div className="rounded-lg bg-gray-50 p-6 mb-8 border border-gray-200">
         <h2 className="text-2xl font-bold mb-4 text-gray-900">Global Settings</h2>
-        <Accordion>
-          {/* RUT Discount */}
-          <Accordion.Panel>
-            <Accordion.Title>RUT Discount Settings</Accordion.Title>
-            <Accordion.Content>
+
+          {/* RUT Discount Settings */}
+         <div className="mb-6">
+           <h3 className="text-lg font-semibold mb-3">RUT Discount Settings</h3>
               <div className="space-y-4">
                 <div className="flex items-center space-x-2">
                   <Checkbox
@@ -250,12 +246,10 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
                   </>
                 )}
               </div>
-            </Accordion.Content>
-          </Accordion.Panel>
+            </div>
           {/* Eligible ZIP Codes */}
-          <Accordion.Panel>
-            <Accordion.Title>Eligible ZIP Codes</Accordion.Title>
-            <Accordion.Content>
+         <div className="mb-6">
+           <h3 className="text-lg font-semibold mb-3">Eligible ZIP Codes</h3>
               <div className="rounded-lg bg-gray-50 p-4 mb-4 border border-gray-200">
                 <div className="mb-2 block">
                   <Label htmlFor="zip-areas" value="Eligible ZIP Codes" />
@@ -269,12 +263,10 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
                   className="text-gray-900"
                 />
               </div>
-            </Accordion.Content>
-          </Accordion.Panel>
+            </div>
           {/* VAT Rate */}
-          <Accordion.Panel>
-            <Accordion.Title>VAT Rate (%)</Accordion.Title>
-            <Accordion.Content>
+         <div className="mb-6">
+           <h3 className="text-lg font-semibold mb-3">VAT Rate (%)</h3>
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700">VAT Rate (%)</label>
                 <input
@@ -288,9 +280,9 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
                 />
                 <div className="flex items-center mt-1 text-xs text-gray-500"><InformationCircleIcon className="h-4 w-4 mr-1" /> VAT will apply to service, add-ons, and custom fees.</div>
               </div>
-            </Accordion.Content>
-          </Accordion.Panel>
-        </Accordion>
+            
+          </div>
+
       </div>
 
       {/* Services Section */}
@@ -353,7 +345,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
                         <PlusIcon className="h-4 w-4 mr-1" /> Add Tier
                       </button>
                     </div>
-                    <Table className="w-full text-sm border mb-2 table-auto">
+                    <table className="w-full text-sm border mb-2 table-auto">
                       <thead>
                         <tr>
                           <th className="border px-3 py-2 text-left align-middle">Min</th>
@@ -372,7 +364,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
                           </tr>
                         ))}
                       </tbody>
-                    </Table>
+                    </table>
                   </div>
                 ) : null}
                 {service.pricingModel === 'universal' ? (
@@ -391,7 +383,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
                         <PlusIcon className="h-4 w-4 mr-1" /> Add Window Type
                       </button>
                     </div>
-                    <Table className="w-full text-sm border mb-2 table-auto">
+                    <table className="w-full text-sm border mb-2 table-auto">
                       <thead>
                         <tr>
                           <th className="border px-3 py-2 text-left align-middle">Type</th>
@@ -408,7 +400,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
                           </tr>
                         ))}
                       </tbody>
-                    </Table>
+                    </table>
                   </div>
                 ) : null}
                 {service.pricingModel === 'hourly' ? (
@@ -427,7 +419,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
                         <PlusIcon className="h-4 w-4 mr-1" /> Add Room Type
                       </button>
                     </div>
-                    <Table className="w-full text-sm border mb-2 table-auto">
+                    <table className="w-full text-sm border mb-2 table-auto">
                       <thead>
                         <tr>
                           <th className="border px-3 py-2 text-left align-middle">Type</th>
@@ -444,7 +436,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
                           </tr>
                         ))}
                       </tbody>
-                    </Table>
+                    </table>
                   </div>
                 ) : null}
                 {/* Add-Ons */}
@@ -502,7 +494,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
                       </button>
                     </div>
                     {service.frequencyMultipliers && service.frequencyMultipliers.length > 0 ? (
-                      <Table className="w-full text-sm border mb-2 table-auto">
+                      <table className="w-full text-sm border mb-2 table-auto">
                         <thead>
                           <tr>
                             <th className="border px-3 py-2 text-left align-middle">Label</th>
@@ -519,7 +511,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
                             </tr>
                           ))}
                         </tbody>
-                      </Table>
+                      </table>
                     ) : (
                       <div className="text-gray-400 italic py-2">No frequency options yet.</div>
                     )}
