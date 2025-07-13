@@ -251,9 +251,9 @@ export default function TenantListPage() {
                 <Table.HeadCell>Actions</Table.HeadCell>
               </Table.Head>
               <Table.Body>
-                <AnimatePresence>
+                
                   {filteredTenants.map((tenant) => (
-                    <motion.tr key={tenant.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} layout>
+                    <tr key={tenant.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} layout>
                       <Table.Cell onClick={() => navigate(`/super-admin/tenants/${tenant.id}`)}>
                         <div className="flex items-center space-x-3">
                           <Avatar img={getAvatarUrl(tenant.companyName || tenant.name)} rounded />
@@ -280,9 +280,9 @@ export default function TenantListPage() {
                           </Dropdown>
                         </div>
                       </Table.Cell>
-                    </motion.tr>
+                    </tr>
                   ))}
-                </AnimatePresence>
+                
               </Table.Body>
             </Table>
           </div>
