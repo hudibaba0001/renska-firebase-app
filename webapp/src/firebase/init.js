@@ -21,8 +21,17 @@ const firebaseConfig = {
 const required = ['apiKey', 'authDomain', 'projectId']
 const missing = required.filter(k => !firebaseConfig[k])
 if (missing.length) {
-  console.error('🚨 Missing Firebase config vars:', missing)
-  throw new Error(`Missing Firebase environment variables: ${missing.join(', ')}`)
+  if (import.meta.env.DEV) {
+    console.warn('⚠️ Missing Firebase env vars in development:', missing, '– using placeholder config');
+    Object.assign(firebaseConfig, {
+      apiKey: 'dev-placeholder',
+      authDomain: 'dev-placeholder.firebaseapp.com',
+      projectId: 'dev-placeholder'
+    });
+  } else {
+    console.error('🚨 Missing Firebase config vars:', missing);
+    throw new Error(`Missing Firebase environment variables: ${missing.join(', ')}`);
+  }
 }
 
 console.log("🔧 firebaseConfig:", firebaseConfig);

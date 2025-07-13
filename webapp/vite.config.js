@@ -7,6 +7,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      'tailwindcss/version.js': path.resolve(__dirname, './src/shims/tailwind-version-stub.js'),
     },
   },
   define: {
