@@ -240,69 +240,69 @@ export default function AdminDashboardLayout() {
   return (
     <div className={`flex min-h-screen ${darkMode ? 'dark' : ''}`}> 
       <aside className={`sticky top-0 h-screen w-64 flex-shrink-0 bg-white border-r border-gray-200 dark:bg-gray-800 dark:border-gray-700 ${isImpersonating ? 'pt-20' : 'pt-16'}`}>
-        <div className="h-full px-3 pb-4 overflow-y-auto bg-white dark:bg-gray-800">
-          {/* Company Info Card */}
-          <div className="mb-6 p-4 bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg text-white">
-            <div className="flex items-center space-x-3 mb-3">
-              <div className="w-10 h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
-                <BuildingOfficeIcon className="w-6 h-6" />
-              </div>
-              <div className="flex-1 min-w-0">
+          <div className="h-full px-3 pb-4 overflow-y-auto bg-white dark:bg-gray-800">
+            {/* Company Info Card */}
+            <div className="mb-6 p-4 bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg text-white">
+              <div className="flex items-center space-x-3 mb-3">
+                <div className="w-10 h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
+                  <BuildingOfficeIcon className="w-6 h-6" />
+                </div>
+                <div className="flex-1 min-w-0">
                 <h3 className="font-semibold text-base truncate text-text-heading dark:text-white">{company?.companyName || 'Company'}</h3>
                 <p className="text-base text-text-subtle dark:text-white capitalize">{company?.serviceType || 'Cleaning Service'}</p>
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <Badge color="success" size="sm">Pro Plan</Badge>
+                <Link
+                  to={`/booking/${companyId}`}
+                className="text-base text-black dark:text-white underline"
+                >
+                  View Live Form →
+                </Link>
               </div>
             </div>
-            <div className="flex items-center justify-between">
-              <Badge color="success" size="sm">Pro Plan</Badge>
-              <Link
-                to={`/booking/${companyId}`}
-                className="text-base text-black dark:text-white underline"
-              >
-                View Live Form →
-              </Link>
-            </div>
-          </div>
-          {/* Navigation */}
-          <nav className="space-y-2">
-            {navigationItems.map((item) => (
-              <NavLink
-                key={item.href}
-                to={item.href}
-                end={item.exact}
-                className={({ isActive }) =>
+            {/* Navigation */}
+            <nav className="space-y-2">
+              {navigationItems.map((item) => (
+                <NavLink
+                  key={item.href}
+                  to={item.href}
+                  end={item.exact}
+                  className={({ isActive }) =>
                   `group flex items-center w-full p-2 text-base font-normal rounded-lg transition duration-75 ${
-                    isActive
+                      isActive
                       ? 'text-black bg-gray-100 dark:bg-gray-700 dark:text-white'
                       : 'text-black hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'
-                  }`
-                }
+                    }`
+                  }
               >
                 {item.icon && <item.icon className="w-5 h-5 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white" />}
-                <span className="ml-3 flex-1 whitespace-nowrap">{item.label}</span>
-                {item.badge && (
-                  <Badge color="info" size="sm">
-                    {item.badge}
-                  </Badge>
-                )}
-              </NavLink>
-            ))}
-          </nav>
-          {/* Bottom Section */}
-          <div className="mt-8 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <div className="p-4 bg-blue-50 dark:bg-blue-900 rounded-lg">
+                  <span className="ml-3 flex-1 whitespace-nowrap">{item.label}</span>
+                  {item.badge && (
+                    <Badge color="info" size="sm">
+                      {item.badge}
+                    </Badge>
+                  )}
+                </NavLink>
+              ))}
+            </nav>
+            {/* Bottom Section */}
+            <div className="mt-8 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="p-4 bg-blue-50 dark:bg-blue-900 rounded-lg">
               <h4 className="text-base font-semibold text-text-heading dark:text-white mb-2">
-                Need Help?
-              </h4>
+                  Need Help?
+                </h4>
               <p className="text-base text-text-subtle dark:text-white mb-3">
-                Check our documentation or contact support for assistance.
-              </p>
-              <Button size="xs" color="blue" className="w-full">
-                Get Support
-              </Button>
+                  Check our documentation or contact support for assistance.
+                </p>
+                <Button size="xs" color="blue" className="w-full">
+                  Get Support
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-      </aside>
+        </aside>
       <div className="flex-1 min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200 overflow-x-hidden">
         <Toaster 
           position="top-right"

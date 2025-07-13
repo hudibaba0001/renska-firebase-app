@@ -88,8 +88,8 @@ export default function PricingPage() {
               Transform your cleaning business with our powerful booking calculator. 
               Start your free trial today and see the difference!
             </p>
-          </div>
-        </section>
+        </div>
+      </section>
 
       {/* Pricing Cards */}
       <section className="px-4 sm:px-6 lg:px-8 pb-16">
@@ -102,87 +102,87 @@ export default function PricingPage() {
                   plan.popular ? 'border-2 border-primary-500 scale-105' : 'hover:scale-105'
                 }`}
               >
-                {plan.popular && (
-                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                    <Badge color="primary" className="px-4 py-2 flex items-center space-x-1">
-                      <StarIcon className="h-4 w-4" />
-                      <span>Most Popular</span>
-                    </Badge>
-                  </div>
-                )}
-
-                <div className="p-8">
-                  {/* Plan Header */}
-                  <div className="text-center mb-8">
-                    <div className="mb-4">
-                      {plan.id === 'basic' && (
-                        <div className="w-16 h-16 bg-blue-100 rounded-xl mx-auto flex items-center justify-center">
-                          <RocketLaunchIcon className="h-8 w-8 text-text-heading" />
-                        </div>
-                      )}
-                      {plan.id === 'standard' && (
-                        <div className="w-16 h-16 bg-purple-100 rounded-xl mx-auto flex items-center justify-center">
-                          <BuildingOfficeIcon className="h-8 w-8 text-text-heading" />
-                        </div>
-                      )}
-                      {plan.id === 'premium' && (
-                        <div className="w-16 h-16 bg-yellow-100 rounded-xl mx-auto flex items-center justify-center">
-                          <SparklesIcon className="h-8 w-8 text-text-heading" />
-                        </div>
-                      )}
+                  {plan.popular && (
+                    <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                      <Badge color="primary" className="px-4 py-2 flex items-center space-x-1">
+                        <StarIcon className="h-4 w-4" />
+                        <span>Most Popular</span>
+                      </Badge>
                     </div>
-                    
+                  )}
+
+                  <div className="p-8">
+                    {/* Plan Header */}
+                    <div className="text-center mb-8">
+                      <div className="mb-4">
+                        {plan.id === 'basic' && (
+                          <div className="w-16 h-16 bg-blue-100 rounded-xl mx-auto flex items-center justify-center">
+                          <RocketLaunchIcon className="h-8 w-8 text-text-heading" />
+                          </div>
+                        )}
+                        {plan.id === 'standard' && (
+                          <div className="w-16 h-16 bg-purple-100 rounded-xl mx-auto flex items-center justify-center">
+                          <BuildingOfficeIcon className="h-8 w-8 text-text-heading" />
+                          </div>
+                        )}
+                        {plan.id === 'premium' && (
+                          <div className="w-16 h-16 bg-yellow-100 rounded-xl mx-auto flex items-center justify-center">
+                          <SparklesIcon className="h-8 w-8 text-text-heading" />
+                          </div>
+                        )}
+                      </div>
+                      
                     <h3 className="text-2xl font-bold text-text-heading dark:text-white mb-2">{plan.name}</h3>
-                    
-                    <div className="mb-4">
+                      
+                      <div className="mb-4">
                       <span className="text-4xl font-bold text-text-heading dark:text-white">
                         {formatPrice(STRIPE_CONFIG.plans[plan.id].price)}
-                      </span>
+                        </span>
                       <span className="text-text-subtle dark:text-white">
                         /month
-                      </span>
-                    </div>
+                        </span>
+                      </div>
 
                     {/* Removed: selectedInterval === 'year' && (
-                      <Badge color="success" size="sm">
-                        Save {formatPrice(plan.price * 12 * 0.2)} per year
-                      </Badge>
+                        <Badge color="success" size="sm">
+                          Save {formatPrice(plan.price * 12 * 0.2)} per year
+                        </Badge>
                     ) */}
-                  </div>
+                    </div>
 
-                  {/* Features List */}
-                  <div className="space-y-4 mb-8">
-                    {plan.features.map((feature, featureIndex) => (
-                      <div key={featureIndex} className="flex items-start space-x-3">
-                        <div className="flex-shrink-0 mt-1">
-                          <CheckIcon className="h-5 w-5 text-success-500" />
-                        </div>
+                    {/* Features List */}
+                    <div className="space-y-4 mb-8">
+                      {plan.features.map((feature, featureIndex) => (
+                        <div key={featureIndex} className="flex items-start space-x-3">
+                          <div className="flex-shrink-0 mt-1">
+                            <CheckIcon className="h-5 w-5 text-success-500" />
+                          </div>
                         <span className="text-text-main dark:text-white">{feature}</span>
-                      </div>
-                    ))}
-                  </div>
+                        </div>
+                      ))}
+                    </div>
 
-                  {/* CTA Button */}
-                  <Button
-                    color={plan.popular ? 'primary' : 'gray'}
-                    size="lg"
-                    className="w-full"
-                    onClick={() => handleSelectPlan(plan.id)}
-                    disabled={loadingPlan !== null}
-                  >
-                    {loadingPlan === plan.id ? (
-                      <>
-                        <Spinner size="sm" className="mr-2" />
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        {plan.id === 'basic' ? 'Start Free Trial' : 'Get Started'}
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </Card>
+                    {/* CTA Button */}
+                    <Button
+                      color={plan.popular ? 'primary' : 'gray'}
+                      size="lg"
+                      className="w-full"
+                      onClick={() => handleSelectPlan(plan.id)}
+                      disabled={loadingPlan !== null}
+                    >
+                      {loadingPlan === plan.id ? (
+                        <>
+                          <Spinner size="sm" className="mr-2" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          {plan.id === 'basic' ? 'Start Free Trial' : 'Get Started'}
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </Card>
             ))}
           </div>
         </div>
@@ -192,81 +192,81 @@ export default function PricingPage() {
       <section className="px-4 sm:px-6 lg:px-8 pb-16">
         <div className="max-w-7xl mx-auto">
           {/* Removed motion.div for feature comparison title */}
-          <Card className="shadow-soft">
-            <div className="p-8">
+            <Card className="shadow-soft">
+              <div className="p-8">
               <h2 className="text-3xl font-bold text-text-heading dark:text-white text-center mb-8">
-                Compare All Features
-              </h2>
-              
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-gray-200">
-                      <th className="text-left py-4 pr-4">Features</th>
-                      {plans.map(plan => (
-                        <th key={plan.id} className="text-center py-4 px-4">
+                  Compare All Features
+                </h2>
+                
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-gray-200">
+                        <th className="text-left py-4 pr-4">Features</th>
+                        {plans.map(plan => (
+                          <th key={plan.id} className="text-center py-4 px-4">
                           <div className="font-bold text-text-heading dark:text-white">{plan.name}</div>
                           <div className="text-sm text-text-subtle dark:text-white">
-                            {formatPrice(plan.price)}/month
-                          </div>
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr className="border-b border-gray-100">
-                      <td className="py-4 pr-4 font-medium">Booking Forms</td>
-                      <td className="text-center py-4 px-4">1</td>
-                      <td className="text-center py-4 px-4">3</td>
-                      <td className="text-center py-4 px-4">Unlimited</td>
-                    </tr>
-                    <tr className="border-b border-gray-100">
-                      <td className="py-4 pr-4 font-medium">Monthly Bookings</td>
-                      <td className="text-center py-4 px-4">50</td>
-                      <td className="text-center py-4 px-4">200</td>
-                      <td className="text-center py-4 px-4">Unlimited</td>
-                    </tr>
-                    <tr className="border-b border-gray-100">
-                      <td className="py-4 pr-4 font-medium">Custom Branding</td>
-                      <td className="text-center py-4 px-4">
+                              {formatPrice(plan.price)}/month
+                            </div>
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr className="border-b border-gray-100">
+                        <td className="py-4 pr-4 font-medium">Booking Forms</td>
+                        <td className="text-center py-4 px-4">1</td>
+                        <td className="text-center py-4 px-4">3</td>
+                        <td className="text-center py-4 px-4">Unlimited</td>
+                      </tr>
+                      <tr className="border-b border-gray-100">
+                        <td className="py-4 pr-4 font-medium">Monthly Bookings</td>
+                        <td className="text-center py-4 px-4">50</td>
+                        <td className="text-center py-4 px-4">200</td>
+                        <td className="text-center py-4 px-4">Unlimited</td>
+                      </tr>
+                      <tr className="border-b border-gray-100">
+                        <td className="py-4 pr-4 font-medium">Custom Branding</td>
+                        <td className="text-center py-4 px-4">
                         <XMarkIcon className="h-5 w-5 text-text-subtle mx-auto" />
-                      </td>
-                      <td className="text-center py-4 px-4">
-                        <CheckIcon className="h-5 w-5 text-success-500 mx-auto" />
-                      </td>
-                      <td className="text-center py-4 px-4">
-                        <CheckIcon className="h-5 w-5 text-success-500 mx-auto" />
-                      </td>
-                    </tr>
-                    <tr className="border-b border-gray-100">
-                      <td className="py-4 pr-4 font-medium">Analytics Dashboard</td>
-                      <td className="text-center py-4 px-4">
+                        </td>
+                        <td className="text-center py-4 px-4">
+                          <CheckIcon className="h-5 w-5 text-success-500 mx-auto" />
+                        </td>
+                        <td className="text-center py-4 px-4">
+                          <CheckIcon className="h-5 w-5 text-success-500 mx-auto" />
+                        </td>
+                      </tr>
+                      <tr className="border-b border-gray-100">
+                        <td className="py-4 pr-4 font-medium">Analytics Dashboard</td>
+                        <td className="text-center py-4 px-4">
                         <XMarkIcon className="h-5 w-5 text-text-subtle mx-auto" />
-                      </td>
-                      <td className="text-center py-4 px-4">
-                        <CheckIcon className="h-5 w-5 text-success-500 mx-auto" />
-                      </td>
-                      <td className="text-center py-4 px-4">
-                        <CheckIcon className="h-5 w-5 text-success-500 mx-auto" />
-                      </td>
-                    </tr>
-                    <tr className="border-b border-gray-100">
-                      <td className="py-4 pr-4 font-medium">API Access</td>
-                      <td className="text-center py-4 px-4">
+                        </td>
+                        <td className="text-center py-4 px-4">
+                          <CheckIcon className="h-5 w-5 text-success-500 mx-auto" />
+                        </td>
+                        <td className="text-center py-4 px-4">
+                          <CheckIcon className="h-5 w-5 text-success-500 mx-auto" />
+                        </td>
+                      </tr>
+                      <tr className="border-b border-gray-100">
+                        <td className="py-4 pr-4 font-medium">API Access</td>
+                        <td className="text-center py-4 px-4">
                         <XMarkIcon className="h-5 w-5 text-text-subtle mx-auto" />
-                      </td>
-                      <td className="text-center py-4 px-4">
+                        </td>
+                        <td className="text-center py-4 px-4">
                         <XMarkIcon className="h-5 w-5 text-text-subtle mx-auto" />
-                      </td>
-                      <td className="text-center py-4 px-4">
-                        <CheckIcon className="h-5 w-5 text-success-500 mx-auto" />
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+                        </td>
+                        <td className="text-center py-4 px-4">
+                          <CheckIcon className="h-5 w-5 text-success-500 mx-auto" />
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
-          </Card>
+            </Card>
         </div>
       </section>
 

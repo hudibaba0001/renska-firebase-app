@@ -20,7 +20,7 @@ const getStripeInstance = () => {
             throw new Error("Stripe secret key is missing in Firebase environment config.");
         }
         return require('stripe')(stripeConfig.secret_key);
-    } catch (err) {
+  } catch (err) {
         logger.error("Stripe initialization failed", { error: err.message });
         return null;
     }
@@ -35,8 +35,8 @@ exports.healthCheck = onRequest((req, res) => {
     status: 'healthy',
     timestamp: new Date().toISOString(),
     service: 'swedprime-billing'
-  });
-});
+      });
+    });
 
 
 /**
@@ -99,8 +99,8 @@ exports.signupCompany = onCall({ timeoutSeconds: 30, memory: '256MiB', enforceAp
     
     await admin.auth().setCustomUserClaims(userRecord.uid, { adminOf: companyId });
     return { success: true, companyId, adminUid: userRecord.uid };
-  });
-});
+          });
+        });
 
 
 /**
@@ -115,7 +115,7 @@ exports.createCheckoutSession = onCall({ cors: true, timeoutSeconds: 30, memory:
   const { planId, companyId, successUrl, cancelUrl } = request.data;
   logger.info("🛒 Creating checkout session", { planId, companyId });
 
-  if (!planId || !companyId) {
+    if (!planId || !companyId) {
     throw new HttpsError('invalid-argument', 'Missing required parameters: planId and companyId');
   }
   
@@ -126,7 +126,7 @@ exports.createCheckoutSession = onCall({ cors: true, timeoutSeconds: 30, memory:
   }
 
   const priceId = functions.config().stripe.price_ids[planId];
-   if (!priceId) {
+    if (!priceId) {
         logger.error(`Invalid plan or price ID not found: ${planId}`);
         throw new HttpsError('invalid-argument', `Invalid plan: ${planId}`);
     }
