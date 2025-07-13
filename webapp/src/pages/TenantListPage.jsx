@@ -18,7 +18,7 @@ import {
   TextInput,
   Select,
   Dropdown,
-  Table,
+  
   Avatar,
   Modal,
   Alert,
@@ -46,7 +46,7 @@ import {
   EnvelopeIcon,
   PhoneIcon,
 } from '@heroicons/react/24/outline';
-import { motion, AnimatePresence } from 'framer-motion';
+
 import toast from 'react-hot-toast';
 import { serverTimestamp } from 'firebase/firestore'; // Keep for test data creation
 
@@ -241,20 +241,20 @@ export default function TenantListPage() {
             <Button onClick={createTestData} disabled={creatingTestData}>{creatingTestData ? <Spinner/> : 'Add Test Data'}</Button>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <Table hoverable>
-              <Table.Head>
-                <Table.HeadCell>Company</Table.HeadCell>
-                <Table.HeadCell>Plan</Table.HeadCell>
-                <Table.HeadCell>Status</Table.HeadCell>
-                <Table.HeadCell>Created</Table.HeadCell>
-                <Table.HeadCell>Actions</Table.HeadCell>
-              </Table.Head>
-              <Table.Body>
+          
+            <table className="min-w-full text-sm text-left divide-y divide-gray-200">
+              <thead className="bg-gray-100">
+                <tr><th className="px-4 py-3 uppercase tracking-wider">Company</th>
+                <th className="px-4 py-3 uppercase tracking-wider">Plan</th>
+                <th className="px-4 py-3 uppercase tracking-wider">Status</th>
+                <th className="px-4 py-3 uppercase tracking-wider">Created</th>
+                <th className="px-4 py-3 uppercase tracking-wider">Actions</th>
+              </tr></thead>
+              <tbody className="divide-y divide-gray-100">
                 
                   {filteredTenants.map((tenant) => (
-                    <tr key={tenant.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} layout>
-                      <Table.Cell onClick={() => navigate(`/super-admin/tenants/${tenant.id}`)}>
+                    <tr key={tenant.id}>
+                      <td onClick={() => navigate(`/super-admin/tenants/${tenant.id}`)}>
                         <div className="flex items-center space-x-3">
                           <Avatar img={getAvatarUrl(tenant.companyName || tenant.name)} rounded />
                           <div>
@@ -262,11 +262,11 @@ export default function TenantListPage() {
                             <div className="text-sm text-text-subtle dark:text-white">/{tenant.slug}</div>
                           </div>
                         </div>
-                      </Table.Cell>
-                      <Table.Cell onClick={() => navigate(`/super-admin/tenants/${tenant.id}`)}><Badge color={getPlanColor(tenant.subscription?.plan)}>{tenant.subscription?.plan || 'NO PLAN'}</Badge></Table.Cell>
-                      <Table.Cell onClick={() => navigate(`/super-admin/tenants/${tenant.id}`)}><Badge color={getStatusColor(tenant.subscription?.active)}>{tenant.subscription?.active ? 'Active' : 'Suspended'}</Badge></Table.Cell>
-                      <Table.Cell onClick={() => navigate(`/super-admin/tenants/${tenant.id}`)}>{tenant.createdAt?.seconds ? new Date(tenant.createdAt.seconds * 1000).toLocaleDateString() : '—'}</Table.Cell>
-                      <Table.Cell>
+                      </td>
+                      <td onClick={() => navigate(`/super-admin/tenants/${tenant.id}`)}><Badge color={getPlanColor(tenant.subscription?.plan)}>{tenant.subscription?.plan || 'NO PLAN'}</Badge></td>
+                      <td onClick={() => navigate(`/super-admin/tenants/${tenant.id}`)}><Badge color={getStatusColor(tenant.subscription?.active)}>{tenant.subscription?.active ? 'Active' : 'Suspended'}</Badge></td>
+                      <td onClick={() => navigate(`/super-admin/tenants/${tenant.id}`)}>{tenant.createdAt?.seconds ? new Date(tenant.createdAt.seconds * 1000).toLocaleDateString() : '—'}</td>
+                      <td>
                         <div style={{background: 'red', color: 'white', padding: '2px 8px', borderRadius: '4px', marginBottom: '4px'}}>DEBUG: Actions Cell Rendered</div>
                         <div className="flex items-center space-x-2" onClick={(e) => e.stopPropagation()}>
                           <Button size="xs" onClick={() => navigate(`/super-admin/tenants/${tenant.id}`)}><EyeIcon className="w-4 h-4" /></Button>
@@ -279,12 +279,12 @@ export default function TenantListPage() {
                             <Dropdown.Item icon={TrashIcon} onClick={() => handleDeleteTenant(tenant)} className="text-red-600">Delete</Dropdown.Item>
                           </Dropdown>
                         </div>
-                      </Table.Cell>
+                      </td>
                     </tr>
                   ))}
                 
-              </Table.Body>
-            </Table>
+              </tbody>
+            </table>
           </div>
         )}
       </Card>
