@@ -7,7 +7,6 @@ import {
   Progress, 
   Avatar, 
   Dropdown,
-  Table,
   Alert
 } from 'flowbite-react';
 import {
@@ -370,19 +369,19 @@ export default function AdminDashboardPage() {
         </div>
         
         <div className="overflow-x-auto">
-          <Table hoverable>
-            <Table.Head>
-              <Table.HeadCell>Customer</Table.HeadCell>
-              <Table.HeadCell>Service</Table.HeadCell>
-              <Table.HeadCell>Date & Time</Table.HeadCell>
-              <Table.HeadCell>Amount</Table.HeadCell>
-              <Table.HeadCell>Status</Table.HeadCell>
-              <Table.HeadCell>Actions</Table.HeadCell>
-            </Table.Head>
-            <Table.Body className="divide-y">
+          <table className="min-w-full text-sm text-left divide-y divide-gray-200">
+            <thead className="bg-gray-100"><tr>
+              <th className="px-4 py-3 uppercase tracking-wider">Customer</th>
+              <th className="px-4 py-3 uppercase tracking-wider">Service</th>
+              <th className="px-4 py-3 uppercase tracking-wider">Date & Time</th>
+              <th className="px-4 py-3 uppercase tracking-wider">Amount</th>
+              <th className="px-4 py-3 uppercase tracking-wider">Status</th>
+              <th className="px-4 py-3 uppercase tracking-wider">Actions</th>
+            </tr></thead>
+            <tbody className="divide-y divide-gray-100">
               {recentBookings.map((booking) => (
-                <Table.Row key={booking.id} className="bg-white dark:border-gray-700 dark:bg-gray-800">
-                  <Table.Cell className="whitespace-nowrap font-medium text-text-heading dark:text-white">
+                <tr key={booking.id} className="bg-white dark:border-gray-700 dark:bg-gray-800">
+                  <td className="px-4 py-2 whitespace-nowrap font-medium text-text-heading dark:text-white">
                     <div className="flex items-center space-x-3">
                       <Avatar img={booking.avatar} size="sm" rounded />
                       <div>
@@ -390,25 +389,25 @@ export default function AdminDashboardPage() {
                         <div className="text-base text-text-subtle dark:text-gray-400">{booking.id}</div>
                       </div>
                     </div>
-                  </Table.Cell>
-                  <Table.Cell>{booking.service}</Table.Cell>
-                  <Table.Cell>
+                  </td>
+                  <td className="px-4 py-2">{booking.service}</td>
+                  <td className="px-4 py-2">
                     <div className="flex items-center space-x-2">
                       <CalendarIcon className="w-4 h-4 text-text-subtle dark:text-gray-400" />
                       <span>{booking.date}</span>
                       <ClockIcon className="w-4 h-4 text-text-subtle dark:text-gray-400 ml-2" />
                       <span>{booking.time}</span>
                     </div>
-                  </Table.Cell>
-                  <Table.Cell>
+                  </td>
+                  <td className="px-4 py-2">
                     <span className="font-semibold">{booking.amount}</span>
-                  </Table.Cell>
-                  <Table.Cell>
+                  </td>
+                  <td className="px-4 py-2">
                     <Badge color={getStatusColor(booking.status)} size="sm">
                       {booking.status}
                     </Badge>
-                  </Table.Cell>
-                  <Table.Cell>
+                  </td>
+                  <td className="px-4 py-2">
                     <div className="flex items-center space-x-2">
                       <Button color="gray" size="xs">
                         <EyeIcon className="w-4 h-4" />
@@ -419,11 +418,11 @@ export default function AdminDashboardPage() {
                         <Dropdown.Item>Cancel Booking</Dropdown.Item>
                       </Dropdown>
                     </div>
-                  </Table.Cell>
-                </Table.Row>
+                  </td>
+                </tr>
               ))}
-            </Table.Body>
-          </Table>
+            </tbody>
+          </table>
         </div>
       </Card>
 

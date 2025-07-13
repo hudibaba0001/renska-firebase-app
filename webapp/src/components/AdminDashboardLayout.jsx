@@ -18,8 +18,7 @@ import {
   Card, 
   Spinner, 
   Alert, 
-  Badge, 
-  Breadcrumb,
+  Badge,
   TextInput,
   Modal
 } from 'flowbite-react'
@@ -341,13 +340,13 @@ export default function AdminDashboardLayout() {
           <div className="p-6">
             {/* Page Header */}
             <div className="mb-6">
-              <Breadcrumb className="mb-2">
+              <nav aria-label="Breadcrumb" className="mb-2 text-sm text-text-subtle dark:text-gray-400"><ol className="list-reset flex">
                 {getBreadcrumbItems().map((item, index) => (
-                  <Breadcrumb.Item key={index} href={item.href}>
+                  <li key={index} className="flex items-center">{index > 0 && <span className="mx-2">/</span>}<Link to={item.href} className="hover:underline">
                     {item.label}
-                  </Breadcrumb.Item>
+                  </Link></li>
                 ))}
-              </Breadcrumb>
+              </ol></nav>
               <h1 className="text-2xl font-bold text-text-heading dark:text-white">
                 {getPageTitle()}
               </h1>
