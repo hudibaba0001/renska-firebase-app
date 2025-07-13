@@ -148,7 +148,7 @@ export default function TenantDetailPage() {
       </Card>
 
       <Card>
-        <Tabs style="underline" onActiveTabChange={setActiveTab}>
+        <Tabs onActiveTabChange={setActiveTab}>
           <Tabs.Item active title="Configuration" icon={DocumentTextIcon}>
             <div className="p-6">
               <CompanyConfigPage companyId={tenantId} />
