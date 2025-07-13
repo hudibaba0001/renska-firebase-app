@@ -28,9 +28,6 @@ import {
 
 export default function AdminDashboardPage() {
   const { companyId } = useParams();
-  if (!companyId) {
-    return <div className="p-8 text-center text-red-600 font-bold">Error: No companyId found in route params.</div>;
-  }
   const [stats] = useState([
     {
       name: 'Total Revenue',
@@ -192,6 +189,14 @@ export default function AdminDashboardPage() {
     };
     return colors[color] || colors.blue;
   };
+
+  if (!companyId) {
+    return (
+      <div className="p-8 text-center text-red-600 font-bold">
+        Error: No companyId found in route params.
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 overflow-x-hidden w-full box-border">
