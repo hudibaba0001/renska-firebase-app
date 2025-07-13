@@ -1,8 +1,10 @@
+
 {
   "name": "swedprime-saas",
   "version": "1.0.0",
   "description": "SwedPrime SaaS - Multi-tenant booking calculator platform for cleaning companies",
   "main": "index.js",
+  "private": true,
   "scripts": {
     "dev": "cd webapp && npm run dev",
     "build": "cd webapp && npm run build",
