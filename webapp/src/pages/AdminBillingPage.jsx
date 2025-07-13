@@ -5,7 +5,6 @@ import {
   Button, 
   Badge, 
   Alert, 
-  Table,
   Modal,
   Spinner 
 } from 'flowbite-react'
@@ -308,28 +307,28 @@ export default function AdminBillingPage() {
             </div>
 
             <div className="overflow-x-auto">
-              <Table>
-                <Table.Head>
-                  <Table.HeadCell>Date</Table.HeadCell>
-                  <Table.HeadCell>Amount</Table.HeadCell>
-                  <Table.HeadCell>Status</Table.HeadCell>
-                  <Table.HeadCell>Actions</Table.HeadCell>
-                </Table.Head>
-                <Table.Body>
+              <table className="min-w-full text-sm text-left divide-y divide-gray-200">
+                <thead className="bg-gray-100"><tr>
+                  <th className="px-4 py-3 uppercase tracking-wider">Date</th>
+                  <th className="px-4 py-3 uppercase tracking-wider">Amount</th>
+                  <th className="px-4 py-3 uppercase tracking-wider">Status</th>
+                  <th className="px-4 py-3 uppercase tracking-wider">Actions</th>
+                </tr></thead>
+                <tbody className="divide-y divide-gray-100">
                   {invoices.map((invoice) => (
-                    <Table.Row key={invoice.id}>
-                      <Table.Cell>
+                    <tr key={invoice.id}>
+                      <td className="px-4 py-2">
                         {new Date(invoice.date).toLocaleDateString('sv-SE')}
-                      </Table.Cell>
-                      <Table.Cell className="font-medium">
+                      </td>
+                      <td className="px-4 py-2 font-medium">
                         {formatPrice(invoice.amount)}
-                      </Table.Cell>
-                      <Table.Cell>
+                      </td>
+                      <td className="px-4 py-2">
                         <Badge color={invoice.status === 'paid' ? 'success' : 'warning'}>
                           {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
                         </Badge>
-                      </Table.Cell>
-                      <Table.Cell>
+                      </td>
+                      <td className="px-4 py-2">
                         <Button
                           color="gray"
                           size="xs"
@@ -339,11 +338,11 @@ export default function AdminBillingPage() {
                           <DocumentArrowDownIcon className="h-3 w-3" />
                           <span>Download</span>
                         </Button>
-                      </Table.Cell>
-                    </Table.Row>
+                      </td>
+                    </tr>
                   ))}
-                </Table.Body>
-              </Table>
+                </tbody>
+              </table>
             </div>
           </div>
         </Card>
