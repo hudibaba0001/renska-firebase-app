@@ -12,16 +12,16 @@ const db = admin.firestore();
 // Set global options
 setGlobalOptions({ region: "europe-west1" });
 
-// Helper function to safely get Stripe config
-const getStripeConfig = () => {
+// Helper function to safely get Stripe config and initialize Stripe
+const getStripeInstance = () => {
     try {
-        const config = functions.config().stripe;
-        if (!config || !config.secret_key || !config.webhook_secret) {
-            throw new Error("Stripe configuration is missing in Firebase environment config.");
+        const stripeConfig = functions.config().stripe;
+        if (!stripeConfig || !stripeConfig.secret_key) {
+            throw new Error("Stripe secret key is missing in Firebase environment config.");
         }
-        return config;
+        return require('stripe')(stripeConfig.secret_key);
     } catch (err) {
-        logger.error("Failed to get Stripe config", { error: err.message });
+        logger.error("Stripe initialization failed", { error: err.message });
         return null;
     }
 };
@@ -107,11 +107,10 @@ exports.signupCompany = onCall({ timeoutSeconds: 30, memory: '256MiB', enforceAp
  * Create Stripe Checkout Session (Callable Function)
  */
 exports.createCheckoutSession = onCall({ cors: true, timeoutSeconds: 30, memory: "256MiB", enforceAppCheck: true }, async (request) => {
-  const stripeConfig = getStripeConfig();
-  if (!stripeConfig) {
+  const stripe = getStripeInstance();
+  if (!stripe) {
       throw new HttpsError('internal', 'Stripe is not configured.');
   }
-  const stripe = require('stripe')(stripeConfig.secret_key);
 
   const { planId, companyId, successUrl, cancelUrl } = request.data;
   logger.info("🛒 Creating checkout session", { planId, companyId });
@@ -158,17 +157,18 @@ exports.createCheckoutSession = onCall({ cors: true, timeoutSeconds: 30, memory:
  * Stripe Webhook Handler
  */
 exports.handleStripeWebhook = onRequest({ timeoutSeconds: 60, memory: "256MiB" }, async (req, res) => {
-  const stripeConfig = getStripeConfig();
-  if (!stripeConfig) {
+  const stripe = getStripeInstance();
+  if (!stripe) {
       res.status(500).send('Stripe is not configured.');
       return;
   }
-  const stripe = require('stripe')(stripeConfig.secret_key);
 
   if (req.method !== 'POST') {
     res.status(405).send('Method Not Allowed');
     return;
   }
+  
+  const stripeConfig = functions.config().stripe;
 
   const sig = req.headers['stripe-signature'];
   let event;
