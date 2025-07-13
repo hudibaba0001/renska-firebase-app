@@ -285,7 +285,6 @@ export default function TenantListPage() {
                 
               </tbody>
             </table>
-          </div>
         )}
       </Card>
 
