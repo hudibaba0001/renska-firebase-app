@@ -1,7 +1,8 @@
 // webapp/src/App.jsx
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Link, Outlet, Navigate, useParams } from 'react-router-dom';
-import { Flowbite } from 'flowbite-react';
+// FlowbiteProvider removed (not needed)
+
 import { Toaster } from 'react-hot-toast';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
@@ -28,7 +29,7 @@ import TenantDetailPage from './pages/TenantDetailPage';
 export default function App() {
   return (
     <div className="min-h-screen bg-background font-mono">
-      <Flowbite>
+
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<PublicLayout />}>
@@ -93,7 +94,7 @@ export default function App() {
             },
           }}
         />
-      </Flowbite>
+
     </div>
   );
 }

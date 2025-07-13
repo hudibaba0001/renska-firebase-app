@@ -131,8 +131,8 @@
   --radius-full: 9999px;
   
   /* Typography */
-  --font-family-sans: 'Inter', system-ui, -apple-system, sans-serif;
-  --font-family-heading: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-family-sans: 'Times New Roman', Times, serif;
+  --font-family-heading: 'Times New Roman', Times, serif;
   --font-family-mono: 'JetBrains Mono', 'Consolas', monospace;
   
   /* Transitions */
@@ -235,8 +235,18 @@
 
 html, body {
   font-size: 16px;
-  color: var(--text-primary);
+  color: #000000;
   font-family: var(--font-family-sans);
+}
+
+/* Force all text utilities to black */
+* {
+  color: #000000 !important;
+}
+
+/* Preserve link hover underline color but keep text black */
+a {
+  color: #000000 !important;
 }
 
 .text-base {
