@@ -134,11 +134,11 @@ export default function TenantDetailPage() {
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              <Button color="gray" size="sm" onClick={() => window.open(`/admin/${tenant.slug}`, '_blank')}>
+              <Button color="light" size="sm" onClick={() => window.open(`/admin/${tenant.slug}`, '_blank')}>
                 <BuildingOfficeIcon className="h-4 w-4 mr-2" />
                 Admin Dashboard
               </Button>
-              <Button color="gray" size="sm" onClick={() => window.open(`/booking/${tenant.slug}`, '_blank')}>
+              <Button color="light" size="sm" onClick={() => window.open(`/booking/${tenant.slug}`, '_blank')}>
                 <GlobeAltIcon className="h-4 w-4 mr-2" />
                 View Booking Page
               </Button>

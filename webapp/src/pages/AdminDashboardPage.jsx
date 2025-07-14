@@ -324,7 +324,7 @@ export default function AdminDashboardPage() {
                   <span className="text-base text-text-subtle dark:text-gray-400">Form Views</span>
                   <span className="font-medium">2,315</span>
                 </div>
-                <Progress progress={75} color="blue" size="sm" />
+                <Progress progress={75} color="gray" size="sm" />
               </div>
               
               <div>
@@ -368,7 +368,7 @@ export default function AdminDashboardPage() {
             <h2 className="text-xl font-bold text-text-heading dark:text-white">Recent Bookings</h2>
             <p className="text-base text-text-subtle dark:text-gray-400">Latest customer bookings and their status</p>
           </div>
-          <Button as={Link} to={`/admin/${companyId}/bookings`} color="blue" size="sm">
+          <Button as={Link} to={`/admin/${companyId}/bookings`} color="gray" size="sm">
             View All
           </Button>
         </div>
@@ -438,7 +438,7 @@ export default function AdminDashboardPage() {
             <h2 className="text-xl font-bold text-text-heading dark:text-white">Calculator Performance</h2>
             <p className="text-base text-text-subtle dark:text-gray-400">How your booking forms are performing</p>
           </div>
-          <Button as={Link} to={`/admin/${companyId}/forms/new`} color="blue" size="sm">
+          <Button as={Link} to={`/admin/${companyId}/forms/new`} color="gray" size="sm">
             <PlusIcon className="w-4 h-4 mr-2" />
             New Calculator
           </Button>
