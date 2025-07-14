@@ -338,33 +338,92 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
                   </select>
                 </div>
                 {service.pricingModel === 'fixed-tier' || service.pricingModel === 'tiered-multiplier' ? (
-                  <div className="rounded-lg bg-gray-50 p-4 mb-4 border border-gray-200">
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className="text-xl font-bold mb-2 text-gray-900">Area Tiers (sqm)</h3>
-                      <button type="button" onClick={() => updateService(service.id, { tiers: [...service.tiers, { min: 0, max: 0, price: 0 }] })} className="flex items-center px-4 py-2 rounded bg-primary-600 hover:bg-primary-700 text-black text-sm font-bold shadow-sm transition ml-2">
+                  <div className="rounded-lg bg-gradient-to-r from-amber-50 to-orange-50 p-6 mb-6 border border-amber-100 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center">
+                        <div className="bg-amber-100 p-2 rounded-full mr-3">
+                          <MapIcon className="h-5 w-5 text-amber-600" />
+                        </div>
+                        <h3 className="text-lg font-semibold text-gray-900">Area Tiers (sqm)</h3>
+                      </div>
+                      <button 
+                        type="button" 
+                        onClick={() => updateService(service.id, { tiers: [...service.tiers, { min: 0, max: 0, price: 0 }] })} 
+                        className="flex items-center px-4 py-2 rounded-full bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium shadow-sm transition"
+                      >
                         <PlusIcon className="h-4 w-4 mr-1" /> Add Tier
                       </button>
                     </div>
-                    <table className="w-full text-sm border mb-2 table-auto">
-                      <thead>
-                        <tr>
-                          <th className="border px-3 py-2 text-left align-middle">Min</th>
-                          <th className="border px-3 py-2 text-left align-middle">Max</th>
-                          <th className="border px-3 py-2 text-left align-middle">Price (kr)</th>
-                          <th className="border px-3 py-2 text-left align-middle"></th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {service.tiers.map((tier, tIdx) => (
-                          <tr key={tIdx}>
-                            <td className="border px-3 py-2 text-left align-middle"><input type="number" value={tier.min} onChange={e => updateService(service.id, { tiers: service.tiers.map((t, i) => i === tIdx ? { ...t, min: Number(e.target.value) } : t) })} className="w-16 border rounded" /></td>
-                            <td className="border px-3 py-2 text-left align-middle"><input type="number" value={tier.max} onChange={e => updateService(service.id, { tiers: service.tiers.map((t, i) => i === tIdx ? { ...t, max: Number(e.target.value) } : t) })} className="w-16 border rounded" /></td>
-                            <td className="border px-3 py-2 text-left align-middle"><input type="number" value={tier.price} onChange={e => updateService(service.id, { tiers: service.tiers.map((t, i) => i === tIdx ? { ...t, price: Number(e.target.value) } : t) })} className="w-20 border rounded" /></td>
-                            <td className="border px-3 py-2 text-left align-middle"><button type="button" onClick={() => updateService(service.id, { tiers: service.tiers.filter((_, i) => i !== tIdx) })} className="text-red-400">Remove</button></td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                    
+                    <div className="space-y-3">
+                      {service.tiers.map((tier, tIdx) => (
+                        <div key={tIdx} className="bg-white rounded-lg p-4 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                          <div className="flex items-center justify-between">
+                            <div className="flex-grow grid grid-cols-3 gap-4">
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Min Area (sqm)</label>
+                                <input 
+                                  type="number" 
+                                  value={tier.min} 
+                                  onChange={e => updateService(service.id, { tiers: service.tiers.map((t, i) => i === tIdx ? { ...t, min: Number(e.target.value) } : t) })} 
+                                  className="w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-amber-300 text-gray-900" 
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Max Area (sqm)</label>
+                                <input 
+                                  type="number" 
+                                  value={tier.max} 
+                                  onChange={e => updateService(service.id, { tiers: service.tiers.map((t, i) => i === tIdx ? { ...t, max: Number(e.target.value) } : t) })} 
+                                  className="w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-amber-300 text-gray-900" 
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Price (kr)</label>
+                                <input 
+                                  type="number" 
+                                  value={tier.price} 
+                                  onChange={e => updateService(service.id, { tiers: service.tiers.map((t, i) => i === tIdx ? { ...t, price: Number(e.target.value) } : t) })} 
+                                  className="w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-amber-300 text-gray-900" 
+                                />
+                              </div>
+                            </div>
+                            <div className="ml-4">
+                              <button 
+                                type="button" 
+                                onClick={() => updateService(service.id, { tiers: service.tiers.filter((_, i) => i !== tIdx) })} 
+                                className="text-gray-400 hover:text-red-500 p-1 rounded-full hover:bg-red-50"
+                              >
+                                <TrashIcon className="h-5 w-5" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                      
+                      {service.tiers.length === 0 && (
+                        <div className="bg-white rounded-lg p-6 border border-dashed border-gray-300 text-center">
+                          <div className="text-gray-400 mb-2">
+                            <MapIcon className="h-8 w-8 mx-auto mb-2" />
+                            <p className="text-gray-500">No area tiers defined yet</p>
+                          </div>
+                          <button 
+                            type="button" 
+                            onClick={() => updateService(service.id, { tiers: [...service.tiers, { min: 0, max: 0, price: 0 }] })} 
+                            className="mt-2 inline-flex items-center px-4 py-2 rounded-md bg-amber-50 hover:bg-amber-100 text-amber-700 text-sm font-medium"
+                          >
+                            <PlusIcon className="h-4 w-4 mr-1" /> Add Your First Tier
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="mt-4 bg-amber-50 rounded-md p-3 flex items-start">
+                      <InformationCircleIcon className="h-5 w-5 text-amber-500 mr-2 flex-shrink-0 mt-0.5" />
+                      <p className="text-sm text-gray-600">
+                        Define price tiers based on area size. Each tier specifies the price for cleaning areas within the given range.
+                      </p>
+                    </div>
                   </div>
                 ) : null}
                 {service.pricingModel === 'universal' ? (
@@ -677,62 +736,165 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
                   </div>
                 </div>
                 {/* Frequency Multipliers */}
-                {/* In the Frequency Options section, always render the section header and add button, even if there are no frequency options yet. If empty, show a message or empty table. */}
-                {(
-                  <div className="rounded-lg bg-gray-50 p-4 mb-4 border border-gray-200">
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className="text-xl font-bold mb-2 text-gray-900">Frequency Options</h3>
-                      <button
-                        type="button"
-                        onClick={() => updateService(service.id, { frequencyMultipliers: [...(service.frequencyMultipliers || []), { label: '', multiplier: 1 }] })}
-                        className="flex items-center px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 text-red-500 text-sm font-bold shadow-sm transition ml-2"
-                      >
-                        <PlusIcon className="h-4 w-4 mr-1" /> Add Frequency Option
-                    </button>
-                  </div>
-                  {service.frequencyMultipliers && service.frequencyMultipliers.length > 0 ? (
-                    <table className="w-full text-sm border mb-2 table-auto">
-                      <thead>
-                        <tr>
-                          <th className="border px-3 py-2 text-left align-middle">Label</th>
-                          <th className="border px-3 py-2 text-left align-middle">Multiplier</th>
-                          <th className="border px-3 py-2 text-left align-middle"></th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {service.frequencyMultipliers.map((freq, fIdx) => (
-                          <tr key={fIdx}>
-                            <td className="border px-3 py-2 text-left align-middle"><input value={freq.label} onChange={e => updateService(service.id, { frequencyMultipliers: service.frequencyMultipliers.map((f, i) => i === fIdx ? { ...f, label: e.target.value } : f) })} className="w-24 border rounded text-gray-900" /></td>
-                            <td className="border px-3 py-2 text-left align-middle"><input type="number" step="0.01" value={freq.multiplier} onChange={e => updateService(service.id, { frequencyMultipliers: service.frequencyMultipliers.map((f, i) => i === fIdx ? { ...f, multiplier: Number(e.target.value) } : f) })} className="w-20 border rounded text-gray-900" /></td>
-                            <td className="border px-3 py-2 text-left align-middle"><button type="button" onClick={() => updateService(service.id, { frequencyMultipliers: service.frequencyMultipliers.filter((_, i) => i !== fIdx) })} className="text-red-400">Remove</button></td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  ) : (
-                    <div className="text-gray-400 italic py-2">No frequency options yet.</div>
-                  )}
-                </div>
-                )}
-                {/* RUT Eligible Toggle */}
-                <div className="rounded-lg bg-gray-50 p-4 mb-4 border border-gray-200">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-xl font-bold mb-2 text-gray-900">RUT Eligible</h3>
-                  </div>
-                  {config.rutEnabled ? (
+                <div className="rounded-lg bg-gradient-to-r from-indigo-50 to-blue-50 p-6 mb-6 border border-indigo-100 shadow-sm">
+                  <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={service.rutEligible}
-                        onChange={e => updateService(service.id, { rutEligible: e.target.checked })}
-                        className="mr-2"
-                      />
-                      <Label htmlFor="rut-eligible" value="RUT Eligible" />
-                      <span className="ml-2 text-xs text-gray-500 flex items-center"><InformationCircleIcon className="h-4 w-4 mr-1" /> (applies to main service only; for add-ons and custom fees, enable individually)</span>
+                      <div className="bg-indigo-100 p-2 rounded-full mr-3">
+                        <TagIcon className="h-5 w-5 text-indigo-600" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-900">Frequency Options</h3>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <div className="relative">
+                          <input
+                            type="checkbox"
+                            checked={service.frequencyEnabled !== false}
+                            onChange={e => updateService(service.id, { frequencyEnabled: e.target.checked })}
+                            className="sr-only"
+                          />
+                          <div className={`block w-10 h-6 rounded-full transition ${service.frequencyEnabled !== false ? 'bg-indigo-500' : 'bg-gray-300'}`}></div>
+                          <div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition ${service.frequencyEnabled !== false ? 'transform translate-x-4' : ''}`}></div>
+                        </div>
+                        <span className="text-sm text-gray-700">
+                          {service.frequencyEnabled !== false ? 'Enabled' : 'Disabled'}
+                        </span>
+                      </label>
+                      
+                      <button 
+                        type="button" 
+                        onClick={() => updateService(service.id, { frequencyMultipliers: [...(service.frequencyMultipliers || []), { label: '', multiplier: 1 }] })} 
+                        className="flex items-center px-4 py-2 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium shadow-sm transition"
+                        disabled={service.frequencyEnabled === false}
+                      >
+                        <PlusIcon className="h-4 w-4 mr-1" /> Add Option
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {service.frequencyEnabled !== false ? (
+                    <div className="space-y-3">
+                      {service.frequencyMultipliers && service.frequencyMultipliers.length > 0 ? (
+                        service.frequencyMultipliers.map((freq, fIdx) => (
+                          <div key={fIdx} className="bg-white rounded-lg p-4 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                            <div className="flex items-center justify-between">
+                              <div className="flex-grow grid grid-cols-2 gap-4">
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-1">Label</label>
+                                  <input
+                                    className="w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-indigo-300 text-gray-900"
+                                    value={freq.label}
+                                    onChange={e => updateService(service.id, { frequencyMultipliers: service.frequencyMultipliers.map((f, i) => i === fIdx ? { ...f, label: e.target.value } : f) })}
+                                    placeholder="e.g., Weekly, Monthly"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-1">Multiplier</label>
+                                  <div className="flex items-center">
+                                    <input
+                                      type="number"
+                                      step="0.01"
+                                      className="w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-indigo-300 text-gray-900"
+                                      value={freq.multiplier}
+                                      onChange={e => updateService(service.id, { frequencyMultipliers: service.frequencyMultipliers.map((f, i) => i === fIdx ? { ...f, multiplier: Number(e.target.value) } : f) })}
+                                      placeholder="1.0"
+                                    />
+                                    <span className="ml-2 text-sm text-gray-500">×</span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="ml-4">
+                                <button 
+                                  type="button" 
+                                  onClick={() => updateService(service.id, { frequencyMultipliers: service.frequencyMultipliers.filter((_, i) => i !== fIdx) })} 
+                                  className="text-gray-400 hover:text-red-500 p-1 rounded-full hover:bg-red-50"
+                                >
+                                  <TrashIcon className="h-5 w-5" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="bg-white rounded-lg p-6 border border-dashed border-gray-300 text-center">
+                          <div className="text-gray-400 mb-2">
+                            <TagIcon className="h-8 w-8 mx-auto mb-2" />
+                            <p className="text-gray-500">No frequency options defined yet</p>
+                          </div>
+                          <button 
+                            type="button" 
+                            onClick={() => updateService(service.id, { frequencyMultipliers: [...(service.frequencyMultipliers || []), { label: '', multiplier: 1 }] })} 
+                            className="mt-2 inline-flex items-center px-4 py-2 rounded-md bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-sm font-medium"
+                          >
+                            <PlusIcon className="h-4 w-4 mr-1" /> Add Your First Option
+                          </button>
+                        </div>
+                      )}
+                      
+                      <div className="mt-4 bg-indigo-50 rounded-md p-3 flex items-start">
+                        <InformationCircleIcon className="h-5 w-5 text-indigo-500 mr-2 flex-shrink-0 mt-0.5" />
+                        <p className="text-sm text-gray-600">
+                          Frequency options allow customers to select how often they want the service. Each option has a price multiplier (e.g., 1.0 for one-time, 0.9 for weekly).
+                        </p>
+                      </div>
                     </div>
                   ) : (
-                    <span className="text-xs text-gray-400 ml-2">RUT is disabled globally. Enable it in global settings to configure per-item eligibility.</span>
+                    <div className="bg-gray-100 p-4 rounded-lg border border-gray-200">
+                      <div className="flex items-center text-gray-500">
+                        <ExclamationTriangleIcon className="h-5 w-5 mr-2 text-gray-400" />
+                        <span>Frequency options are disabled for this service. Enable them using the toggle above.</span>
+                      </div>
+                    </div>
                   )}
+                </div>
+                {/* RUT Eligible Toggle */}
+                <div className="rounded-lg bg-gradient-to-r from-sky-50 to-cyan-50 p-6 mb-6 border border-sky-100 shadow-sm">
+                  <div className="flex items-center mb-4">
+                    <div className="bg-sky-100 p-2 rounded-full mr-3">
+                      <CheckCircleIcon className="h-5 w-5 text-sky-600" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900">RUT Eligibility</h3>
+                  </div>
+                  
+                  {config.rutEnabled ? (
+                    <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Is this service RUT eligible?</label>
+                      <div className="flex items-center">
+                        <label className="flex items-center gap-3 cursor-pointer">
+                          <div className="relative">
+                            <input
+                              type="checkbox"
+                              checked={service.rutEligible}
+                              onChange={e => updateService(service.id, { rutEligible: e.target.checked })}
+                              className="sr-only"
+                            />
+                            <div className={`block w-12 h-6 rounded-full transition ${service.rutEligible ? 'bg-sky-500' : 'bg-gray-300'}`}></div>
+                            <div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition ${service.rutEligible ? 'transform translate-x-6' : ''}`}></div>
+                          </div>
+                          <span className="text-base font-medium text-gray-700">
+                            {service.rutEligible ? 'Eligible for RUT deduction' : 'Not eligible for RUT deduction'}
+                          </span>
+                        </label>
+                      </div>
+                      <p className="mt-3 text-sm text-gray-500">
+                        This applies to the main service only. For add-ons and custom fees, enable RUT eligibility individually.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="bg-gray-100 p-4 rounded-lg border border-gray-200">
+                      <div className="flex items-center text-gray-500">
+                        <ExclamationTriangleIcon className="h-5 w-5 mr-2 text-gray-400" />
+                        <span>RUT is disabled globally. Enable it in global settings to configure per-item eligibility.</span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="mt-4 bg-sky-50 rounded-md p-3 flex items-start">
+                    <InformationCircleIcon className="h-5 w-5 text-sky-500 mr-2 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-gray-600">
+                      RUT-eligible services qualify for a tax deduction of up to 30% for customers.
+                    </p>
+                  </div>
                 </div>
                 {/* Custom Fees */}
                 <div className="rounded-lg bg-gradient-to-r from-purple-50 to-violet-50 p-6 mb-6 border border-purple-100 shadow-sm">
