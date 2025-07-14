@@ -1,25 +1,25 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { db } from '../firebase/init';
 import { doc, getDoc } from 'firebase/firestore';
-import { 
-  Card, 
-  Button, 
-  TextInput, 
-  Select, 
-  Label, 
-  Checkbox, 
-  Badge, 
-  Alert, 
+import {
+  Card,
+  Button,
+  TextInput,
+  Select,
+  Label,
+  Checkbox,
+  Badge,
+  Alert,
   Spinner,
   Progress,
   Tooltip
 } from 'flowbite-react';
-import { 
-  HomeIcon, 
-  CurrencyDollarIcon, 
-  CalendarDaysIcon, 
-  PlusIcon, 
+import {
+  HomeIcon,
+  CurrencyDollarIcon,
+  CalendarDaysIcon,
+  PlusIcon,
   SparklesIcon,
   MapPinIcon,
   UserIcon,
@@ -32,7 +32,7 @@ import {
   ChartBarIcon,
   ClockIcon
 } from '@heroicons/react/24/outline';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 
 // Import our enhanced engines
@@ -680,7 +680,7 @@ const PricingSummaryCard = ({ pricingResult, selectedService, formData, calculat
 );
 
 // Pricing Breakdown Card
-const PricingBreakdownCard = ({ breakdown, appliedRules, discounts, addOns }) => (
+const PricingBreakdownCard = ({ breakdown, appliedRules }) => (
   <Card>
     <div className="space-y-4">
       <div className="flex items-center space-x-3">
@@ -702,14 +702,33 @@ const PricingBreakdownCard = ({ breakdown, appliedRules, discounts, addOns }) =>
             </div>
           )}
           
-          {addOns?.length > 0 && (
+          {breakdown.addOns?.length > 0 && (
             <div className="space-y-1">
-              {addOns.map((addOn, index) => (
+              {breakdown.addOns.map((addOn, index) => (
                 <div key={index} className="flex justify-between">
                   <span>{addOn.name}:</span>
                   <span>+{PricingUtils.formatPrice(addOn.price)}</span>
                 </div>
               ))}
+            </div>
+          )}
+          
+          {breakdown.minimumFeeApplied && (
+            <div className="flex justify-between text-amber-600 font-medium">
+              <span>Minimum Fee Applied:</span>
+              <span>{PricingUtils.formatPrice(breakdown.originalCalculatedPrice)} → {PricingUtils.formatPrice(breakdown.base)}</span>
+            </div>
+          )}
+          
+          {breakdown.hourlyDetails && (
+            <div className="border-t pt-2 mt-2">
+              <div className="flex justify-between text-sm font-medium">
+                <span>Hourly Calculation:</span>
+                <span>{breakdown.hourlyDetails.hours} hours × {PricingUtils.formatPrice(breakdown.hourlyDetails.rate)}/hr</span>
+              </div>
+              <div className="text-xs text-gray-500 mt-1">
+                Area: {breakdown.area} m² (Tier: {breakdown.hourlyDetails.minArea}-{breakdown.hourlyDetails.maxArea} m²)
+              </div>
             </div>
           )}
           

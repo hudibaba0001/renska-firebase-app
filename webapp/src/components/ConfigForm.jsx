@@ -404,11 +404,142 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
                   </div>
                 ) : null}
                 {service.pricingModel === 'hourly' ? (
-                  <div className="rounded-lg bg-gray-50 p-4 mb-4 border border-gray-200">
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className="text-lg font-semibold text-gray-900">Hourly Rate (kr/hour)</h3>
+                  <div className="rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 p-6 mb-6 border border-blue-100 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center">
+                        <div className="bg-blue-100 p-2 rounded-full mr-3">
+                          <CurrencyDollarIcon className="h-5 w-5 text-blue-600" />
+                        </div>
+                        <h3 className="text-lg font-semibold text-gray-900">Hourly Pricing</h3>
+                      </div>
+                      <button 
+                        type="button" 
+                        onClick={() => updateService(service.id, { hourlyTiers: [...(service.hourlyTiers || []), { min: 1, max: 50, hours: 3 }] })} 
+                        className="flex items-center px-4 py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium shadow-sm transition"
+                      >
+                        <PlusIcon className="h-4 w-4 mr-1" /> Add Tier
+                      </button>
                     </div>
-                    <input type="number" value={service.hourlyRate} onChange={e => updateService(service.id, { hourlyRate: Number(e.target.value) })} className="w-full border rounded px-2 py-1 focus:ring-2 focus:ring-primary-300" />
+                    
+                    <div className="mb-6 bg-white p-4 rounded-lg shadow-sm border border-gray-100">
+                      <h4 className="text-md font-semibold text-gray-800 mb-3 flex items-center">
+                        <span className="bg-blue-100 p-1 rounded-md mr-2">
+                          <CurrencyDollarIcon className="h-4 w-4 text-blue-600" />
+                        </span>
+                        Base Hourly Rate
+                      </h4>
+                      <div className="flex items-center">
+                        <input 
+                          type="number" 
+                          value={service.hourlyRate || 400} 
+                          onChange={e => updateService(service.id, { hourlyRate: Number(e.target.value) })} 
+                          className="w-32 border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-300 focus:border-blue-300 text-lg" 
+                        />
+                        <span className="ml-2 text-lg font-medium text-gray-700">kr/hour</span>
+                      </div>
+                      <p className="text-sm text-gray-500 mt-2">This rate will be multiplied by the hours for each area tier</p>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      {(service.hourlyTiers || []).map((tier, tIdx) => (
+                        <div key={tIdx} className="bg-white rounded-lg p-4 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                          <div className="flex justify-between">
+                            <div className="flex-grow">
+                              <div className="grid grid-cols-2 gap-4 mb-3">
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-1">Area Range</label>
+                                  <div className="flex items-center gap-2">
+                                    <input 
+                                      type="number" 
+                                      value={tier.min} 
+                                      onChange={e => {
+                                        const newTiers = [...service.hourlyTiers];
+                                        newTiers[tIdx] = { ...tier, min: Number(e.target.value) };
+                                        updateService(service.id, { hourlyTiers: newTiers });
+                                      }} 
+                                      className="w-24 border rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-300" 
+                                      placeholder="Min" 
+                                    />
+                                    <span className="text-gray-500">to</span>
+                                    <input 
+                                      type="number" 
+                                      value={tier.max} 
+                                      onChange={e => {
+                                        const newTiers = [...service.hourlyTiers];
+                                        newTiers[tIdx] = { ...tier, max: Number(e.target.value) };
+                                        updateService(service.id, { hourlyTiers: newTiers });
+                                      }} 
+                                      className="w-24 border rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-300" 
+                                      placeholder="Max" 
+                                    />
+                                    <span className="text-gray-500">m²</span>
+                                  </div>
+                                </div>
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-1">Hours Required</label>
+                                  <div className="flex items-center">
+                                    <input 
+                                      type="number" 
+                                      value={tier.hours} 
+                                      onChange={e => {
+                                        const newTiers = [...service.hourlyTiers];
+                                        newTiers[tIdx] = { ...tier, hours: Number(e.target.value) };
+                                        updateService(service.id, { hourlyTiers: newTiers });
+                                      }} 
+                                      className="w-24 border rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-300" 
+                                      placeholder="Hours" 
+                                    />
+                                    <span className="ml-2 text-gray-500">hours</span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="bg-blue-50 rounded-md p-3 flex justify-between items-center">
+                                <span className="text-sm font-medium text-gray-700">Calculated Price:</span>
+                                <span className="text-lg font-bold text-blue-700">
+                                  {(tier.hours * (service.hourlyRate || 400)).toLocaleString()} kr
+                                </span>
+                              </div>
+                            </div>
+                            <div className="ml-4 flex items-start">
+                              <button 
+                                type="button" 
+                                onClick={() => {
+                                  const newTiers = [...service.hourlyTiers];
+                                  newTiers.splice(tIdx, 1);
+                                  updateService(service.id, { hourlyTiers: newTiers });
+                                }} 
+                                className="text-gray-400 hover:text-red-500 p-1 rounded-full hover:bg-red-50"
+                              >
+                                <TrashIcon className="h-5 w-5" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                      
+                      {(!service.hourlyTiers || service.hourlyTiers.length === 0) && (
+                        <div className="bg-white rounded-lg p-6 border border-dashed border-gray-300 text-center">
+                          <div className="text-gray-400 mb-2">
+                            <CogIcon className="h-8 w-8 mx-auto mb-2" />
+                            <p className="text-gray-500">No hourly tiers defined yet</p>
+                          </div>
+                          <button 
+                            type="button" 
+                            onClick={() => updateService(service.id, { hourlyTiers: [...(service.hourlyTiers || []), { min: 1, max: 50, hours: 3 }] })} 
+                            className="mt-2 inline-flex items-center px-4 py-2 rounded-md bg-blue-50 hover:bg-blue-100 text-blue-700 text-sm font-medium"
+                          >
+                            <PlusIcon className="h-4 w-4 mr-1" /> Add Your First Tier
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="mt-4 bg-blue-50 rounded-md p-3 flex items-start">
+                      <InformationCircleIcon className="h-5 w-5 text-blue-500 mr-2 flex-shrink-0 mt-0.5" />
+                      <p className="text-sm text-gray-600">
+                        Define area ranges and how many hours each range requires. The final price is calculated by multiplying the hours by your hourly rate.
+                      </p>
+                    </div>
                   </div>
                 ) : null}
                 {service.pricingModel === 'per-room' ? (
@@ -440,45 +571,110 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
                   </div>
                 ) : null}
                 {/* Add-Ons */}
-                <div className="rounded-lg bg-gray-50 p-4 mb-4 border border-gray-200">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-xl font-bold mb-2 text-gray-900">Add-Ons</h3>
-                    <button type="button" onClick={() => addAddOn(service.id)} className="flex items-center px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 text-red-500 text-sm font-bold shadow-sm transition ml-2">
+                <div className="rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 p-6 mb-6 border border-green-100 shadow-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center">
+                      <div className="bg-green-100 p-2 rounded-full mr-3">
+                        <PlusIcon className="h-5 w-5 text-green-600" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-900">Add-Ons</h3>
+                    </div>
+                    <button 
+                      type="button" 
+                      onClick={() => addAddOn(service.id)} 
+                      className="flex items-center px-4 py-2 rounded-full bg-green-600 hover:bg-green-700 text-white text-sm font-medium shadow-sm transition"
+                    >
                       <PlusIcon className="h-4 w-4 mr-1" /> Add Add-On
                     </button>
                   </div>
-                  {service.addOns && service.addOns.map((addOn, aIdx) => (
-                    <div key={aIdx} className="flex items-center gap-2 mb-1">
-                      <input
-                        className="border rounded px-2 py-1 w-32 text-gray-900"
-                        value={addOn.name}
-                        onChange={e => updateAddOn(service.id, aIdx, { name: e.target.value })}
-                        placeholder="Add-on name"
-                      />
-                      <input
-                        type="number"
-                        className="border rounded px-2 py-1 w-20 text-gray-900"
-                        value={addOn.price}
-                        onChange={e => updateAddOn(service.id, aIdx, { price: Number(e.target.value) })}
-                        placeholder="Price"
-                      />
-                      {config.rutEnabled ? (
-                        <div className="flex items-center gap-2">
-                          <label className="flex items-center gap-2 min-w-[100px]">
-                            <input
-                              type="checkbox"
-                              checked={addOn.rutEligible}
-                              onChange={e => updateAddOn(service.id, aIdx, { rutEligible: e.target.checked })}
-                            />
-                            <span className="text-sm text-gray-700">RUT Eligible</span>
-                          </label>
+                  
+                  <div className="space-y-3">
+                    {service.addOns && service.addOns.map((addOn, aIdx) => (
+                      <div key={aIdx} className="bg-white rounded-lg p-4 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-grow grid grid-cols-3 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                              <input
+                                className="w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-green-300 text-gray-900"
+                                value={addOn.name}
+                                onChange={e => updateAddOn(service.id, aIdx, { name: e.target.value })}
+                                placeholder="Add-on name"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Price (kr)</label>
+                              <input
+                                type="number"
+                                className="w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-green-300 text-gray-900"
+                                value={addOn.price}
+                                onChange={e => updateAddOn(service.id, aIdx, { price: Number(e.target.value) })}
+                                placeholder="Price"
+                              />
+                            </div>
+                            {config.rutEnabled ? (
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">RUT Eligible</label>
+                                <div className="flex items-center h-[38px]">
+                                  <label className="flex items-center gap-2 cursor-pointer">
+                                    <div className="relative">
+                                      <input
+                                        type="checkbox"
+                                        checked={addOn.rutEligible}
+                                        onChange={e => updateAddOn(service.id, aIdx, { rutEligible: e.target.checked })}
+                                        className="sr-only"
+                                      />
+                                      <div className={`block w-10 h-6 rounded-full transition ${addOn.rutEligible ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                                      <div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition ${addOn.rutEligible ? 'transform translate-x-4' : ''}`}></div>
+                                    </div>
+                                    <span className="text-sm text-gray-700">
+                                      {addOn.rutEligible ? 'Yes' : 'No'}
+                                    </span>
+                                  </label>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex items-end">
+                                <span className="text-xs text-gray-400">RUT is disabled globally</span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="ml-4">
+                            <button 
+                              type="button" 
+                              onClick={() => deleteAddOn(service.id, aIdx)} 
+                              className="text-gray-400 hover:text-red-500 p-1 rounded-full hover:bg-red-50"
+                            >
+                              <TrashIcon className="h-5 w-5" />
+                            </button>
+                          </div>
                         </div>
-                      ) : (
-                        <span className="text-xs text-gray-400 ml-2">RUT is disabled globally</span>
-                      )}
-                      <button type="button" onClick={() => deleteAddOn(service.id, aIdx)} className="text-red-400">Remove</button>
-                    </div>
-                  ))}
+                      </div>
+                    ))}
+                    
+                    {(!service.addOns || service.addOns.length === 0) && (
+                      <div className="bg-white rounded-lg p-6 border border-dashed border-gray-300 text-center">
+                        <div className="text-gray-400 mb-2">
+                          <PlusIcon className="h-8 w-8 mx-auto mb-2" />
+                          <p className="text-gray-500">No add-ons defined yet</p>
+                        </div>
+                        <button 
+                          type="button" 
+                          onClick={() => addAddOn(service.id)} 
+                          className="mt-2 inline-flex items-center px-4 py-2 rounded-md bg-green-50 hover:bg-green-100 text-green-700 text-sm font-medium"
+                        >
+                          <PlusIcon className="h-4 w-4 mr-1" /> Add Your First Add-On
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="mt-4 bg-green-50 rounded-md p-3 flex items-start">
+                    <InformationCircleIcon className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-gray-600">
+                      Add-ons are optional services customers can select. Mark them as RUT eligible if they qualify for tax deductions.
+                    </p>
+                  </div>
                 </div>
                 {/* Frequency Multipliers */}
                 {/* In the Frequency Options section, always render the section header and add button, even if there are no frequency options yet. If empty, show a message or empty table. */}
@@ -539,45 +735,110 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
                   )}
                 </div>
                 {/* Custom Fees */}
-                <div className="rounded-lg bg-gray-50 p-4 mb-4 border border-gray-200">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-xl font-bold mb-2 text-gray-900">Custom Fees</h3>
-                    <button type="button" onClick={() => addCustomFee(service.id)} className="flex items-center px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 text-red-500 text-sm font-bold shadow-sm transition ml-2">
+                <div className="rounded-lg bg-gradient-to-r from-purple-50 to-violet-50 p-6 mb-6 border border-purple-100 shadow-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center">
+                      <div className="bg-purple-100 p-2 rounded-full mr-3">
+                        <CurrencyDollarIcon className="h-5 w-5 text-purple-600" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-900">Custom Fees</h3>
+                    </div>
+                    <button 
+                      type="button" 
+                      onClick={() => addCustomFee(service.id)} 
+                      className="flex items-center px-4 py-2 rounded-full bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium shadow-sm transition"
+                    >
                       <PlusIcon className="h-4 w-4 mr-1" /> Add Custom Fee
                     </button>
                   </div>
-                  {service.customFees && service.customFees.map((fee, fIdx) => (
-                    <div key={fIdx} className="flex items-center gap-2 mb-1">
-                      <input
-                        className="border rounded px-2 py-1 w-32 text-gray-900"
-                        value={fee.label}
-                        onChange={e => updateCustomFee(service.id, fIdx, { label: e.target.value })}
-                        placeholder="Fee label"
-                      />
-                      <input
-                        type="number"
-                        className="border rounded px-2 py-1 w-20 text-gray-900"
-                        value={fee.amount}
-                        onChange={e => updateCustomFee(service.id, fIdx, { amount: Number(e.target.value) })}
-                        placeholder="Amount"
-                      />
-                      {config.rutEnabled ? (
-                        <div className="flex items-center gap-2">
-                          <label className="flex items-center gap-2 min-w-[100px]">
-                            <input
-                              type="checkbox"
-                              checked={fee.rutEligible}
-                              onChange={e => updateCustomFee(service.id, fIdx, { rutEligible: e.target.checked })}
-                            />
-                            <span className="text-sm text-gray-700">RUT Eligible</span>
-                          </label>
+                  
+                  <div className="space-y-3">
+                    {service.customFees && service.customFees.map((fee, fIdx) => (
+                      <div key={fIdx} className="bg-white rounded-lg p-4 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-grow grid grid-cols-3 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Label</label>
+                              <input
+                                className="w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-purple-300 text-gray-900"
+                                value={fee.label}
+                                onChange={e => updateCustomFee(service.id, fIdx, { label: e.target.value })}
+                                placeholder="Fee label"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Amount (kr)</label>
+                              <input
+                                type="number"
+                                className="w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-purple-300 text-gray-900"
+                                value={fee.amount}
+                                onChange={e => updateCustomFee(service.id, fIdx, { amount: Number(e.target.value) })}
+                                placeholder="Amount"
+                              />
+                            </div>
+                            {config.rutEnabled ? (
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">RUT Eligible</label>
+                                <div className="flex items-center h-[38px]">
+                                  <label className="flex items-center gap-2 cursor-pointer">
+                                    <div className="relative">
+                                      <input
+                                        type="checkbox"
+                                        checked={fee.rutEligible}
+                                        onChange={e => updateCustomFee(service.id, fIdx, { rutEligible: e.target.checked })}
+                                        className="sr-only"
+                                      />
+                                      <div className={`block w-10 h-6 rounded-full transition ${fee.rutEligible ? 'bg-purple-500' : 'bg-gray-300'}`}></div>
+                                      <div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition ${fee.rutEligible ? 'transform translate-x-4' : ''}`}></div>
+                                    </div>
+                                    <span className="text-sm text-gray-700">
+                                      {fee.rutEligible ? 'Yes' : 'No'}
+                                    </span>
+                                  </label>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex items-end">
+                                <span className="text-xs text-gray-400">RUT is disabled globally</span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="ml-4">
+                            <button 
+                              type="button" 
+                              onClick={() => deleteCustomFee(service.id, fIdx)} 
+                              className="text-gray-400 hover:text-red-500 p-1 rounded-full hover:bg-red-50"
+                            >
+                              <TrashIcon className="h-5 w-5" />
+                            </button>
+                          </div>
                         </div>
-                      ) : (
-                        <span className="text-xs text-gray-400 ml-2">RUT is disabled globally</span>
-                      )}
-                      <button type="button" onClick={() => deleteCustomFee(service.id, fIdx)} className="text-red-400">Remove</button>
-                    </div>
-                  ))}
+                      </div>
+                    ))}
+                    
+                    {(!service.customFees || service.customFees.length === 0) && (
+                      <div className="bg-white rounded-lg p-6 border border-dashed border-gray-300 text-center">
+                        <div className="text-gray-400 mb-2">
+                          <CurrencyDollarIcon className="h-8 w-8 mx-auto mb-2" />
+                          <p className="text-gray-500">No custom fees defined yet</p>
+                        </div>
+                        <button 
+                          type="button" 
+                          onClick={() => addCustomFee(service.id)} 
+                          className="mt-2 inline-flex items-center px-4 py-2 rounded-md bg-purple-50 hover:bg-purple-100 text-purple-700 text-sm font-medium"
+                        >
+                          <PlusIcon className="h-4 w-4 mr-1" /> Add Your First Custom Fee
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="mt-4 bg-purple-50 rounded-md p-3 flex items-start">
+                    <InformationCircleIcon className="h-5 w-5 text-purple-500 mr-2 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-gray-600">
+                      Custom fees are additional charges that apply to all bookings. Mark them as RUT eligible if they qualify for tax deductions.
+                    </p>
+                  </div>
                 </div>
                 {/* Per-service VAT override */}
                 <div className="rounded-lg bg-gray-50 p-4 mb-4 border border-gray-200">
@@ -596,6 +857,45 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
                   />
                   <div className="flex items-center mt-1 text-xs text-gray-500"><InformationCircleIcon className="h-4 w-4 mr-1" /> VAT will apply to service, add-ons, and custom fees.</div>
                 </div>
+                
+                {/* Minimum Fee */}
+                <div className="rounded-lg bg-gradient-to-r from-amber-50 to-yellow-50 p-6 mb-6 border border-amber-100 shadow-sm">
+                  <div className="flex items-center mb-4">
+                    <div className="bg-amber-100 p-2 rounded-full mr-3">
+                      <CurrencyDollarIcon className="h-5 w-5 text-amber-600" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900">Minimum Fee</h3>
+                  </div>
+                  
+                  <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
+                    <div className="flex flex-col">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Minimum Charge (kr)</label>
+                      <div className="flex items-center">
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          value={service.minPrice ?? ''}
+                          onChange={e => updateService(service.id, { minPrice: e.target.value ? Number(e.target.value) : undefined })}
+                          className="w-32 border rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-300 focus:border-amber-300 text-lg"
+                          placeholder="0"
+                        />
+                        <span className="ml-2 text-lg font-medium text-gray-700">kr</span>
+                      </div>
+                      <p className="mt-2 text-sm text-gray-500">
+                        This is the minimum amount a customer will be charged, regardless of the calculated price.
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4 bg-amber-50 rounded-md p-3 flex items-start">
+                    <InformationCircleIcon className="h-5 w-5 text-amber-500 mr-2 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-gray-600">
+                      If the calculated price is lower than this minimum fee, customers will be charged this amount instead.
+                    </p>
+                  </div>
+                </div>
+                
                 {/* TODO: Add pricing model-specific fields here (not in this step) */}
                 <div className="flex justify-end mt-4">
                   <Button

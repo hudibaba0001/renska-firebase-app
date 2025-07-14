@@ -124,6 +124,14 @@ export class PricingEngine {
       // Apply rules engine
       const finalPrice = await this.applyPricingRules(modifiedPrice, normalizedData);
       
+      // Apply minimum price if set
+      if (normalizedData.service?.minPrice && finalPrice.amount < normalizedData.service.minPrice) {
+        finalPrice.amount = normalizedData.service.minPrice;
+        finalPrice.breakdown = finalPrice.breakdown || {};
+        finalPrice.breakdown.minimumFeeApplied = true;
+        finalPrice.breakdown.originalCalculatedPrice = modifiedPrice.amount;
+      }
+      
       // Create result object
       const result = {
         basePrice: basePrice.amount,
@@ -240,16 +248,26 @@ export class PricingEngine {
       throw new PricingError(PRICING_ERRORS.INVALID_SERVICE, `Unsupported pricing model: ${service.pricingModel}`);
     }
     
-    const basePrice = await calculator(inputData);
+    const result = await calculator(inputData);
+    let basePrice, breakdown;
+    
+    // Handle if the calculator returns an object with breakdown
+    if (typeof result === 'object' && result.amount !== undefined) {
+      basePrice = result.amount;
+      breakdown = result.breakdown || {};
+    } else {
+      basePrice = result;
+      breakdown = {
+        base: basePrice,
+        area: inputData.area,
+        rooms: inputData.rooms
+      };
+    }
     
     return {
       amount: basePrice,
       model: service.pricingModel,
-      breakdown: {
-        base: basePrice,
-        area: inputData.area,
-        rooms: inputData.rooms
-      }
+      breakdown
     };
   }
 
@@ -321,20 +339,39 @@ export class PricingEngine {
    */
   calculateHourlyBySize(inputData) {
     const { service, area } = inputData;
-    const hourRates = service.pricingConfig?.hourRates || [];
     
-    if (!hourRates.length) {
-      throw new PricingError(PRICING_ERRORS.INVALID_SERVICE, 'No hourly rates configured');
+    // Get hourly tiers and rate from service config
+    const hourlyTiers = service.hourlyTiers || [];
+    const hourlyRate = service.hourlyRate || 400; // Default hourly rate if not specified
+    
+    if (!hourlyTiers.length) {
+      throw new PricingError(PRICING_ERRORS.INVALID_SERVICE, 'No hourly tiers configured');
     }
     
-    // Find the appropriate rate
-    const rate = hourRates.find(r => area >= r.minArea && area <= r.maxArea);
+    // Find the appropriate tier for the area
+    const tier = hourlyTiers.find(t => area >= t.min && area <= t.max);
     
-    if (!rate) {
-      throw new PricingError(PRICING_ERRORS.OUT_OF_RANGE, `No hourly rate found for area ${area} sqm`);
+    if (!tier) {
+      throw new PricingError(PRICING_ERRORS.OUT_OF_RANGE, `No hourly tier found for area ${area} sqm`);
     }
     
-    return Math.round(rate.hours * rate.pricePerHour);
+    // Calculate price based on hours required and hourly rate
+    const price = tier.hours * hourlyRate;
+    
+    // Return price with breakdown details
+    return {
+      amount: Math.round(price),
+      breakdown: {
+        base: Math.round(price),
+        area,
+        hourlyDetails: {
+          hours: tier.hours,
+          rate: hourlyRate,
+          minArea: tier.min,
+          maxArea: tier.max
+        }
+      }
+    };
   }
 
   /**
