@@ -46,11 +46,11 @@ service cloud.firestore {
       // A user can read and write to their own profile.
       // A Super Admin can read any user's profile, but cannot write to it (to prevent impersonation).
       allow read: if isOwner(userId) || isSuperAdmin();
-      allow write: if isOwner(userId);
-
-      // Data validation for user profiles
-      // Ensures that a user cannot grant themselves superAdmin or adminOf status.
-      allow update: if request.resource.data.superAdmin == resource.data.superAdmin &&
+      // Allow a user to create their own profile.
+      allow create: if isOwner(userId);
+      // Allow a user to update their own profile, but not grant themselves special permissions.
+      allow update: if isOwner(userId) &&
+                       request.resource.data.superAdmin == resource.data.superAdmin &&
                        request.resource.data.adminOf == resource.data.adminOf;
     }
 
@@ -59,28 +59,32 @@ service cloud.firestore {
     // ============================================================================
     
     match /companies/{companyId} {
-      // READ: Allowed if the company is public, or if the user is a super admin or an admin of that specific company.
-      allow read: if resource.data.isPublic == true || isSuperAdmin() || isCompanyAdmin(companyId);
+      // READ RULES (get, list)
+      // Allow a 'get' request if the user is an admin, or if the document is public.
+      // Crucially, also allow it if the user is signed in and the document does not exist (resource == null).
+      // This enables the client-side signup form to check if a company ID is already taken without exposing data.
+      allow get: if isSuperAdmin() || isCompanyAdmin(companyId) || 
+                    (resource != null && resource.data.isPublic == true) || 
+                    (resource == null && isSignedIn());
+
+      // Only allow super admins to list all companies.
+      allow list: if isSuperAdmin();
       
-      // CREATE: Only a Super Admin can create a new company document.
-      allow create: if isSuperAdmin();
+      // WRITE RULES (create, update, delete)
+      // Allow a signed-in user to create a company, as long as they set themselves as the admin.
+      allow create: if (isSignedIn() && request.resource.data.adminUid == request.auth.uid) || isSuperAdmin();
       
-      // UPDATE: A Super Admin or an admin of that company can update it.
+      // An admin of the company or a super admin can update it.
       allow update: if isSuperAdmin() || isCompanyAdmin(companyId);
       
-      // DELETE: Only a Super Admin can delete a company document.
+      // Only a Super Admin can delete a company.
       allow delete: if isSuperAdmin();
       
       // --- NESTED: SERVICES SUBCOLLECTION ---
       match /services/{serviceId} {
-        // Anyone who can read the parent company can also read its services.
         allow read: if get(/databases/$(database)/documents/companies/$(companyId)).data.isPublic == true || 
                        isSuperAdmin() || isCompanyAdmin(companyId);
-                       
-        // Only company admins and super admins can create, update, or delete services.
         allow create, update, delete: if isSuperAdmin() || isCompanyAdmin(companyId);
-        
-        // Data validation for creating/updating a service.
         allow write: if request.resource.data.name is string &&
                         request.resource.data.name.size() > 1 &&
                         request.resource.data.name.size() < 100 &&
@@ -90,15 +94,10 @@ service cloud.firestore {
       
       // --- NESTED: BOOKINGS SUBCOLLECTION ---
       match /bookings/{bookingId} {
-        // READ/UPDATE/DELETE: Only company admins and super admins can manage bookings.
         allow read, update, delete: if isSuperAdmin() || isCompanyAdmin(companyId);
-        
-        // CREATE: Anyone can create a booking (e.g., from a public booking form),
-        // but we validate the incoming data to ensure it's valid.
         allow create: if request.resource.data.customerInfo.email is string &&
                          request.resource.data.totalPrice is number &&
                          request.resource.data.totalPrice >= 0 &&
-                         // Ensure the status is 'pending' on creation.
                          request.resource.data.status == 'pending';
       }
     }
@@ -107,7 +106,6 @@ service cloud.firestore {
     // DEPRECATED & GLOBAL COLLECTIONS
     // ============================================================================
     
-    // The old /tenants/ path is now deprecated and should not be used. All rules are on /companies/.
     match /tenants/{tenantId} {
         allow read, write: if false; // Disallow all access.
     }

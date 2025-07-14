@@ -1,62 +1,74 @@
-import React, { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
-import { createUserWithEmailAndPassword } from 'firebase/auth'
-import { auth } from '../firebase/init'
-import { db } from '../firebase/init'
-import { doc, getDoc, setDoc } from 'firebase/firestore'
+import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { createUserWithEmailAndPassword, deleteUser } from 'firebase/auth';
+import { doc, getDoc, setDoc, writeBatch } from 'firebase/firestore';
+import { auth, db } from '../firebase/init';
 
 function toCompanyId(name) {
-  return name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-')
+  return name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-');
 }
 
 export default function SignupPage() {
-  const [companyName, setCompanyName] = useState('')
-  const [address, setAddress] = useState('')
-  const [orgNumber, setOrgNumber] = useState('')
-  const [adminName, setAdminName] = useState('')
-  const [email, setEmail] = useState('')
-  const [phone, setPhone] = useState('')
-  const [password, setPassword] = useState('')
-  const [confirm, setConfirm] = useState('')
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
-  const [loading, setLoading] = useState(false)
-  const navigate = useNavigate()
+  const [companyName, setCompanyName] = useState('');
+  const [address, setAddress] = useState('');
+  const [orgNumber, setOrgNumber] = useState('');
+  const [adminName, setAdminName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleSubmit = async e => {
-    e.preventDefault()
-    setError('')
-    setSuccess('')
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+
     if (!companyName || !address || !orgNumber || !adminName || !email || !phone || !password || !confirm) {
-      setError('Please fill in all fields.')
-      return
+      setError('Please fill in all fields.');
+      return;
     }
     if (password !== confirm) {
-      setError('Passwords do not match.')
-      return
+      setError('Passwords do not match.');
+      return;
     }
-    setLoading(true)
-    const companyId = toCompanyId(companyName)
+
+    setLoading(true);
+    let userCred = null;
+
     try {
-      // Check if company already exists
-      const companyRef = doc(db, 'companies', companyId)
-      const companySnap = await getDoc(companyRef)
+      // Step 1: Create the user in Firebase Auth first.
+      userCred = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCred.user;
+      const companyId = toCompanyId(companyName);
+
+      // Step 2: Now that the user is created and authenticated, check if the company ID already exists.
+      const companyRef = doc(db, 'companies', companyId);
+      const companySnap = await getDoc(companyRef);
+
       if (companySnap.exists()) {
-        setError('A company with this name already exists. Please choose a different name.')
-        setLoading(false)
-        return
+        // IMPORTANT: If the company exists, we must delete the newly created user to avoid orphans.
+        await deleteUser(user); 
+        setError('A company with this name already exists. Please choose a different name.');
+        setLoading(false);
+        return;
       }
-      // Create user
-      const userCred = await createUserWithEmailAndPassword(auth, email, password)
-      // Create company document
-      await setDoc(companyRef, {
+
+      // Step 3: Use a batch write for atomicity to create company and user profile docs.
+      const batch = writeBatch(db);
+
+      // Company document
+      batch.set(companyRef, {
         companyName,
         address,
         orgNumber,
         adminName,
         adminEmail: email,
         adminPhone: phone,
-        adminUid: userCred.user.uid,
+        adminUid: user.uid,
         created: new Date(),
         pricePerSqm: 0,
         services: [],
@@ -65,23 +77,42 @@ export default function SignupPage() {
         windowCleaningPrices: {},
         zipAreas: [],
         rutEnabled: false,
-      })
-      // Create user profile document
-      await setDoc(doc(db, 'users', userCred.user.uid), {
+      });
+
+      // User profile document
+      const userRef = doc(db, 'users', user.uid);
+      batch.set(userRef, {
         email,
         name: adminName,
         companyId,
         phone,
         created: new Date(),
-      })
-      setSuccess('Account and company created! Redirecting…')
-      setTimeout(() => navigate(`/admin/${companyId}`), 1500)
+      });
+
+      // Commit the batch
+      await batch.commit();
+
+      setSuccess('Account and company created! Redirecting…');
+      setTimeout(() => navigate(`/admin/${companyId}`), 1500);
+
     } catch (e) {
-      setError(e.message.replace('Firebase:', ''))
+      // If any error occurs after user creation, delete the user.
+      if (userCred) {
+        await deleteUser(userCred.user).catch(deleteError => {
+          console.error("Failed to clean up user after signup error:", deleteError);
+          setError("An error occurred, and we couldn't automatically clean up the new user. Please contact support.");
+        });
+      }
+      const message = e.message.replace('Firebase:', '');
+      if (e.code === 'auth/email-already-in-use') {
+         setError('This email address is already in use by another account.');
+      } else {
+        setError(message);
+      }
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div className="flex items-center justify-center">
@@ -186,5 +217,5 @@ export default function SignupPage() {
         </div>
       </form>
     </div>
-  )
-} 
+  );
+}

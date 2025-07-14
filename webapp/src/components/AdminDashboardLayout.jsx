@@ -175,12 +175,13 @@ export default function AdminDashboardLayout() {
   }
 
   if (error) {
-    // Still show the beautiful layout even with company error
-    setCompany({ 
-      companyName: 'Demo Company (Not Found)', 
-      serviceType: 'cleaning' 
-    })
-    setError('')
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <Alert color="failure">
+          <p>{error}</p>
+        </Alert>
+      </div>
+    )
   }
 
   const navigationItems = [
@@ -383,4 +384,4 @@ export default function AdminDashboardLayout() {
       </div>
     </div>
   )
-} 
+}
