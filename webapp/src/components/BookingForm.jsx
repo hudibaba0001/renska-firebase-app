@@ -11,14 +11,18 @@ import {
   ExclamationTriangleIcon, StarIcon
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
-import { motion } from 'framer-motion';
 
 export default function BookingForm({ config = {} }) {
   const availableServices = config.services?.length > 0 ? config.services : [{ id: 'default', name: 'Default Service', pricePerSqm: 10 }];
   const [selectedService, setSelectedService] = useState(availableServices[0]?.id || '');
   const [sqm, setSqm] = useState(50);
   // ... other form states
-  const [customerInfo, setCustomerInfo] = useState({ name: '', email: '', phone: '' });
+  const [customerInfo, setCustomerInfo] = useState({ 
+    name: '', 
+    email: '', 
+    phone: '',
+    useRut: false 
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState('');
   const [currentStep, setCurrentStep] = useState(1);
@@ -28,8 +32,15 @@ export default function BookingForm({ config = {} }) {
   const currentService = availableServices.find(s => s.id === selectedService) || availableServices[0];
   const totalPrice = useMemo(() => {
     let total = (currentService?.pricePerSqm || 10) * sqm;
+    
+    // Apply RUT discount if eligible
+    if (config.rutEnabled && customerInfo.useRut && currentService?.rutEligible) {
+      const rutDiscount = total * (config.rutPercentage || 0.3); // Default 30% if not specified
+      total -= rutDiscount;
+    }
+    
     return Math.round(total);
-  }, [currentService, sqm, config]);
+  }, [currentService, sqm, config, customerInfo.useRut]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -70,7 +81,7 @@ export default function BookingForm({ config = {} }) {
       </Card>
       <form onSubmit={handleSubmit} className="space-y-6">
         {currentStep === 1 && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          <div>
             <Card>
               <h3 className="text-xl font-bold">1. Select Your Service</h3>
               <div>
@@ -85,22 +96,37 @@ export default function BookingForm({ config = {} }) {
               </div>
               <Button onClick={() => setCurrentStep(2)} disabled={!selectedService || !sqm}>Next</Button>
             </Card>
-          </motion.div>
+          </div>
         )}
         {currentStep === 2 && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          <div>
             <Card>
               <h3 className="text-xl font-bold">2. Add-ons & Options</h3>
               <p>Add-on UI would go here...</p>
+              {config.rutEnabled && (
+                <div className="mt-4">
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="rut-eligible"
+                      checked={customerInfo.useRut}
+                      onChange={(e) => setCustomerInfo(prev => ({ ...prev, useRut: e.target.checked }))}
+                    />
+                    <Label htmlFor="rut-eligible" className="flex items-center gap-1">
+                      <span>RUT Eligible</span>
+                      <span className="text-xs text-gray-500">(30% tax deduction)</span>
+                    </Label>
+                  </div>
+                </div>
+              )}
               <div className="flex justify-between">
                 <Button color="gray" onClick={() => setCurrentStep(1)}>Previous</Button>
                 <Button onClick={() => setCurrentStep(3)}>Next</Button>
               </div>
             </Card>
-          </motion.div>
+          </div>
         )}
         {currentStep === 3 && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          <div>
             <Card>
               <h3 className="text-xl font-bold">3. Your Information</h3>
               <div>
@@ -122,7 +148,7 @@ export default function BookingForm({ config = {} }) {
                 </Button>
               </div>
             </Card>
-          </motion.div>
+          </div>
         )}
       </form>
       {submitMessage && (

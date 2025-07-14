@@ -2,6 +2,7 @@
 
 import { collection, query, getDocs, orderBy, addDoc, deleteDoc, doc, where, updateDoc, getDoc } from "firebase/firestore";
 import { db } from "../firebase/init";
+import { serverTimestamp } from "firebase/firestore";
 
 export const getAllTenants = async () => {
   try {
@@ -121,8 +122,19 @@ export const getTenant = async (tenantId) => {
 export const createTenant = async (tenantData) => {
   try {
     const companiesRef = collection(db, 'companies');
-    const docRef = await addDoc(companiesRef, tenantData);
-    return { id: docRef.id, ...tenantData };
+    const tenantWithTimestamp = {
+      ...tenantData,
+      createdAt: serverTimestamp(),
+      subscription: {
+        ...(tenantData.subscription || {}),
+        active: true,
+        status: 'active',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      }
+    };
+    const docRef = await addDoc(companiesRef, tenantWithTimestamp);
+    return { id: docRef.id, ...tenantWithTimestamp };
   } catch (error) {
     console.error('Error creating tenant:', error);
     throw error;
