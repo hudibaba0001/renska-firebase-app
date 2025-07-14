@@ -468,13 +468,29 @@ export class PricingEngine {
     if (inputData.addOns && inputData.addOns.length > 0) {
       const addOnPrices = this.config.addOnPrices || {};
       for (const addOn of inputData.addOns) {
-        const price = addOnPrices[addOn] || 0;
+        const addOnCfg = addOnPrices[addOn];
+        let price = 0;
+        let rutEligibleForAddOn = true; // default: eligible unless explicitly false
+
+        if (typeof addOnCfg === 'number') {
+          price = addOnCfg;
+        } else if (addOnCfg && typeof addOnCfg === 'object') {
+          price = addOnCfg.price || 0;
+          rutEligibleForAddOn = addOnCfg.rutEligible !== false; // treat undefined as true
+        }
+
         if (price > 0) {
           total += price;
           addOns.push({
             name: addOn,
-            price: price
+            price,
+            rutEligible: rutEligibleForAddOn
           });
+          // Track RUT-eligible subtotal
+          if (rutEligibleForAddOn) {
+            if (!breakdown.__rutEligibleSubtotal) breakdown.__rutEligibleSubtotal = 0;
+            breakdown.__rutEligibleSubtotal += price;
+          }
         }
       }
       breakdown.addOns = addOns.reduce((sum, addon) => sum + addon.price, 0);
@@ -486,15 +502,31 @@ export class PricingEngine {
       if (windowPrice > 0) {
         total += windowPrice;
         breakdown.windowCleaning = windowPrice;
+        // Assume window cleaning is RUT eligible unless overridden later
+        if (!breakdown.__rutEligibleSubtotal) breakdown.__rutEligibleSubtotal = 0;
+        breakdown.__rutEligibleSubtotal += windowPrice;
       }
     }
+
+    // Prepare subtotal of RUT eligible items
+    let rutEligibleSubtotal = 0;
+    // Count base service if it is marked eligible (default true when property missing)
+    const serviceRutEligible = inputData.service?.rutEligible !== false;
+    if (serviceRutEligible) {
+      rutEligibleSubtotal += basePrice.amount;
+    }
+    // Add any add-ons tallied earlier
+    if (breakdown.__rutEligibleSubtotal) {
+      rutEligibleSubtotal += breakdown.__rutEligibleSubtotal;
+    }
+    // TODO: include custom fees eligibility when implemented
     
-    // Apply RUT discount
+    // Apply RUT discount only on eligible subtotal
     if (inputData.useRut && inputData.zipCode) {
-      const rutEligible = this.isRutEligible(inputData.zipCode);
-      if (rutEligible) {
+      const rutEligibleZip = this.isRutEligible(inputData.zipCode);
+      if (rutEligibleZip && rutEligibleSubtotal > 0) {
         const rutPercentage = this.config.rutPercentage || 0.3;
-        const rutDiscount = total * rutPercentage;
+        const rutDiscount = rutEligibleSubtotal * rutPercentage;
         total -= rutDiscount;
         discounts.push({
           type: 'RUT',
@@ -504,6 +536,9 @@ export class PricingEngine {
         breakdown.rutDiscount = -rutDiscount;
       }
     }
+
+    // Clean up helper property
+    delete breakdown.__rutEligibleSubtotal;
     
     return {
       amount: Math.round(total),
@@ -570,6 +605,8 @@ export class PricingEngine {
    * Apply a pricing rule
    */
   applyRule(rule, currentPrice, inputData) {
+    // Explicitly mark inputData as intentionally unused to satisfy linter
+    void inputData;
     const { action } = rule;
     let newPrice = { ...currentPrice };
     
@@ -589,7 +626,7 @@ export class PricingEngine {
       case 'set_maximum':
         newPrice.amount = Math.min(newPrice.amount, action.value);
         break;
-      case 'discount_percentage':
+      case 'discount_percentage': {
         const discountAmount = newPrice.amount * (action.value / 100);
         newPrice.amount -= discountAmount;
         newPrice.discounts = newPrice.discounts || [];
@@ -599,6 +636,7 @@ export class PricingEngine {
           amount: discountAmount
         });
         break;
+      }
     }
     
     return newPrice;
