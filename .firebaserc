@@ -1,7 +1,17 @@
 {
   "projects": {
-    "default": "monospace-9"
+    "default": "swed-de2a3"
   },
-  "targets": {},
-  "etags": {}
+  "targets": {
+    "swed-de2a3": {
+      "hosting": {
+        "production": [
+          "swed-de2a3"
+        ],
+        "staging": [
+          "staging-swed-de2a3"
+        ]
+      }
+    }
+  }
 }

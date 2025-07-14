@@ -13,9 +13,4 @@ export default defineConfig({
   define: {
     'process.env.TAILWIND_VERSION': JSON.stringify('3.4.15'),
   },
-  build: {
-    rollupOptions: {
-      external: ['tailwindcss/version.js'],
-    },
-  },
 })

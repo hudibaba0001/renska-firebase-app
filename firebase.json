@@ -7,63 +7,126 @@
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
   },
-  "hosting": {
-    "public": "webapp/dist",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
-    "rewrites": [
-      {
-        "source": "/booking/**",
-        "destination": "/index.html"
-      },
-      {
-        "source": "/admin/**",
-        "destination": "/index.html"
-      },
-      {
-        "source": "/super-admin/**",
-        "destination": "/index.html"
-      },
-      {
-        "source": "/pricing",
-        "destination": "/index.html"
-      },
-      {
-        "source": "/login",
-        "destination": "/index.html"
-      },
-      {
-        "source": "/signup",
-        "destination": "/index.html"
-      },
-      {
-        "source": "/setup",
-        "destination": "/index.html"
-      },
-      {
-        "source": "/setup-super-admin",
-        "destination": "/index.html"
-      },
-      {
-        "source": "**",
-        "destination": "/index.html"
-      }
-    ],
-    "headers": [
-      {
-        "source": "**/*.@(js|css)",
-        "headers": [
-          {
-            "key": "Cache-Control",
-            "value": "max-age=31536000"
-          }
-        ]
-      }
-    ],
-    "cleanUrls": true,
-    "trailingSlash": false
-  }
+  "hosting": [
+    {
+      "target": "production",
+      "public": "webapp/dist",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "rewrites": [
+        {
+          "source": "/booking/**",
+          "destination": "/index.html"
+        },
+        {
+          "source": "/admin/**",
+          "destination": "/index.html"
+        },
+        {
+          "source": "/super-admin/**",
+          "destination": "/index.html"
+        },
+        {
+          "source": "/pricing",
+          "destination": "/index.html"
+        },
+        {
+          "source": "/login",
+          "destination": "/index.html"
+        },
+        {
+          "source": "/signup",
+          "destination": "/index.html"
+        },
+        {
+          "source": "/setup",
+          "destination": "/index.html"
+        },
+        {
+          "source": "/setup-super-admin",
+          "destination": "/index.html"
+        },
+        {
+          "source": "**",
+          "destination": "/index.html"
+        }
+      ],
+      "headers": [
+        {
+          "source": "**/*.@(js|css)",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "max-age=31536000"
+            }
+          ]
+        }
+      ],
+      "cleanUrls": true,
+      "trailingSlash": false
+    },
+    {
+      "target": "staging",
+      "public": "webapp/dist",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "rewrites": [
+        {
+          "source": "/booking/**",
+          "destination": "/index.html"
+        },
+        {
+          "source": "/admin/**",
+          "destination": "/index.html"
+        },
+        {
+          "source": "/super-admin/**",
+          "destination": "/index.html"
+        },
+        {
+          "source": "/pricing",
+          "destination": "/index.html"
+        },
+        {
+          "source": "/login",
+          "destination": "/index.html"
+        },
+        {
+          "source": "/signup",
+          "destination": "/index.html"
+        },
+        {
+          "source": "/setup",
+          "destination": "/index.html"
+        },
+        {
+          "source": "/setup-super-admin",
+          "destination": "/index.html"
+        },
+        {
+          "source": "**",
+          "destination": "/index.html"
+        }
+      ],
+      "headers": [
+        {
+          "source": "**/*.@(js|css)",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "max-age=31536000"
+            }
+          ]
+        }
+      ],
+      "cleanUrls": true,
+      "trailingSlash": false
+    }
+  ]
 }
