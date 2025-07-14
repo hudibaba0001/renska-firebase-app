@@ -16,7 +16,7 @@ import {
   SparklesIcon
 } from '@heroicons/react/24/outline'
 import toast from 'react-hot-toast'
-import { STRIPE_CONFIG, formatPrice, createCheckoutSession } from '../stripe/config'
+import { STRIPE_CONFIG, formatPrice } from '../stripe/config'
 
 export default function PricingPage() {
   const navigate = useNavigate()
@@ -26,7 +26,12 @@ export default function PricingPage() {
     setLoadingPlan(planId)
     
     try {
+      // Redirect to signup page with the selected plan
+      navigate(`/signup?plan=${planId}`);
+      
+      // Note: The following code is for when a user is already logged in and selecting a plan
       // In a real app, you'd get the company ID and user email from auth context
+      /*
       const mockCompanyId = 'demo-company'
       const mockUserEmail = 'admin@demo-company.com'
       
@@ -43,11 +48,11 @@ export default function PricingPage() {
       setTimeout(() => {
         navigate(`/admin/${mockCompanyId}/billing?success=true&plan=${planId}`)
       }, 1500)
+      */
       
     } catch (error) {
       console.error('Checkout error:', error)
       toast.error('Failed to start checkout process')
-    } finally {
       setLoadingPlan(null)
     }
   }

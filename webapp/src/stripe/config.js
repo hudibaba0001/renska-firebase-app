@@ -7,13 +7,13 @@ export const STRIPE_CONFIG = {
   
   // Pricing plans configuration
   plans: {
-    basic: {
-      id: 'basic',
-      name: 'Basic',
-      price: 99,
+    starter: {
+      id: 'starter',
+      name: 'Starter',
+      price: 349,
       currency: 'SEK',
       interval: 'month',
-      priceId: import.meta.env.VITE_STRIPE_BASIC_PRICE_ID || 'price_basic_test',
+      priceId: import.meta.env.VITE_STRIPE_STARTER_PRICE_ID || 'price_starter_test',
       features: [
         '1 Booking Form',
         'Basic Pricing Calculator',
@@ -27,13 +27,13 @@ export const STRIPE_CONFIG = {
         customization: 'basic'
       }
     },
-    standard: {
-      id: 'standard',
-      name: 'Standard',
-      price: 199,
+    vaxt: {
+      id: 'vaxt',
+      name: 'Våxt',
+      price: 799,
       currency: 'SEK',
       interval: 'month',
-      priceId: import.meta.env.VITE_STRIPE_STANDARD_PRICE_ID || 'price_standard_test',
+      priceId: import.meta.env.VITE_STRIPE_VAXT_PRICE_ID || 'price_vaxt_test',
       features: [
         '3 Booking Forms',
         'Advanced Pricing Models',
@@ -49,13 +49,13 @@ export const STRIPE_CONFIG = {
       },
       popular: true
     },
-    premium: {
-      id: 'premium',
-      name: 'Premium',
-      price: 399,
+    enterprise: {
+      id: 'enterprise',
+      name: 'Enterprise',
+      price: 2000,
       currency: 'SEK',
       interval: 'month',
-      priceId: import.meta.env.VITE_STRIPE_PREMIUM_PRICE_ID || 'price_premium_test',
+      priceId: import.meta.env.VITE_STRIPE_ENTERPRISE_PRICE_ID || 'price_enterprise_test',
       features: [
         'Unlimited Booking Forms',
         'Custom Pricing Logic',

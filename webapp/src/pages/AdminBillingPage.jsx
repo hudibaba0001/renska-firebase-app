@@ -20,6 +20,8 @@ import {
 } from '@heroicons/react/24/outline'
 import toast from 'react-hot-toast'
 import { STRIPE_CONFIG, formatPrice } from '../stripe/config'
+import { doc, getDoc } from 'firebase/firestore'
+import { db } from '../firebase/init'
 
 export default function AdminBillingPage() {
   const { companyId } = useParams()
@@ -48,61 +50,78 @@ export default function AdminBillingPage() {
 
   }, [searchParams])
 
-  // Mock data loading
+  // Load real subscription data
   useEffect(() => {
     const loadBillingData = async () => {
-      setLoading(true)
+      if (!companyId) return;
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      setLoading(true);
       
-      // Mock current plan (in real app, this would come from Firestore)
-      const mockPlan = STRIPE_CONFIG.plans.standard
-      setCurrentPlan(mockPlan)
-      
-      // Mock billing info
-      setBillingInfo({
-        nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        paymentMethod: {
-          type: 'card',
-          last4: '4242',
-          brand: 'visa',
-          expMonth: 12,
-          expYear: 2025
-        },
-        status: 'active'
-      })
-      
-      // Mock invoice history
-      setInvoices([
-        {
-          id: 'inv_001',
-          date: '2024-01-01',
-          amount: 199,
-          status: 'paid',
-          downloadUrl: '#'
-        },
-        {
-          id: 'inv_002',
-          date: '2023-12-01',
-          amount: 199,
-          status: 'paid',
-          downloadUrl: '#'
-        },
-        {
-          id: 'inv_003',
-          date: '2023-11-01',
-          amount: 199,
-          status: 'paid',
-          downloadUrl: '#'
+      try {
+        // Fetch company data from Firestore
+        const companyDoc = await getDoc(doc(db, 'companies', companyId));
+        
+        if (!companyDoc.exists()) {
+          toast.error('Company not found');
+          setLoading(false);
+          return;
         }
-      ])
-      
-      setLoading(false)
-    }
+        
+        const companyData = companyDoc.data();
+        
+        // Get subscription plan
+        const planId = companyData.subscriptionPlan || 'starter';
+        const plan = STRIPE_CONFIG.plans[planId];
+        
+        if (plan) {
+          setCurrentPlan(plan);
+        }
+        
+        // Set billing info based on company data
+        const subscriptionActive = companyData.subscriptionActive || false;
+        const paymentStatus = companyData.paymentStatus || 'inactive';
+        const trialEndDate = companyData.trialEndDate ? 
+          (companyData.trialEndDate.toDate ? companyData.trialEndDate.toDate() : new Date(companyData.trialEndDate)) : 
+          null;
+        
+        const nextBillingDate = companyData.subscriptionStartDate ? 
+          new Date((companyData.subscriptionStartDate.toDate ? companyData.subscriptionStartDate.toDate() : new Date(companyData.subscriptionStartDate)).getTime() + 30 * 24 * 60 * 60 * 1000) : 
+          new Date();
+        
+        setBillingInfo({
+          nextBillingDate: nextBillingDate.toISOString(),
+          paymentMethod: companyData.paymentMethod || {
+            type: 'card',
+            last4: '****',
+            brand: 'unknown',
+            expMonth: '--',
+            expYear: '--'
+          },
+          status: paymentStatus,
+          subscriptionActive,
+          trialEndDate: trialEndDate ? trialEndDate.toISOString() : null
+        });
+        
+        // For now, use mock invoices (in a real app, these would come from Stripe API)
+        setInvoices([
+          {
+            id: 'inv_001',
+            date: new Date().toISOString().split('T')[0],
+            amount: plan.price,
+            status: subscriptionActive ? 'paid' : 'pending',
+            downloadUrl: '#'
+          }
+        ]);
+      } catch (error) {
+        console.error('Error loading billing data:', error);
+        toast.error('Failed to load billing information');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    loadBillingData()
-  }, [companyId])
+    loadBillingData();
+  }, [companyId]);
 
   const handleChangePlan = async (newPlanId) => {
     setChangingPlan(newPlanId)
@@ -147,6 +166,7 @@ export default function AdminBillingPage() {
   }
 
   const plans = Object.values(STRIPE_CONFIG.plans)
+  const isTrialActive = billingInfo?.status === 'trial' && billingInfo?.trialEndDate && new Date(billingInfo.trialEndDate) > new Date();
 
   return (
     <div className="p-6 space-y-6">
@@ -165,6 +185,36 @@ export default function AdminBillingPage() {
           <span>Manage Billing</span>
         </Button>
       </div>
+
+      {/* Subscription Status Alert */}
+      {isTrialActive && (
+        <Alert color="info">
+          <div className="flex items-center">
+            <CalendarDaysIcon className="h-5 w-5 mr-2" />
+            <div>
+              <div className="font-medium">Free Trial Active</div>
+              <div className="text-sm">
+                Your trial ends on {new Date(billingInfo.trialEndDate).toLocaleDateString()}
+                . Add a payment method to continue your service after the trial.
+              </div>
+            </div>
+          </div>
+        </Alert>
+      )}
+
+      {billingInfo?.status === 'inactive' && (
+        <Alert color="warning">
+          <div className="flex items-center">
+            <ExclamationTriangleIcon className="h-5 w-5 mr-2" />
+            <div>
+              <div className="font-medium">Subscription Inactive</div>
+              <div className="text-sm">
+                Your subscription is not active. Please add a payment method to activate your subscription.
+              </div>
+            </div>
+          </div>
+        </Alert>
+      )}
 
       {/* Current Plan */}
       <div
@@ -208,6 +258,12 @@ export default function AdminBillingPage() {
                 <div className="text-sm text-text-main dark:text-white">
                   {currentPlan?.features?.length} features included
                 </div>
+                
+                {isTrialActive && (
+                  <div className="mt-3 bg-blue-50 p-2 rounded-md text-xs text-blue-700">
+                    Free trial until {new Date(billingInfo.trialEndDate).toLocaleDateString()}
+                  </div>
+                )}
               </div>
 
               {/* Next Billing */}
@@ -217,10 +273,12 @@ export default function AdminBillingPage() {
                   <h3 className="font-semibold text-text-heading dark:text-white">Next Billing</h3>
                 </div>
                 <div className="text-lg font-bold text-text-heading dark:text-white mb-1">
-                  {new Date(billingInfo?.nextBillingDate).toLocaleDateString('sv-SE')}
+                  {isTrialActive 
+                    ? new Date(billingInfo.trialEndDate).toLocaleDateString('sv-SE')
+                    : new Date(billingInfo?.nextBillingDate).toLocaleDateString('sv-SE')}
                 </div>
                 <div className="text-sm text-text-main dark:text-white">
-                  Auto-renewal active
+                  {billingInfo?.status === 'active' ? 'Auto-renewal active' : 'No active subscription'}
                 </div>
               </div>
 
@@ -230,12 +288,25 @@ export default function AdminBillingPage() {
                   <CreditCardIcon className="h-5 w-5 text-gray-600" />
                   <h3 className="font-semibold text-text-heading dark:text-white">Payment Method</h3>
                 </div>
-                <div className="text-lg font-bold text-text-heading dark:text-white mb-1">
-                  •••• {billingInfo?.paymentMethod?.last4}
-                </div>
-                <div className="text-sm text-text-main dark:text-white capitalize">
-                  {billingInfo?.paymentMethod?.brand} ending {billingInfo?.paymentMethod?.expMonth}/{billingInfo?.paymentMethod?.expYear}
-                </div>
+                {billingInfo?.paymentMethod?.last4 !== '****' ? (
+                  <>
+                    <div className="text-lg font-bold text-text-heading dark:text-white mb-1">
+                      •••• {billingInfo?.paymentMethod?.last4}
+                    </div>
+                    <div className="text-sm text-text-main dark:text-white capitalize">
+                      {billingInfo?.paymentMethod?.brand} ending {billingInfo?.paymentMethod?.expMonth}/{billingInfo?.paymentMethod?.expYear}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="text-lg font-bold text-text-heading dark:text-white mb-1">
+                      No payment method
+                    </div>
+                    <Button size="xs" color="light" onClick={handleManageBilling}>
+                      Add payment method
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
 

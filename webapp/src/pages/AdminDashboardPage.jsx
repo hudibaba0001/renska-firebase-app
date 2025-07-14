@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { 
   Card, 
@@ -7,7 +7,8 @@ import {
   Progress, 
   Avatar, 
   Dropdown,
-  Alert
+  Alert,
+  Spinner
 } from 'flowbite-react';
 import {
   ArrowUpIcon,
@@ -25,9 +26,14 @@ import {
   ArrowTrendingUpIcon,
   ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
+import { doc, getDoc, getFirestore } from 'firebase/firestore';
 
 export default function AdminDashboardPage() {
   const { companyId } = useParams();
+  const [loading, setLoading] = useState(true);
+  const [isNewCompany, setIsNewCompany] = useState(false);
+  
+  // Demo data for established companies
   const [stats] = useState([
     {
       name: 'Total Revenue',
@@ -70,6 +76,37 @@ export default function AdminDashboardPage() {
       description: 'published'
     }
   ]);
+
+  // Fetch company data
+  useEffect(() => {
+    async function fetchCompanyData() {
+      if (!companyId) return;
+      
+      try {
+        const db = getFirestore();
+        const companyDoc = await getDoc(doc(db, 'companies', companyId));
+        
+        if (companyDoc.exists()) {
+          const companyData = companyDoc.data();
+          
+          // Check if company is new (created within the last hour)
+          if (companyData.created) {
+            const creationDate = companyData.created.toDate ? companyData.created.toDate() : new Date(companyData.created);
+            const oneHourAgo = new Date();
+            oneHourAgo.setHours(oneHourAgo.getHours() - 1);
+            
+            setIsNewCompany(creationDate > oneHourAgo);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching company data:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    
+    fetchCompanyData();
+  }, [companyId]);
 
   const [recentBookings] = useState([
     {
@@ -197,7 +234,108 @@ export default function AdminDashboardPage() {
       </div>
     );
   }
+  
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Spinner size="xl" />
+      </div>
+    );
+  }
 
+  // For new companies, show a welcome screen instead of demo data
+  if (isNewCompany) {
+    return (
+      <div className="space-y-6 overflow-x-hidden w-full box-border">
+        {/* Welcome Section for New Companies */}
+        <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-6 text-white">
+          <div className="flex flex-col items-center text-center py-6">
+            <h1 className="text-3xl font-bold mb-4">Welcome to SwedPrime! 🎉</h1>
+            <p className="text-xl max-w-2xl">
+              Congratulations on setting up your account! Let's get started by configuring your cleaning services.
+            </p>
+          </div>
+        </div>
+        
+        <Alert color="info">
+          <div className="font-medium">
+            Your account has been successfully created
+          </div>
+          <div className="mt-2">
+            Follow the steps below to set up your cleaning business calculator.
+          </div>
+        </Alert>
+        
+        {/* Getting Started Steps */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card className="hover:shadow-lg transition-shadow duration-200">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                <span className="text-blue-600 text-2xl font-bold">1</span>
+              </div>
+              <h3 className="text-xl font-bold mb-2">Configure Your Services</h3>
+              <p className="text-gray-600 mb-4">Set up your pricing models, add-ons, and service options</p>
+              <Button as={Link} to={`/admin/${companyId}/config`} color="blue">
+                Configure Services
+              </Button>
+            </div>
+          </Card>
+          
+          <Card className="hover:shadow-lg transition-shadow duration-200">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                <span className="text-green-600 text-2xl font-bold">2</span>
+              </div>
+              <h3 className="text-xl font-bold mb-2">Create Booking Form</h3>
+              <p className="text-gray-600 mb-4">Build your first customer-facing booking calculator</p>
+              <Button as={Link} to={`/admin/${companyId}/forms/new`} color="green">
+                Create Form
+              </Button>
+            </div>
+          </Card>
+          
+          <Card className="hover:shadow-lg transition-shadow duration-200">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mb-4">
+                <span className="text-purple-600 text-2xl font-bold">3</span>
+              </div>
+              <h3 className="text-xl font-bold mb-2">Manage Subscription</h3>
+              <p className="text-gray-600 mb-4">Review your plan and payment details</p>
+              <Button as={Link} to={`/admin/${companyId}/billing`} color="purple">
+                Manage Billing
+              </Button>
+            </div>
+          </Card>
+        </div>
+        
+        {/* Quick Actions */}
+        <div className="mt-8">
+          <h2 className="text-xl font-bold mb-4">Quick Actions</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {quickActions.map((action, index) => (
+              <Link
+                key={index}
+                to={action.href}
+                className={`${action.bgColor} p-4 rounded-lg hover:shadow-md transition-all duration-200`}
+              >
+                <div className="flex items-center">
+                  <div className={`p-2 rounded-lg bg-gradient-to-r ${action.color} mr-3`}>
+                    <action.icon className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className={`font-medium ${action.textColor}`}>{action.title}</h3>
+                    <p className="text-sm text-gray-600">{action.description}</p>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // For established companies, show the regular dashboard with stats
   return (
     <div className="space-y-6 overflow-x-hidden w-full box-border">
       {/* Welcome Section */}
@@ -251,9 +389,9 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
               <div className="flex items-center mt-4">
-                <div className={`flex items-center text-base ${
-                  stat.changeType === 'positive' ? 'text-green-600' : 'text-red-600'
-                }`}>
+                <div className={`text-sm ${
+                  stat.changeType === 'positive' ? 'text-green-500' : 'text-red-500'
+                } flex items-center`}>
                   {stat.changeType === 'positive' ? (
                     <ArrowUpIcon className="w-4 h-4 mr-1" />
                   ) : (
@@ -261,7 +399,7 @@ export default function AdminDashboardPage() {
                   )}
                   {stat.change}
                 </div>
-                <span className="text-base text-text-subtle dark:text-gray-400 ml-2">
+                <span className="text-sm text-text-subtle dark:text-gray-400 ml-2">
                   {stat.description}
                 </span>
               </div>

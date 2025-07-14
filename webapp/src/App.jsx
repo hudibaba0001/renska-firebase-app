@@ -25,6 +25,7 @@ import { AdminDashboard } from './pages/BookingPage';
 import TenantListPage from './pages/TenantListPage';
 import TenantOnboardPage from './pages/TenantOnboardPage';
 import TenantDetailPage from './pages/TenantDetailPage';
+import PaymentPage from './pages/PaymentPage';
 
 export default function App() {
   return (
@@ -37,6 +38,7 @@ export default function App() {
             <Route path="login" element={<LoginPage />} />
             <Route path="signup" element={<SignupPage />} />
             <Route path="pricing" element={<PricingPage />} />
+            <Route path="payment" element={<PaymentPage />} />
             <Route path="setup" element={<SetupPage />} />
             <Route path="setup-super-admin" element={<SetupSuperAdminPage />} />
           </Route>

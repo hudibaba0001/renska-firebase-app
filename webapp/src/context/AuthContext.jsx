@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
 import { auth } from '../firebase/init'
+import { doc, getDoc, getFirestore } from 'firebase/firestore'
 
 // Create context object
 const AuthContext = createContext({ user: null, userProfile: null, loading: true, logout: () => {} })
@@ -34,26 +35,69 @@ export function AuthProvider({ children }) {
       setLoading(false);
       return;
     }
+    
     // Subscribe to Firebase auth changes
     const unsubscribe = onAuthStateChanged(auth, async (u) => {
       setUser(u)
       setLoading(true)
       setProfileError('')
+      
       if (u) {
         try {
-          // Replace usage of getUserProfile with a TODO or fallback
-          // const profile = await getUserProfile(u.uid)
-          // TODO: Implement getUserProfile or use a fallback profile object
-          const profile = {};
-          setUserProfile(profile)
-        } catch {
-          // Error handling if needed
+          // Fetch user profile from Firestore
+          const db = getFirestore();
+          const userDoc = await getDoc(doc(db, 'users', u.uid));
+          
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            
+            // If user has a company ID, fetch company data
+            if (userData.companyId) {
+              const companyDoc = await getDoc(doc(db, 'companies', userData.companyId));
+              
+              if (companyDoc.exists()) {
+                const companyData = companyDoc.data();
+                
+                // Combine user and company data into profile
+                setUserProfile({
+                  ...userData,
+                  companyName: companyData.companyName,
+                  plan: companyData.plan || 'basic',
+                  role: companyData.adminUid === u.uid ? 'admin' : 'user'
+                });
+              } else {
+                setUserProfile(userData);
+              }
+            } else {
+              // Check if user is super admin
+              const superAdminDoc = await getDoc(doc(db, 'superAdminUsers', u.uid));
+              
+              if (superAdminDoc.exists() && superAdminDoc.data().isSuperAdmin) {
+                setUserProfile({
+                  ...userData,
+                  role: 'superAdmin'
+                });
+              } else {
+                setUserProfile(userData);
+              }
+            }
+          } else {
+            // No user profile found
+            setProfileError('User profile not found');
+            setUserProfile({});
+          }
+        } catch (error) {
+          console.error('Error fetching user profile:', error);
+          setProfileError('Error fetching user profile');
+          setUserProfile({});
         }
       } else {
         setUserProfile(null)
       }
+      
       setLoading(false)
     })
+    
     // Cleanup on unmount
     return unsubscribe
   }, [])
