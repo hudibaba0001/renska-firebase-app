@@ -415,7 +415,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
                   <div className="rounded-lg bg-gray-50 p-4 mb-4 border border-gray-200">
                     <div className="flex items-center justify-between mb-2">
                       <h3 className="text-lg font-semibold text-gray-900">Room Types</h3>
-                      <button type="button" onClick={() => updateService(service.id, { perRoomRates: [...service.perRoomRates, { type: '', price: 0 }] })} className="flex items-center px-4 py-2 rounded bg-primary-600 hover:bg-primary-700 text-black text-sm font-bold shadow-sm transition ml-2">
+                      <button type="button" onClick={() => updateService(service.id, { perRoomRates: [...service.perRoomRates, { type: '', price: 0 }] })} className="flex items-center px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 text-red-500 text-sm font-bold shadow-sm transition ml-2">
                         <PlusIcon className="h-4 w-4 mr-1" /> Add Room Type
                       </button>
                     </div>
@@ -443,7 +443,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
                 <div className="rounded-lg bg-gray-50 p-4 mb-4 border border-gray-200">
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="text-xl font-bold mb-2 text-gray-900">Add-Ons</h3>
-                    <button type="button" onClick={() => addAddOn(service.id)} className="flex items-center px-4 py-2 rounded bg-primary-600 hover:bg-primary-700 text-black text-sm font-bold shadow-sm transition ml-2">
+                    <button type="button" onClick={() => addAddOn(service.id)} className="flex items-center px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 text-red-500 text-sm font-bold shadow-sm transition ml-2">
                       <PlusIcon className="h-4 w-4 mr-1" /> Add Add-On
                     </button>
                   </div>
@@ -463,17 +463,18 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
                         placeholder="Price"
                       />
                       {config.rutEnabled ? (
-                        <label className="flex items-center text-xs text-gray-700">
-                          <input
-                            type="checkbox"
-                            checked={addOn.rutEligible}
-                            onChange={e => updateAddOn(service.id, aIdx, { rutEligible: e.target.checked })}
-                            className="mr-2"
-                          />
-                          <Label value="RUT Eligible" />
-                        </label>
+                        <div className="flex items-center gap-2">
+                          <label className="flex items-center gap-2 min-w-[100px]">
+                            <input
+                              type="checkbox"
+                              checked={addOn.rutEligible}
+                              onChange={e => updateAddOn(service.id, aIdx, { rutEligible: e.target.checked })}
+                            />
+                            <span className="text-sm text-gray-700">RUT Eligible</span>
+                          </label>
+                        </div>
                       ) : (
-                        <span className="text-xs text-gray-400 ml-2">RUT is disabled globally. Enable it in global settings to configure per-item eligibility.</span>
+                        <span className="text-xs text-gray-400 ml-2">RUT is disabled globally</span>
                       )}
                       <button type="button" onClick={() => deleteAddOn(service.id, aIdx)} className="text-red-400">Remove</button>
                     </div>
@@ -488,34 +489,34 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
                       <button
                         type="button"
                         onClick={() => updateService(service.id, { frequencyMultipliers: [...(service.frequencyMultipliers || []), { label: '', multiplier: 1 }] })}
-                        className="flex items-center px-4 py-2 rounded bg-primary-600 hover:bg-primary-700 text-black text-sm font-bold shadow-sm transition ml-2"
+                        className="flex items-center px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 text-red-500 text-sm font-bold shadow-sm transition ml-2"
                       >
                         <PlusIcon className="h-4 w-4 mr-1" /> Add Frequency Option
-                      </button>
-                    </div>
-                    {service.frequencyMultipliers && service.frequencyMultipliers.length > 0 ? (
-                      <table className="w-full text-sm border mb-2 table-auto">
-                        <thead>
-                          <tr>
-                            <th className="border px-3 py-2 text-left align-middle">Label</th>
-                            <th className="border px-3 py-2 text-left align-middle">Multiplier</th>
-                            <th className="border px-3 py-2 text-left align-middle"></th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {service.frequencyMultipliers.map((freq, fIdx) => (
-                            <tr key={fIdx}>
-                              <td className="border px-3 py-2 text-left align-middle"><input value={freq.label} onChange={e => updateService(service.id, { frequencyMultipliers: service.frequencyMultipliers.map((f, i) => i === fIdx ? { ...f, label: e.target.value } : f) })} className="w-24 border rounded text-gray-900" /></td>
-                              <td className="border px-3 py-2 text-left align-middle"><input type="number" step="0.01" value={freq.multiplier} onChange={e => updateService(service.id, { frequencyMultipliers: service.frequencyMultipliers.map((f, i) => i === fIdx ? { ...f, multiplier: Number(e.target.value) } : f) })} className="w-20 border rounded text-gray-900" /></td>
-                              <td className="border px-3 py-2 text-left align-middle"><button type="button" onClick={() => updateService(service.id, { frequencyMultipliers: service.frequencyMultipliers.filter((_, i) => i !== fIdx) })} className="text-red-400">Remove</button></td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    ) : (
-                      <div className="text-gray-400 italic py-2">No frequency options yet.</div>
-                    )}
+                    </button>
                   </div>
+                  {service.frequencyMultipliers && service.frequencyMultipliers.length > 0 ? (
+                    <table className="w-full text-sm border mb-2 table-auto">
+                      <thead>
+                        <tr>
+                          <th className="border px-3 py-2 text-left align-middle">Label</th>
+                          <th className="border px-3 py-2 text-left align-middle">Multiplier</th>
+                          <th className="border px-3 py-2 text-left align-middle"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {service.frequencyMultipliers.map((freq, fIdx) => (
+                          <tr key={fIdx}>
+                            <td className="border px-3 py-2 text-left align-middle"><input value={freq.label} onChange={e => updateService(service.id, { frequencyMultipliers: service.frequencyMultipliers.map((f, i) => i === fIdx ? { ...f, label: e.target.value } : f) })} className="w-24 border rounded text-gray-900" /></td>
+                            <td className="border px-3 py-2 text-left align-middle"><input type="number" step="0.01" value={freq.multiplier} onChange={e => updateService(service.id, { frequencyMultipliers: service.frequencyMultipliers.map((f, i) => i === fIdx ? { ...f, multiplier: Number(e.target.value) } : f) })} className="w-20 border rounded text-gray-900" /></td>
+                            <td className="border px-3 py-2 text-left align-middle"><button type="button" onClick={() => updateService(service.id, { frequencyMultipliers: service.frequencyMultipliers.filter((_, i) => i !== fIdx) })} className="text-red-400">Remove</button></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <div className="text-gray-400 italic py-2">No frequency options yet.</div>
+                  )}
+                </div>
                 )}
                 {/* RUT Eligible Toggle */}
                 <div className="rounded-lg bg-gray-50 p-4 mb-4 border border-gray-200">
@@ -541,7 +542,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
                 <div className="rounded-lg bg-gray-50 p-4 mb-4 border border-gray-200">
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="text-xl font-bold mb-2 text-gray-900">Custom Fees</h3>
-                    <button type="button" onClick={() => addCustomFee(service.id)} className="flex items-center px-4 py-2 rounded bg-primary-600 hover:bg-primary-700 text-black text-sm font-bold shadow-sm transition ml-2">
+                    <button type="button" onClick={() => addCustomFee(service.id)} className="flex items-center px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 text-red-500 text-sm font-bold shadow-sm transition ml-2">
                       <PlusIcon className="h-4 w-4 mr-1" /> Add Custom Fee
                     </button>
                   </div>
@@ -561,17 +562,18 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
                         placeholder="Amount"
                       />
                       {config.rutEnabled ? (
-                        <label className="flex items-center text-xs text-gray-700">
-                          <input
-                            type="checkbox"
-                            checked={fee.rutEligible}
-                            onChange={e => updateCustomFee(service.id, fIdx, { rutEligible: e.target.checked })}
-                            className="mr-2"
-                          />
-                          <Label value="RUT Eligible" />
-                        </label>
+                        <div className="flex items-center gap-2">
+                          <label className="flex items-center gap-2 min-w-[100px]">
+                            <input
+                              type="checkbox"
+                              checked={fee.rutEligible}
+                              onChange={e => updateCustomFee(service.id, fIdx, { rutEligible: e.target.checked })}
+                            />
+                            <span className="text-sm text-gray-700">RUT Eligible</span>
+                          </label>
+                        </div>
                       ) : (
-                        <span className="text-xs text-gray-400 ml-2">RUT is disabled globally. Enable it in global settings to configure per-item eligibility.</span>
+                        <span className="text-xs text-gray-400 ml-2">RUT is disabled globally</span>
                       )}
                       <button type="button" onClick={() => deleteCustomFee(service.id, fIdx)} className="text-red-400">Remove</button>
                     </div>
@@ -597,7 +599,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
                 {/* TODO: Add pricing model-specific fields here (not in this step) */}
                 <div className="flex justify-end mt-4">
                   <Button
-                    color="primary"
+                    color="gray"
                     size="sm"
                     onClick={async () => {
                       setSaving(true);
@@ -619,7 +621,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
                       }
                     }}
                     disabled={saving}
-                    className="absolute bottom-4 right-4"
+                    className="absolute bottom-4 right-4 text-red-500"
                   >
                     {saving ? <Spinner size="sm" /> : 'Save'}
                   </Button>
@@ -702,7 +704,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
               </div>
               
               <Button
-                color="primary"
+                color="gray"
                 size="lg"
                 onClick={async () => {
                   setSaving(true);
@@ -719,7 +721,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
                   }
                 }}
                 disabled={!isValid || saving}
-                className="flex items-center space-x-2"
+                className="flex items-center space-x-2 text-red-500"
               >
                 {saving ? (
                   <>
