@@ -30,9 +30,10 @@ import {
 } from '@heroicons/react/24/outline'
 import toast from 'react-hot-toast'
 import { motion } from 'framer-motion';
+import { logger } from '../utils/logger';
 
 export default function BookingForm({ config = {} }) {
-  console.log('🔧 BookingForm config:', config);
+  logger.debug('BookingForm', 'BookingForm config received');
   
   // Default values if config is empty
   const defaultServices = [
@@ -71,7 +72,7 @@ export default function BookingForm({ config = {} }) {
   const totalPrice = useMemo(() => {
     if (!currentService || !sqm) return 0;
     
-    console.log('🔧 Calculating price for:', { currentService, sqm, frequency, selectedAddOns, windowSize, zip, useRut });
+    logger.debug('BookingForm', 'Calculating price for service');
     
     let basePrice = 0;
     
@@ -95,14 +96,14 @@ export default function BookingForm({ config = {} }) {
         basePrice = sqm * 10; // fallback
     }
     
-    console.log('🔧 Base price:', basePrice);
+    logger.debug('BookingForm', 'Base price calculated');
     
     // 2. Apply frequency multiplier ONLY to service charges
     const frequencyMultiplier = config.frequencyMultiplier || defaultFrequencyMultiplier;
     const freqMultiplier = frequencyMultiplier[frequency] || 1;
     const serviceChargeWithFrequency = basePrice * freqMultiplier;
     
-    console.log('🔧 After frequency multiplier (service only):', serviceChargeWithFrequency);
+    logger.debug('BookingForm', 'Frequency multiplier applied');
     
     // 3. Add selected add-ons (NO frequency multiplier applied)
     const addOns = config.addOns || defaultAddOns;
@@ -110,13 +111,13 @@ export default function BookingForm({ config = {} }) {
       return total + (addOns[addOnKey] || 0);
     }, 0);
     
-    console.log('🔧 Add-ons cost (no frequency multiplier):', addOnsCost);
+    logger.debug('BookingForm', 'Add-ons calculated');
     
     // 4. Add window cleaning (NO frequency multiplier applied)
     const windowPrices = config.windowCleaningPrices || defaultWindowPrices;
     const windowCost = windowPrices[windowSize] || 0;
     
-    console.log('🔧 Window cost (no frequency multiplier):', windowCost);
+    logger.debug('BookingForm', 'Window cleaning calculated');
     
     // 5. Calculate subtotal before VAT
     let subtotal = serviceChargeWithFrequency + addOnsCost + windowCost;
@@ -126,9 +127,7 @@ export default function BookingForm({ config = {} }) {
     const vatAmount = subtotal * universalVAT;
     let total = subtotal + vatAmount;
     
-    console.log('🔧 Subtotal before VAT:', subtotal);
-    console.log('🔧 VAT amount:', vatAmount);
-    console.log('🔧 Total with VAT:', total);
+    logger.debug('BookingForm', 'VAT calculation completed');
     
     // 7. Apply RUT discount if eligible (applied to total including VAT)
     if (useRut && zip) {
@@ -137,7 +136,7 @@ export default function BookingForm({ config = {} }) {
       
       if (zipAreas.includes(zip)) {
         total = total * (1 - rutPercentage);
-        console.log('🔧 RUT discount applied:', total);
+        logger.debug('BookingForm', 'RUT discount applied');
       }
     }
     
@@ -181,7 +180,7 @@ export default function BookingForm({ config = {} }) {
         created: Timestamp.now()
       };
 
-      console.log('🔧 Submitting booking:', bookingData);
+      logger.info('BookingForm', 'Submitting booking for customer');
 
       // In a real app, this would go to the company's bookings subcollection
       await addDoc(collection(db, 'bookings'), bookingData);
@@ -194,7 +193,7 @@ export default function BookingForm({ config = {} }) {
       setCurrentStep(1);
       
     } catch (error) {
-      console.error('❌ Booking submission error:', error);
+      logger.error('BookingForm', 'Booking submission error:', error);
       setSubmitMessage('Failed to submit booking. Please try again.');
       toast.error('Failed to submit booking');
     } finally {

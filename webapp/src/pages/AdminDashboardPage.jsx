@@ -30,6 +30,7 @@ import {
   ExclamationTriangleIcon,
   WrenchScrewdriverIcon
 } from '@heroicons/react/24/outline';
+import { logger } from '../utils/logger';
 
 export default function AdminDashboardPage() {
   const { companyId } = useParams();
@@ -56,7 +57,7 @@ export default function AdminDashboardPage() {
           setServices([]);
         }
       } catch (error) {
-        console.error('Error fetching services:', error);
+        logger.error('AdminDashboard', 'Error fetching services:', error);
         setServicesError('Failed to load services');
       } finally {
         setServicesLoading(false);

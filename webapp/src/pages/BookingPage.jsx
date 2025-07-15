@@ -7,6 +7,7 @@ import BookingCalculator from '../components/BookingCalculator'
 import BookingForm from '../components/BookingForm'
 import { signOut } from 'firebase/auth'
 import { auth } from '../firebase/init'
+import { logger } from '../utils/logger'
 
 export default function BookingPage() {
   const { companyId, formId } = useParams() // Added formId to support form builder
@@ -14,13 +15,13 @@ export default function BookingPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState('')
 
-  console.log('🔧 BookingPage rendered with companyId:', companyId, 'formId:', formId)
+  logger.debug('BookingPage', 'BookingPage rendered with companyId:', companyId, 'formId:', formId)
 
   useEffect(() => {
-    console.log('🔧 useEffect triggered for companyId:', companyId, 'formId:', formId)
+    logger.debug('BookingPage', 'useEffect triggered for companyId:', companyId, 'formId:', formId)
     async function loadConfig() {
       try {
-        console.log('🔧 Loading config for companyId:', companyId)
+        logger.debug('BookingPage', 'Loading config for companyId:', companyId)
         
         // Load company configuration
         const companyRef = doc(db, 'companies', companyId)
@@ -57,17 +58,17 @@ export default function BookingPage() {
               formMode: true
             }
             setConfig(mergedConfig)
-            console.log('🔧 Merged config with form services:', mergedConfig)
+            logger.debug('BookingPage', 'Merged config with form services')
           } else {
             setError(`Form "${formId}" not found.`)
             return
           }
         }
         
-        console.log('🔧 Config loaded successfully')
+        logger.info('BookingPage', 'Config loaded successfully')
         
       } catch (e) {
-        console.error('🔧 Error loading config:', e)
+        logger.error('BookingPage', 'Error loading config:', e)
         setError('Failed to load configuration.')
       } finally {
         setLoading(false)
@@ -76,15 +77,15 @@ export default function BookingPage() {
     loadConfig()
   }, [companyId, formId])
 
-  console.log('🔧 Current state - loading:', loading, 'error:', error, 'config:', config)
+  logger.debug('BookingPage', 'Current state - loading:', loading, 'error:', !!error, 'config:', !!config)
 
   if (loading) {
-    console.log('🔧 Rendering loading state')
+    logger.debug('BookingPage', 'Rendering loading state')
     return <div>Loading configuration…</div>
   }
 
   if (error) {
-    console.log('🔧 Rendering error state:', error)
+    logger.debug('BookingPage', 'Rendering error state:', error)
     return <div className="text-red-600">{error}</div>
   }
 
@@ -147,7 +148,7 @@ export function AdminDashboard() {
     try {
       await signOut(auth)
     } catch (e) {
-      console.error('Sign out failed', e)
+      logger.error('BookingPage', 'Sign out failed', e)
     }
   }
 
