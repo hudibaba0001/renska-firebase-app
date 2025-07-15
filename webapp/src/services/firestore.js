@@ -20,11 +20,11 @@ export const getAllTenants = async () => {
   }
 };
 
-// Create a new service in the 'services' collection for a specific company
+// Create a new service in the 'services' subcollection for a specific company
 export const createService = async (companyId, serviceData) => {
   try {
-    const servicesRef = collection(db, 'services');
-    const docRef = await addDoc(servicesRef, { ...serviceData, companyId });
+    const servicesRef = collection(db, 'companies', companyId, 'services');
+    const docRef = await addDoc(servicesRef, { ...serviceData });
     return docRef.id;
   } catch (error) {
     console.error('Error creating service:', error);
@@ -59,13 +59,15 @@ export const updateService = async (serviceId, serviceData) => {
 // Get all services for a specific company (tenant) by companyId
 export const getAllServicesForCompany = async (companyId) => {
   try {
-    const servicesRef = collection(db, 'services');
-    const q = query(servicesRef, where('companyId', '==', companyId), orderBy('createdAt', 'desc'));
+    const servicesRef = collection(db, 'companies', companyId, 'services');
+    // Remove orderBy to fetch all services regardless of createdAt
+    const q = query(servicesRef);
     const snapshot = await getDocs(q);
     const services = [];
     snapshot.forEach(doc => {
       services.push({ id: doc.id, ...doc.data() });
     });
+    console.log('Fetched services:', services);
     return services;
   } catch (error) {
     console.error('Error fetching services for company:', error);
