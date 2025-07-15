@@ -108,6 +108,12 @@ service cloud.firestore {
     match /customers/{customerId} {
       allow create: if isOwner(customerId) || isSuperAdmin();
       allow read, update, delete: if isOwner(customerId) || isSuperAdmin();
+
+      // Allow the user to create and read their own checkout_sessions
+      match /checkout_sessions/{sessionId} {
+        allow create: if isOwner(customerId) || isSuperAdmin();
+        allow read: if isOwner(customerId) || isSuperAdmin();
+      }
     }
     
     // ============================================================================
