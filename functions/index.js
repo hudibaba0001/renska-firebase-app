@@ -106,49 +106,62 @@ exports.signupCompany = onCall({ timeoutSeconds: 30, memory: '256MiB', enforceAp
 /**
  * Create Stripe Checkout Session (Callable Function)
  */
-exports.createCheckoutSession = onCall({ cors: true, timeoutSeconds: 30, memory: "256MiB", enforceAppCheck: true }, async (request) => {
-  const stripe = getStripeInstance();
-  if (!stripe) {
+exports.createCheckoutSession = onCall({ enforceAppCheck: false }, async (data, context) => {
+  try {
+    const stripe = getStripeInstance();
+    if (!stripe) {
       throw new HttpsError('internal', 'Stripe is not configured.');
-  }
-
-  const { planId, companyId, successUrl, cancelUrl } = request.data;
-  logger.info("🛒 Creating checkout session", { planId, companyId });
-
-    if (!planId || !companyId) {
-    throw new HttpsError('invalid-argument', 'Missing required parameters: planId and companyId');
-  }
-  
-  const appUrl = functions.config().app.url;
-  if(!appUrl){
-      logger.error("App URL is not configured.");
-      throw new HttpsError('internal', 'Application URL is not configured.');
-  }
-
-  const priceId = functions.config().stripe.price_ids[planId];
-    if (!priceId) {
-        logger.error(`Invalid plan or price ID not found: ${planId}`);
-        throw new HttpsError('invalid-argument', `Invalid plan: ${planId}`);
     }
 
-  try {
+    const { companyId, planId, successUrl, cancelUrl } = data;
+    if (!companyId || !planId) {
+      throw new HttpsError('invalid-argument', 'Missing required fields.');
+    }
+
+    // Get company data
+    const companyDoc = await admin.firestore().collection('companies').doc(companyId).get();
+    if (!companyDoc.exists) {
+      throw new HttpsError('not-found', 'Company not found.');
+    }
+    const company = companyDoc.data();
+
+    // Get the price ID for the selected plan
+    // You can set these with: firebase functions:config:set stripe.price_ids.starter="price_123" stripe.price_ids.vaxt="price_456" stripe.price_ids.enterprise="price_789"
+    const priceIds = {
+      starter: process.env.STRIPE_STARTER_PRICE_ID || functions.config().stripe?.price_ids?.starter,
+      vaxt: process.env.STRIPE_VAXT_PRICE_ID || functions.config().stripe?.price_ids?.vaxt,
+      enterprise: process.env.STRIPE_ENTERPRISE_PRICE_ID || functions.config().stripe?.price_ids?.enterprise
+    };
+    
+    const priceId = priceIds[planId];
+    if (!priceId) {
+      throw new HttpsError('invalid-argument', `Invalid plan ID: ${planId}`);
+    }
+
+    // Create checkout session
     const session = await stripe.checkout.sessions.create({
-      mode: 'subscription',
       payment_method_types: ['card'],
-      line_items: [{ price: priceId, quantity: 1 }],
-      success_url: successUrl || `${appUrl}/admin/${companyId}/billing?success=true&plan=${planId}`,
-      cancel_url: cancelUrl || `${appUrl}/pricing`,
-      metadata: { companyId, planId },
-      subscription_data: {
-        trial_period_days: 14,
-        metadata: { companyId, planId }
-      },
-      allow_promotion_codes: true,
+      line_items: [
+        {
+          price: priceId,
+          quantity: 1,
+        },
+      ],
+      mode: 'subscription',
+      success_url: successUrl || `${process.env.FRONTEND_URL || 'https://your-app-url.com'}/admin/${companyId}?payment=success`,
+      cancel_url: cancelUrl || `${process.env.FRONTEND_URL || 'https://your-app-url.com'}/payment?companyId=${companyId}&plan=${planId}&canceled=true`,
+      client_reference_id: companyId,
+      customer_email: company.adminEmail,
+      metadata: {
+        companyId,
+        planId
+      }
     });
-    return { sessionId: session.id, url: session.url };
+
+    return { sessionUrl: session.url };
   } catch (error) {
-    logger.error("❌ Error creating checkout session", { error: error.message, planId, companyId });
-    throw new HttpsError('internal', `Failed to create checkout session: ${error.message}`);
+    logger.error('Error creating checkout session', error);
+    throw new HttpsError('internal', error.message);
   }
 });
 

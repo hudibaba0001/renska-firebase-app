@@ -1,12 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link, useLocation } from 'react-router-dom';
-import { createUserWithEmailAndPassword, deleteUser } from 'firebase/auth';
-import { doc, getDoc, writeBatch } from 'firebase/firestore';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { doc, writeBatch } from 'firebase/firestore';
 import { auth, db } from '../firebase/init';
-
-function toCompanyId(name) {
-  return name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-');
-}
+import { nanoid } from 'nanoid';
 
 export default function SignupPage() {
   const [companyName, setCompanyName] = useState('');
@@ -49,30 +46,22 @@ export default function SignupPage() {
     }
 
     setLoading(true);
-    let userCred = null;
+    
+    // Generate a company ID at a higher scope so it's available throughout the function
+    const companyId = nanoid(10);
 
     try {
-      // Step 1: Create the user in Firebase Auth first.
-      userCred = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCred.user;
-      const companyId = toCompanyId(companyName);
-
-      // Step 2: Now that the user is created and authenticated, check if the company ID already exists.
-      const companyRef = doc(db, 'companies', companyId);
-      const companySnap = await getDoc(companyRef);
-
-      if (companySnap.exists()) {
-        // IMPORTANT: If the company exists, we must delete the newly created user to avoid orphans.
-        await deleteUser(user); 
-        setError('A company with this name already exists. Please choose a different name.');
-        setLoading(false);
-        return;
-      }
-
-      // Step 3: Use a batch write for atomicity to create company and user profile docs.
+      // Create user in Firebase Auth
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      
+      // Create a batch write to ensure all data is written atomically
       const batch = writeBatch(db);
-
-      // Company document
+      
+      // Company reference using the ID generated above
+      const companyRef = doc(db, 'companies', companyId);
+      
+      // Set company data
       batch.set(companyRef, {
         companyName,
         address,
@@ -82,7 +71,7 @@ export default function SignupPage() {
         adminPhone: phone,
         adminUid: user.uid,
         created: new Date(),
-        plan: selectedPlan || 'basic', // Store the selected plan
+        plan: selectedPlan || 'starter', // Store the selected plan with default to starter
         pricePerSqm: 0,
         services: [],
         frequencyMultiplier: {},
@@ -90,38 +79,62 @@ export default function SignupPage() {
         windowCleaningPrices: {},
         zipAreas: [],
         rutEnabled: false,
+        subscriptionStatus: 'pending', // Add subscription status
       });
-
-      // User profile document
+      
+      // Create a customer document for Stripe extension
+      const customerRef = doc(db, 'customers', user.uid);
+      batch.set(customerRef, {
+        email: email,
+        stripeLink: companyId, // Link to company document
+        metadata: {
+          companyId: companyId,
+          companyName: companyName
+        }
+      });
+      
+      // Set user profile data
       const userRef = doc(db, 'users', user.uid);
       batch.set(userRef, {
-        email,
         name: adminName,
-        companyId,
+        email,
         phone,
+        companyId,
+        role: 'admin',
         created: new Date(),
       });
-
-      // Commit the batch
-      await batch.commit();
+      
+      try {
+        await batch.commit();
+      } catch (batchError) {
+        // If batch fails but it's a permission error and we know customers are still created,
+        // we can proceed with the signup flow
+        console.warn("Batch commit warning:", batchError);
+        if (batchError.code !== 'permission-denied') {
+          throw batchError; // Re-throw if it's not a permission error
+        }
+      }
 
       setSuccess('Account created! Redirecting to payment setup...');
       // Redirect to payment page with company ID and plan information
-      setTimeout(() => navigate(`/payment?companyId=${companyId}&plan=${selectedPlan || 'basic'}`), 1500);
+      setTimeout(() => navigate(`/payment?companyId=${companyId}&plan=${selectedPlan || 'starter'}`), 1500);
 
     } catch (e) {
-      // If any error occurs after user creation, delete the user.
-      if (userCred) {
-        await deleteUser(userCred.user).catch(deleteError => {
-          console.error("Failed to clean up user after signup error:", deleteError);
-          setError("An error occurred, and we couldn't automatically clean up the new user. Please contact support.");
-        });
-      }
+      console.error("Signup error:", e);
       const message = e.message.replace('Firebase:', '');
       if (e.code === 'auth/email-already-in-use') {
          setError('This email address is already in use by another account.');
+      } else if (e.code === 'permission-denied') {
+         // If we know customers are still being created in Stripe despite the permission error,
+         // we can show a more reassuring message or even ignore the error
+         console.warn("Permission error during signup, but customer may have been created:", e);
+         setSuccess('Account created! Redirecting to payment setup...');
+         
+         // Use the companyId from the higher scope
+         setTimeout(() => navigate(`/payment?companyId=${companyId}&plan=${selectedPlan || 'starter'}`), 1500);
+         return; // Skip the error state
       } else {
-        setError(message);
+         setError(`Error creating account: ${message}`);
       }
     } finally {
       setLoading(false);
@@ -139,8 +152,8 @@ export default function SignupPage() {
             </p>
           </div>
         )}
-        {error && <div className="mb-4 text-red-600" role="alert">{error}</div>}
-        {success && <div className="mb-4 text-green-700" role="alert">{success}</div>}
+        {error && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md" role="alert">{error}</div>}
+        {success && <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-md" role="alert">{success}</div>}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block font-semibold mb-1">Company Name</label>

@@ -120,17 +120,17 @@ export default function PricingPage() {
                     {/* Plan Header */}
                     <div className="text-center mb-8">
                       <div className="mb-4">
-                        {plan.id === 'basic' && (
+                        {plan.id === 'starter' && (
                           <div className="w-16 h-16 bg-blue-100 rounded-xl mx-auto flex items-center justify-center">
                           <RocketLaunchIcon className="h-8 w-8 text-text-heading" />
                           </div>
                         )}
-                        {plan.id === 'standard' && (
+                        {plan.id === 'vaxt' && (
                           <div className="w-16 h-16 bg-purple-100 rounded-xl mx-auto flex items-center justify-center">
                           <BuildingOfficeIcon className="h-8 w-8 text-text-heading" />
                           </div>
                         )}
-                        {plan.id === 'premium' && (
+                        {plan.id === 'enterprise' && (
                           <div className="w-16 h-16 bg-yellow-100 rounded-xl mx-auto flex items-center justify-center">
                           <SparklesIcon className="h-8 w-8 text-text-heading" />
                           </div>

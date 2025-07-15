@@ -13,7 +13,7 @@ export const STRIPE_CONFIG = {
       price: 349,
       currency: 'SEK',
       interval: 'month',
-      priceId: import.meta.env.VITE_STRIPE_STARTER_PRICE_ID || 'price_starter_test',
+      priceId: import.meta.env.VITE_STRIPE_STARTER_PRICE_ID,
       features: [
         '1 Booking Form',
         'Basic Pricing Calculator',
@@ -33,21 +33,21 @@ export const STRIPE_CONFIG = {
       price: 799,
       currency: 'SEK',
       interval: 'month',
-      priceId: import.meta.env.VITE_STRIPE_VAXT_PRICE_ID || 'price_vaxt_test',
+      priceId: import.meta.env.VITE_STRIPE_VAXT_PRICE_ID,
       features: [
         '3 Booking Forms',
-        'Advanced Pricing Models',
-        'Custom Branding',
+        'Advanced Pricing Calculator',
+        'SMS & Email Notifications',
         'Up to 200 bookings/month',
         'Priority Support',
+        'Custom Branding',
         'Analytics Dashboard'
       ],
       limits: {
         forms: 3,
         bookings: 200,
         customization: 'advanced'
-      },
-      popular: true
+      }
     },
     enterprise: {
       id: 'enterprise',
@@ -55,43 +55,43 @@ export const STRIPE_CONFIG = {
       price: 2000,
       currency: 'SEK',
       interval: 'month',
-      priceId: import.meta.env.VITE_STRIPE_ENTERPRISE_PRICE_ID || 'price_enterprise_test',
+      priceId: import.meta.env.VITE_STRIPE_ENTERPRISE_PRICE_ID,
       features: [
         'Unlimited Booking Forms',
-        'Custom Pricing Logic',
-        'White-label Solution',
+        'Custom Pricing Calculator',
+        'Advanced Notifications',
         'Unlimited bookings',
         'Dedicated Support',
+        'Custom Integrations',
         'Advanced Analytics',
-        'API Access',
-        'Custom Integrations'
+        'API Access'
       ],
       limits: {
-        forms: 'unlimited',
-        bookings: 'unlimited',
+        forms: -1, // unlimited
+        bookings: -1, // unlimited
         customization: 'full'
       }
     }
   }
 }
 
-// Initialize Stripe
-let stripePromise
-export const getStripe = () => {
-  if (!stripePromise) {
-    stripePromise = loadStripe(STRIPE_CONFIG.publishableKey)
-  }
-  return stripePromise
-}
-
-// Utility functions
-export const formatPrice = (price, currency = 'SEK') => {
+// Format price with currency
+export function formatPrice(price, currency = 'SEK') {
   return new Intl.NumberFormat('sv-SE', {
     style: 'currency',
     currency: currency,
-    minimumFractionDigits: 0,
-  }).format(price)
+    minimumFractionDigits: 0
+  }).format(price);
 }
+
+// Initialize Stripe
+let stripePromise;
+export const getStripe = () => {
+  if (!stripePromise) {
+    stripePromise = loadStripe(STRIPE_CONFIG.publishableKey);
+  }
+  return stripePromise;
+};
 
 export const getPlanByPriceId = (priceId) => {
   return Object.values(STRIPE_CONFIG.plans).find(plan => plan.priceId === priceId)
