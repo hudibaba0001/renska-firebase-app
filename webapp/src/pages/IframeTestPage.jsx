@@ -9,6 +9,7 @@ import {
   EyeIcon,
   EyeSlashIcon
 } from '@heroicons/react/24/outline'
+import { logger } from '../utils/logger'
 
 export default function IframeTestPage() {
   const [tenantId, setTenantId] = useState('test-tenant-123')
@@ -120,7 +121,7 @@ export default function IframeTestPage() {
       await navigator.clipboard.writeText(embedCode)
       alert('Embed code copied to clipboard!')
     } catch (err) {
-      console.error('Failed to copy embed code:', err)
+              logger.error('IframeTest', 'Failed to copy embed code:', err)
     }
   }
 

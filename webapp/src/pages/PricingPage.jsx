@@ -18,6 +18,7 @@ import {
 import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 import { STRIPE_CONFIG, formatPrice, createCheckoutSession } from '../stripe/config'
+import { logger } from '../utils/logger'
 
 export default function PricingPage() {
   const navigate = useNavigate()
@@ -47,7 +48,7 @@ export default function PricingPage() {
       }, 1500)
       
     } catch (error) {
-      console.error('Checkout error:', error)
+      logger.error('PricingPage', 'Checkout error:', error)
       toast.error('Failed to start checkout process')
     } finally {
       setLoadingPlan(null)

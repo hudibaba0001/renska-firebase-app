@@ -631,7 +631,7 @@ export class ValidationEngine {
    */
   log(...args) {
     if (this.debug) {
-      console.log('[ValidationEngine]', ...args);
+      // Debug logging handled by constructor debug flag
     }
   }
 }

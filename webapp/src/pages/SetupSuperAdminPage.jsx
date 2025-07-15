@@ -3,6 +3,7 @@ import { signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth } from '../firebase/init';
 import { getFirestore } from 'firebase/firestore';
+import { logger } from '../utils/logger';
 
 export default function SetupSuperAdminPage() {
   const [status, setStatus] = useState('');
@@ -46,7 +47,7 @@ export default function SetupSuperAdminPage() {
       }, 2000);
       
     } catch (err) {
-      console.error('Setup error:', err);
+              logger.error('SetupSuperAdmin', 'Setup error:', err);
       setError(`Error: ${err.message}`);
     } finally {
       setLoading(false);

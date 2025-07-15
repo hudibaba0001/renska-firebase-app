@@ -14,6 +14,7 @@ import {
   checkRateLimit,
   validateNumber
 } from '../utils/security';
+import { logger } from '../utils/logger';
 
 export default function TenantOnboardPage() {
   const [step, setStep] = useState(1);
@@ -136,7 +137,7 @@ export default function TenantOnboardPage() {
         return true;
       }
     } catch (error) {
-      console.error('Error checking slug availability:', error);
+              logger.error('TenantOnboard', 'Error checking slug availability:', error);
       return true; // Allow to proceed if check fails
     }
   }
@@ -182,12 +183,12 @@ export default function TenantOnboardPage() {
       const docData = sanitizeObject(rawDocData);
       
       const docRef = await addDoc(collection(db, 'companies'), docData);
-      console.log('✅ Tenant created with ID:', docRef.id);
+      logger.info('TenantOnboard', 'Tenant created successfully with ID:', docRef.id);
 
       toast.success(`🎉 Tenant "${form.name}" created successfully!`);
       navigate(`/super-admin/tenants`);
     } catch (error) {
-      console.error('Error creating tenant:', error);
+      logger.error('TenantOnboard', 'Error creating tenant:', error);
       
       let errorMessage = 'Failed to create tenant. Please try again.';
       if (error.code === 'permission-denied') {

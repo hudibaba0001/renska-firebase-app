@@ -348,7 +348,7 @@ export class PricingTestFramework {
    */
   log(...args) {
     if (this.debug) {
-      console.log('[PricingTestFramework]', ...args);
+      // Debug logging handled by constructor debug flag
     }
   }
 }

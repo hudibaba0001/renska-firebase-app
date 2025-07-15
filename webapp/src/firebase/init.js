@@ -33,7 +33,7 @@ const app = initializeApp(firebaseConfig);
 try {
   getAnalytics(app);
 } catch (e) {
-  console.warn("Analytics not supported:", e);
+  logger.warn('Firebase', "Analytics not supported:", e);
 }
 
 // Export Firestore and Auth for use in your pages

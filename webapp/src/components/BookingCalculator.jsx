@@ -30,6 +30,7 @@ import {
   ChartBarIcon
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
+import { logger } from '../utils/logger';
 
 export default function BookingCalculator() {
   const { companyId } = useParams();
@@ -98,7 +99,7 @@ export default function BookingCalculator() {
           setConfig(defaultConfig);
         }
       } catch (e) {
-        console.error('Error loading company config:', e);
+        logger.error('BookingCalculator', 'Error loading company config:', e);
         setError('Failed to load company configuration.');
         setConfig(defaultConfig);
       } finally {
@@ -186,7 +187,7 @@ export default function BookingCalculator() {
       setPriceBreakdown(breakdown);
       
     } catch (error) {
-      console.error('❌ Price calculation error:', error);
+              logger.error('BookingCalculator', 'Price calculation error:', error);
       toast.error('Failed to calculate price');
     } finally {
       setCalculating(false);
@@ -276,7 +277,7 @@ export default function BookingCalculator() {
         created: Timestamp.now()
       };
 
-      console.log('📋 Submitting booking:', bookingData);
+      logger.info('BookingCalculator', 'Submitting booking for customer');
       
       // Submit to Firestore
       await addDoc(collection(db, 'bookings'), bookingData);
@@ -303,7 +304,7 @@ export default function BookingCalculator() {
       });
       
     } catch (error) {
-      console.error('❌ Booking submission error:', error);
+      logger.error('BookingCalculator', 'Booking submission error:', error);
       toast.error('Failed to submit booking');
     } finally {
       setIsSubmitting(false);

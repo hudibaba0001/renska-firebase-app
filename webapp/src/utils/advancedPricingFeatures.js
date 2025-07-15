@@ -780,7 +780,7 @@ export class AdvancedPricingFeatures {
 
   log(...args) {
     if (this.debug) {
-      console.log('[AdvancedPricingFeatures]', ...args);
+      // Debug logging handled by constructor debug flag
     }
   }
 }

@@ -6,6 +6,7 @@ import { auth } from '../firebase/init';
 // Import the new centralized function for fetching user profiles.
 // This helps in abstracting the data fetching logic from the component.
 import { getUserProfile } from '../services/firestore';
+import { logger } from '../utils/logger';
 
 /**
  * @typedef {object} UserProfile
@@ -59,7 +60,7 @@ export function AuthProvider({ children }) {
         } catch (error) {
           // If fetching the profile fails, we log the error and only set the basic
           // Firebase user data. This prevents the app from crashing.
-          console.error("Failed to fetch user profile, proceeding with auth data only.", error);
+          logger.error('AuthContext', "Failed to fetch user profile, proceeding with auth data only.", error);
           setUser(firebaseUser);
         }
       } else {
@@ -87,7 +88,7 @@ export function AuthProvider({ children }) {
       // After signing out, the onAuthStateChanged listener will automatically
       // update the user state to null.
     } catch (error) {
-      console.error('Error signing out:', error);
+      logger.error('AuthContext', 'Error signing out:', error);
       // Re-throw the error so it can be caught by the calling component if needed,
       // for example, to show a user notification.
       throw error;

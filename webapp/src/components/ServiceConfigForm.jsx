@@ -1,7 +1,8 @@
 // --- BEGIN REFACTOR: SwedPrime Advanced ServiceConfigForm ---
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, Button, TextInput, Select, Label, Checkbox, Accordion, Table, Alert, Badge } from 'flowbite-react';
 import { PlusIcon, TrashIcon, CogIcon } from '@heroicons/react/24/outline';
+import { logger } from '../utils/logger';
 
 // =========================
 // PRICING MODEL CONSTANTS
@@ -705,6 +706,16 @@ export default function ServiceConfigForm({ initialConfig, onChange, onSave }) {
   const [saveMessage, setSaveMessage] = useState('');
   const [expandedServices, setExpandedServices] = useState(new Set());
   const [savingServices, setSavingServices] = useState(new Set());
+  const timeoutRef = useRef(null); // Ref to store timeout ID for cleanup
+
+  // Cleanup timeout on component unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
   // Toggle service expansion
   const toggleService = (serviceId) => {
@@ -770,7 +781,7 @@ export default function ServiceConfigForm({ initialConfig, onChange, onSave }) {
         updatedSavingServices.delete(serviceId);
         setSavingServices(updatedSavingServices);
       } catch (error) {
-        console.error('Error saving service:', error);
+        logger.error('ServiceConfigForm', 'Error saving service:', error);
         // Remove from saving set even on error
         const updatedSavingServices = new Set(savingServices);
         updatedSavingServices.delete(serviceId);
@@ -787,11 +798,19 @@ export default function ServiceConfigForm({ initialConfig, onChange, onSave }) {
       try {
         await onSave(config);
         setSaveMessage('Services saved successfully!');
-        setTimeout(() => setSaveMessage(''), 3000); // Clear message after 3 seconds
+        // Clear previous timeout if exists
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+        }
+        timeoutRef.current = setTimeout(() => setSaveMessage(''), 3000); // Clear message after 3 seconds
       } catch (error) {
-        console.error('Error saving services:', error);
+        logger.error('ServiceConfigForm', 'Error saving services:', error);
         setSaveMessage('Error saving services. Please try again.');
-        setTimeout(() => setSaveMessage(''), 5000); // Clear error message after 5 seconds
+        // Clear previous timeout if exists
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+        }
+        timeoutRef.current = setTimeout(() => setSaveMessage(''), 5000); // Clear error message after 5 seconds
       } finally {
         setSaving(false);
       }
@@ -818,7 +837,7 @@ export default function ServiceConfigForm({ initialConfig, onChange, onSave }) {
   });
   
   // Debug logging
-  console.log('ServiceConfigForm rendering with services:', hydratedServices);
+  logger.debug('ServiceConfigForm', 'ServiceConfigForm rendering with services count:', hydratedServices.length);
   
   return (
     <div className="space-y-6">
@@ -871,8 +890,8 @@ export default function ServiceConfigForm({ initialConfig, onChange, onSave }) {
           {hydratedServices
             .filter(s => s && typeof s === 'object' && s.id)
             .map((service, idx) => {
-              console.log('Rendering service panel for service:', service.id, service);
-              console.log('Service name:', service.name || 'Unnamed Service');
+                      logger.debug('ServiceConfigForm', 'Rendering service panel for service:', service.id);
+        logger.debug('ServiceConfigForm', 'Service name:', service.name || 'Unnamed Service');
               const isExpanded = expandedServices.has(service.id);
               const isSaving = savingServices.has(service.id);
               return (
