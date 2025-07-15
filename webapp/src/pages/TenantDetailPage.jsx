@@ -15,6 +15,7 @@ import PageHeader from '../components/PageHeader';
 import CompanyConfigPage from './CompanyConfigPage';
 import AdminBillingPage from './AdminBillingPage';
 import toast from 'react-hot-toast';
+import { logger } from '../utils/logger';
 
 // BookingsListPage component for the Bookings tab
 function BookingsListPage({ tenantId }) {
@@ -174,7 +175,7 @@ export default function TenantDetailPage() {
         setLoading(true);
         setError(null);
         
-        console.log('🔍 Fetching tenant:', tenantId);
+        logger.debug('TenantDetail', 'Fetching tenant data for ID:', tenantId);
         const tenantDoc = await getDoc(doc(db, 'companies', tenantId));
         
         if (!tenantDoc.exists()) {
@@ -184,11 +185,11 @@ export default function TenantDetailPage() {
         }
         
         const tenantData = { id: tenantDoc.id, ...tenantDoc.data() };
-        console.log('✅ Tenant data loaded:', tenantData);
+        logger.info('TenantDetail', 'Tenant data loaded successfully');
         setTenant(tenantData);
         
       } catch (err) {
-        console.error('❌ Error fetching tenant:', err);
+        logger.error('TenantDetail', 'Error fetching tenant data:', err);
         setError(err.message);
         toast.error('Failed to load tenant details');
       } finally {

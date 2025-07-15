@@ -376,7 +376,7 @@ export class IframeCommunicationManager {
    */
   log(...args) {
     if (this.config.debug) {
-      console.log('[IframeCommunication]', ...args)
+      // Debug logging handled by constructor debug flag
     }
   }
 }

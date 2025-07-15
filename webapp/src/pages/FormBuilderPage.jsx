@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { db } from '../firebase/init';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { useAuth } from '../context/AuthContext';
+import { logger } from '../utils/logger';
 
 // Step Components
 import CreateCalculatorStep from '../components/formbuilder/CreateCalculatorStep';
@@ -87,7 +88,7 @@ export default function FormBuilderPage() {
         }));
       }
     } catch (error) {
-      console.error('Error loading config:', error);
+              logger.error('FormBuilder', 'Error loading config:', error);
     } finally {
       setLoading(false);
     }
@@ -116,7 +117,7 @@ export default function FormBuilderPage() {
         navigate(`/admin/${companyId}/forms/${config.slug}`, { replace: true });
       }
     } catch (error) {
-      console.error('Error saving draft:', error);
+              logger.error('FormBuilder', 'Error saving draft:', error);
     } finally {
       setSaving(false);
     }
@@ -137,7 +138,7 @@ export default function FormBuilderPage() {
         publishedAt: new Date()
       }));
     } catch (error) {
-      console.error('Error publishing form:', error);
+              logger.error('FormBuilder', 'Error publishing form:', error);
     } finally {
       setSaving(false);
     }

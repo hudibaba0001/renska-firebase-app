@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { signInWithEmailAndPassword } from 'firebase/auth'
 import { auth } from '../firebase/init'
+import { logger } from '../utils/logger'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -46,7 +47,7 @@ export default function LoginPage() {
 
       navigate(target, { replace: true })
     } catch (e) {
-      console.error('Login error:', e)
+      logger.error('LoginPage', 'Login error:', e)
       setError('Invalid email or password.')
       setLoading(false)
     }

@@ -805,7 +805,7 @@ export class PricingRulesEngine {
    */
   log(...args) {
     if (this.debug) {
-      console.log('[PricingRulesEngine]', ...args);
+      // Debug logging handled by constructor debug flag
     }
   }
 }

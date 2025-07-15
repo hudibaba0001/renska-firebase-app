@@ -40,6 +40,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
+import { logger } from '../utils/logger'
 
 export default function TenantListPage() {
   const [tenants, setTenants] = useState([])
@@ -76,10 +77,10 @@ export default function TenantListPage() {
       setTenants(tenantsData)
       
       if (tenantsData.length > 0) {
-        console.log(`✅ Loaded ${tenantsData.length} tenants`)
+        logger.info('TenantList', `Loaded ${tenantsData.length} tenants successfully`)
       }
     } catch (error) {
-      console.error('Error fetching tenants:', error)
+      logger.error('TenantList', 'Error fetching tenants:', error)
       
       if (error.code !== 'permission-denied') {
         toast.error('Failed to load tenants')
@@ -245,7 +246,7 @@ export default function TenantListPage() {
       toast.success(`Created ${testTenants.length} test tenants!`)
       fetchTenants()
     } catch (error) {
-      console.error('Error creating test data:', error)
+      logger.error('TenantList', 'Error creating test data:', error)
       toast.error('Failed to create test data')
     } finally {
       setCreatingTestData(false)
@@ -264,7 +265,7 @@ export default function TenantListPage() {
       toast.success(`Tenant ${!currentStatus ? 'activated' : 'suspended'} successfully`)
       fetchTenants()
     } catch (error) {
-      console.error('Error updating tenant status:', error)
+      logger.error('TenantList', 'Error updating tenant status:', error)
       toast.error('Failed to update tenant status')
     }
   }

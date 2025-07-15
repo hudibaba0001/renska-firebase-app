@@ -415,7 +415,7 @@ function AdminBookingsPage() {
           amount: 1800,
           address: 'Sveavägen 20, Stockholm',
           phone: '+46 70 444 5566',
-          notes: 'After hours cleaning, key code: 1234'
+          notes: 'After hours cleaning, contact facility manager for access'
         }
       ];
       

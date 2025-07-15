@@ -5,6 +5,7 @@ import { doc, getDoc, setDoc } from 'firebase/firestore'
 import ServiceConfigForm from '../components/ServiceConfigForm'
 import LivePreview from '../components/LivePreview'
 import ErrorBoundary from '../components/ErrorBoundary';
+import { logger } from '../utils/logger';
 
 export default function CompanyConfigPage({ companyId: propCompanyId }) {
   const routeParams = useParams()
@@ -40,7 +41,7 @@ export default function CompanyConfigPage({ companyId: propCompanyId }) {
           setPreviewConfig(defaultConfig)
         }
       } catch (error) {
-        console.error('Error loading config:', error)
+        logger.error('CompanyConfig', 'Error loading config:', error)
         setError('Failed to load configuration.')
       } finally {
         setLoading(false)
@@ -51,11 +52,11 @@ export default function CompanyConfigPage({ companyId: propCompanyId }) {
 
   const handleSave = async (newConfig) => {
     try {
-      console.log('🔧 Saving config for company:', companyId, newConfig)
+      logger.debug('CompanyConfig', 'Saving config for company:', companyId)
       await setDoc(doc(db, 'companies', companyId), newConfig)
-      console.log('✅ Config saved successfully')
+      logger.info('CompanyConfig', 'Config saved successfully')
     } catch (error) {
-      console.error('❌ Error saving config:', error)
+      logger.error('CompanyConfig', 'Error saving config:', error)
       throw error
     }
   }

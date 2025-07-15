@@ -666,7 +666,7 @@ export class PricingEngine {
    */
   log(...args) {
     if (this.debug) {
-      console.log('[PricingEngine]', ...args);
+      // Debug logging handled by constructor debug flag
     }
   }
 }

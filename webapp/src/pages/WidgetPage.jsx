@@ -3,6 +3,7 @@ import { createIframeCommunication, MESSAGE_TYPES, EVENT_TYPES } from '../utils/
 import ZipCodeWidget from '../components/ZipCodeWidget.jsx'
 import { doc, getDoc } from 'firebase/firestore'
 import { db } from '../firebase/init.js'
+import { logger } from '../utils/logger'
 
 export default function WidgetPage() {
   const [tenantConfig, setTenantConfig] = useState(null)
@@ -29,7 +30,7 @@ export default function WidgetPage() {
     // Initialize iframe communication
     const comm = createIframeCommunication({
       tenantId,
-      debug: true,
+      debug: import.meta.env.DEV,
       allowedOrigins: ['*'] // In production, restrict to specific domains
     })
 
@@ -70,7 +71,7 @@ export default function WidgetPage() {
       }
 
     } catch (err) {
-      console.error('Error loading tenant config:', err)
+              logger.error('WidgetPage', 'Error loading tenant config:', err)
       setError(err.message)
       
       // Send error message to parent
@@ -113,7 +114,7 @@ export default function WidgetPage() {
       }, 1000)
 
     } catch (err) {
-      console.error('Error handling ZIP code submission:', err)
+              logger.error('WidgetPage', 'Error handling ZIP code submission:', err)
       
       if (iframeComm) {
         iframeComm.sendError('ZIP code validation failed', err.message)
@@ -127,17 +128,17 @@ export default function WidgetPage() {
 
     // Listen for booking flow events
     iframeComm.addEventListener(EVENT_TYPES.BOOKING_FLOW_STARTED, (data) => {
-      console.log('Booking flow started:', data)
+      logger.info('WidgetPage', 'Booking flow started')
       // Could redirect to booking page or show booking form
     })
 
     iframeComm.addEventListener(EVENT_TYPES.BOOKING_FLOW_COMPLETED, (data) => {
-      console.log('Booking flow completed:', data)
+      logger.info('WidgetPage', 'Booking flow completed')
       // Handle booking completion
     })
 
     iframeComm.addEventListener(EVENT_TYPES.BOOKING_FLOW_CANCELLED, (data) => {
-      console.log('Booking flow cancelled:', data)
+      logger.info('WidgetPage', 'Booking flow cancelled')
       // Handle booking cancellation
     })
 
