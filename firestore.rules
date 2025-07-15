@@ -21,14 +21,6 @@ service cloud.firestore {
     function isSuperAdmin() {
       return isSignedIn() && request.auth.token.superAdmin == true;
     }
-
-    /**
-     * Checks if the user is an admin of a specific company.
-     * @param companyId The ID of the company to check against.
-     */
-    function isCompanyAdmin(companyId) {
-      return isSignedIn() && request.auth.token.adminOf == companyId;
-    }
     
     /**
      * Checks if the user owns the specified document.
@@ -37,18 +29,24 @@ service cloud.firestore {
     function isOwner(userId) {
         return isSignedIn() && request.auth.uid == userId;
     }
+    
+    /**
+     * Checks if the currently authenticated user is the admin of the company
+     * by checking the adminUid field on the company document.
+     * @param companyId The ID of the company document.
+     */
+    function isCompanyAdmin(companyId) {
+      let companyDoc = get(/databases/$(database)/documents/companies/$(companyId));
+      return isSignedIn() && companyDoc.data.adminUid == request.auth.uid;
+    }
 
     // ============================================================================
     // USERS COLLECTION
     // ============================================================================
 
     match /users/{userId} {
-      // A user can read and write to their own profile.
-      // A Super Admin can read any user's profile, but cannot write to it (to prevent impersonation).
       allow read: if isOwner(userId) || isSuperAdmin();
-      // Allow a user to create their own profile.
       allow create: if isOwner(userId);
-      // Allow a user to update their own profile, but not grant themselves special permissions.
       allow update: if isOwner(userId) &&
                        request.resource.data.superAdmin == resource.data.superAdmin &&
                        request.resource.data.adminOf == resource.data.adminOf;
@@ -59,42 +57,42 @@ service cloud.firestore {
     // ============================================================================
     
     match /companies/{companyId} {
-      // READ RULES (get, list)
-      // Allow a 'get' request if the user is an admin, or if the document is public.
-      // Crucially, also allow it if the user is signed in and the document does not exist (resource == null).
-      // This enables the client-side signup form to check if a company ID is already taken without exposing data.
+      // Allow get if user is super admin, the company admin, or if the company is public.
+      // Also allow if the resource doesn't exist, to permit company ID availability checks.
       allow get: if isSuperAdmin() || isCompanyAdmin(companyId) || 
                     (resource != null && resource.data.isPublic == true) || 
                     (resource == null && isSignedIn());
 
-      // Only allow super admins to list all companies.
       allow list: if isSuperAdmin();
       
-      // WRITE RULES (create, update, delete)
-      // Allow a signed-in user to create a company, as long as they set themselves as the admin.
+      // Allow create if user is signed in and sets themselves as the admin.
       allow create: if (isSignedIn() && request.resource.data.adminUid == request.auth.uid) || isSuperAdmin();
       
-      // An admin of the company or a super admin can update it.
-      allow update: if isSuperAdmin() || isCompanyAdmin(companyId);
+      // Allow update if user is super admin or the company admin (checking the existing document).
+      allow update: if isSuperAdmin() || (isSignedIn() && resource.data.adminUid == request.auth.uid);
       
-      // Only a Super Admin can delete a company.
       allow delete: if isSuperAdmin();
       
       // --- NESTED: SERVICES SUBCOLLECTION ---
       match /services/{serviceId} {
         allow read: if get(/databases/$(database)/documents/companies/$(companyId)).data.isPublic == true || 
                        isSuperAdmin() || isCompanyAdmin(companyId);
-        allow create, update, delete: if isSuperAdmin() || isCompanyAdmin(companyId);
-        allow write: if request.resource.data.name is string &&
-                        request.resource.data.name.size() > 1 &&
-                        request.resource.data.name.size() < 100 &&
-                        request.resource.data.minimumPrice is number &&
-                        request.resource.data.minimumPrice >= 0;
+        
+        // Combine authorization with data validation for create/update.
+        allow create, update: if (isSuperAdmin() || isCompanyAdmin(companyId)) &&
+                                 request.resource.data.name is string &&
+                                 request.resource.data.name.size() > 1 &&
+                                 request.resource.data.name.size() < 100 &&
+                                 request.resource.data.minimumPrice is number &&
+                                 request.resource.data.minimumPrice >= 0;
+        
+        allow delete: if isSuperAdmin() || isCompanyAdmin(companyId);
       }
       
       // --- NESTED: BOOKINGS SUBCOLLECTION ---
       match /bookings/{bookingId} {
         allow read, update, delete: if isSuperAdmin() || isCompanyAdmin(companyId);
+        // This rule allows anyone to create a booking, which is intended for the public booking form.
         allow create: if request.resource.data.customerInfo.email is string &&
                          request.resource.data.totalPrice is number &&
                          request.resource.data.totalPrice >= 0 &&
