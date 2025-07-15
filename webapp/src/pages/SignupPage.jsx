@@ -114,6 +114,54 @@ export default function SignupPage() {
         created: new Date(),
       });
       
+      // Log batch data for debugging
+      console.log('Batch write data:', {
+        company: {
+          id: companyId,
+          data: {
+            companyName,
+            address,
+            orgNumber,
+            adminName,
+            adminEmail: email,
+            adminPhone: phone,
+            adminUid: user.uid,
+            created: new Date(),
+            plan: selectedPlan || 'starter',
+            pricePerSqm: 0,
+            services: [],
+            frequencyMultiplier: {},
+            addOns: {},
+            windowCleaningPrices: {},
+            zipAreas: [],
+            rutEnabled: false,
+            subscriptionStatus: 'pending',
+          }
+        },
+        customer: {
+          id: user.uid,
+          data: {
+            email: email,
+            stripeLink: companyId,
+            metadata: {
+              companyId: companyId,
+              companyName: companyName
+            }
+          }
+        },
+        user: {
+          id: user.uid,
+          data: {
+            name: adminName,
+            email,
+            phone,
+            companyId,
+            role: 'admin',
+            created: new Date(),
+          }
+        }
+      });
+
       try {
         await batch.commit();
         setSuccess('Account created! Redirecting to payment setup...');
