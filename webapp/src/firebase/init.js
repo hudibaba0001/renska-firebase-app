@@ -1,10 +1,11 @@
 // webapp/src/firebase/init.js
-console.log("🔧 Using Firebase init.js");
-
 import { initializeApp }   from "firebase/app";
 import { getFirestore }    from "firebase/firestore";
 import { getAuth }         from "firebase/auth";
 import { getAnalytics }    from "firebase/analytics";
+import { logger } from "../utils/logger";
+
+logger.info('Firebase', 'Initializing Firebase configuration');
 
 // Firebase configuration sourced strictly from environment variables
 const firebaseConfig = {
@@ -21,11 +22,11 @@ const firebaseConfig = {
 const required = ['apiKey', 'authDomain', 'projectId']
 const missing = required.filter(k => !firebaseConfig[k])
 if (missing.length) {
-  console.error('🚨 Missing Firebase config vars:', missing)
+  logger.error('Firebase', 'Missing Firebase config vars:', missing)
   throw new Error(`Missing Firebase environment variables: ${missing.join(', ')}`)
 }
 
-console.log("🔧 firebaseConfig:", firebaseConfig);
+logger.debug('Firebase', 'Firebase configuration loaded successfully');
 
 const app = initializeApp(firebaseConfig);
 

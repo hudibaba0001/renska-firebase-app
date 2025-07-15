@@ -6,8 +6,9 @@ import { AuthProvider } from './context/AuthContext'
 import App from './App'
 import './index.css'
 import './theme.css'
+import { logger } from './utils/logger'
 
-console.log('🔧 main.jsx is executing')
+logger.info('Main', 'Application starting')
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
