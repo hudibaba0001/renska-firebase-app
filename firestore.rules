@@ -101,6 +101,14 @@ service cloud.firestore {
     }
     
     // ============================================================================
+    // CUSTOMERS COLLECTION (for Stripe extension)
+    // ============================================================================
+    match /customers/{customerId} {
+      allow create: if isOwner(customerId) || isSuperAdmin();
+      allow read, update, delete: if isOwner(customerId) || isSuperAdmin();
+    }
+    
+    // ============================================================================
     // DEPRECATED & GLOBAL COLLECTIONS
     // ============================================================================
     

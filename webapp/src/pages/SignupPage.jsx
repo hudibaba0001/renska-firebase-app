@@ -54,6 +54,16 @@ export default function SignupPage() {
       // Create user in Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
+
+      // Wait for auth state to be fully updated (fixes race condition)
+      await new Promise(resolve => {
+        const unsubscribe = auth.onAuthStateChanged(currentUser => {
+          if (currentUser && currentUser.uid === user.uid) {
+            unsubscribe();
+            resolve();
+          }
+        });
+      });
       
       // Create a batch write to ensure all data is written atomically
       const batch = writeBatch(db);
@@ -106,18 +116,17 @@ export default function SignupPage() {
       
       try {
         await batch.commit();
+        setSuccess('Account created! Redirecting to payment setup...');
+        // Redirect to payment page with company ID and plan information
+        setTimeout(() => navigate(`/payment?companyId=${companyId}&plan=${selectedPlan || 'starter'}`), 1500);
+        return;
       } catch (batchError) {
-        // If batch fails but it's a permission error and we know customers are still created,
-        // we can proceed with the signup flow
-        console.warn("Batch commit warning:", batchError);
-        if (batchError.code !== 'permission-denied') {
-          throw batchError; // Re-throw if it's not a permission error
-        }
+        // Show error and do not redirect
+        console.warn("Batch commit failed:", batchError);
+        setError('Failed to create company profile. Please contact support or try again.');
+        setLoading(false);
+        return;
       }
-
-      setSuccess('Account created! Redirecting to payment setup...');
-      // Redirect to payment page with company ID and plan information
-      setTimeout(() => navigate(`/payment?companyId=${companyId}&plan=${selectedPlan || 'starter'}`), 1500);
 
     } catch (e) {
       console.error("Signup error:", e);
