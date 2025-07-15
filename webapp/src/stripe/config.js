@@ -1,4 +1,5 @@
 import { loadStripe } from '@stripe/stripe-js'
+import { logger } from '../utils/logger'
 
 // Stripe configuration
 export const STRIPE_CONFIG = {
@@ -123,7 +124,7 @@ export const createCheckoutSession = async (planId, companyId, userEmail) => {
     allowPromotionCodes: true,
   }
 
-  console.log('🔧 Checkout session created:', checkoutSession)
+  logger.debug('Stripe', 'Checkout session created successfully')
   
   // Note: In production, you would send this to your backend
   // and get a session ID from Stripe, then redirect like this:

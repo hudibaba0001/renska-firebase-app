@@ -29,7 +29,7 @@ export default function WidgetPage() {
     // Initialize iframe communication
     const comm = createIframeCommunication({
       tenantId,
-      debug: true,
+      debug: import.meta.env.DEV,
       allowedOrigins: ['*'] // In production, restrict to specific domains
     })
 

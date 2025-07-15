@@ -2,6 +2,7 @@
 
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "../firebase/init";
+import { logger } from "../utils/logger";
 
 /**
  * Fetches a user's profile from the Firestore database.
@@ -38,14 +39,14 @@ export const getUserProfile = async (userId) => {
     } else {
       // If no document is found for the given userId, it's not necessarily an error,
       // but it's important to handle this case. We log a warning for debugging purposes.
-      console.warn(`No user profile found for user ID: ${userId}`);
+      logger.warn('FirestoreService', `No user profile found for user ID: ${userId}`);
       return null;
     }
   } catch (error) {
     // If any error occurs during the Firestore operation, we log it for debugging.
     // Re-throwing the error allows the calling function to implement its own error handling logic,
     // such as showing a notification to the user.
-    console.error("Error fetching user profile:", error);
+    logger.error('FirestoreService', "Error fetching user profile:", error);
     throw new Error("Failed to fetch user profile from Firestore.");
   }
 };

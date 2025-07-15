@@ -1,5 +1,6 @@
 import { db } from '../firebase/init.js';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { logger } from './logger';
 
 /**
  * Set up initial Firestore data structure for Stage 2
@@ -7,7 +8,7 @@ import { doc, setDoc, getDoc } from 'firebase/firestore';
  */
 export async function setupInitialData() {
   try {
-    console.log('🔧 Setting up initial Firestore data...');
+    logger.info('SetupFirestore', 'Setting up initial Firestore data...');
     
     // Create sample company document
     const companyRef = doc(db, 'companies', 'swedprime');
@@ -22,10 +23,10 @@ export async function setupInitialData() {
       updatedAt: new Date().toISOString()
     });
     
-    console.log('✅ Created companies/swedprime document');
+    logger.info('SetupFirestore', 'Created companies/swedprime document');
     
     // The bookings subcollection will be created automatically when first document is added
-    console.log('📋 Bookings subcollection ready (will be created on first booking)');
+    logger.info('SetupFirestore', 'Bookings subcollection ready (will be created on first booking)');
     
     // Create another sample company for testing multi-tenancy
     const demoCompanyRef = doc(db, 'companies', 'demo-company');
@@ -51,12 +52,12 @@ export async function setupInitialData() {
       updatedAt: new Date().toISOString()
     });
     
-    console.log('✅ Created companies/demo-company document');
-    console.log('🎉 Initial Firestore setup complete!');
+    logger.info('SetupFirestore', 'Created companies/demo-company document');
+    logger.info('SetupFirestore', 'Initial Firestore setup complete!');
     
     return true;
   } catch (error) {
-    console.error('❌ Error setting up Firestore data:', error);
+    logger.error('SetupFirestore', 'Error setting up Firestore data:', error);
     return false;
   }
 }
@@ -67,16 +68,16 @@ export async function setupInitialData() {
  */
 export async function testMultiTenantSecurity() {
   try {
-    console.log('🧪 Testing multi-tenant security...');
+    logger.info('SetupFirestore', 'Testing multi-tenant security...');
     
     // Test reading company data (should work - public read)
     const companyRef = doc(db, 'companies', 'swedprime');
     const docSnap = await getDoc(companyRef);
     
     if (docSnap.exists()) {
-      console.log('✅ Public read access working');
+      logger.info('SetupFirestore', 'Public read access working');
     } else {
-      console.log('❌ Company document not found');
+      logger.warn('SetupFirestore', 'Company document not found');
     }
     
     // Note: Write access testing requires authentication setup
@@ -84,7 +85,7 @@ export async function testMultiTenantSecurity() {
     
     return true;
   } catch (error) {
-    console.error('❌ Error testing security:', error);
+    logger.error('SetupFirestore', 'Error testing security:', error);
     return false;
   }
 } 

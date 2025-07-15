@@ -27,7 +27,7 @@ export default function IframeTestPage() {
   useEffect(() => {
     // Initialize iframe communication
     const comm = createIframeCommunication({
-      debug: true,
+      debug: import.meta.env.DEV,
       allowedOrigins: ['*']
     })
 
