@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, writeBatch } from 'firebase/firestore';
+import { doc, writeBatch, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../firebase/init';
 import { nanoid } from 'nanoid';
 
@@ -80,7 +80,7 @@ export default function SignupPage() {
         adminEmail: email,
         adminPhone: phone,
         adminUid: user.uid,
-        created: new Date(),
+        created: serverTimestamp(),
         plan: selectedPlan || 'starter', // Store the selected plan with default to starter
         pricePerSqm: 0,
         services: [],
@@ -111,7 +111,7 @@ export default function SignupPage() {
         phone,
         companyId,
         role: 'admin',
-        created: new Date(),
+        created: serverTimestamp(),
       });
       
       // Log batch data for debugging
