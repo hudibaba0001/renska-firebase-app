@@ -11,6 +11,8 @@ export const STRIPE_CONFIG = {
       id: 'enterprise',
       name: 'Enterprise',
       priceId: 'price_1RjpglRmgE0PBjX9Nl1Y1dE0',
+      price: 2000,
+      currency: 'SEK',
       features: [
         'Unlimited Booking Forms',
         'Custom Pricing Calculator',
@@ -31,6 +33,8 @@ export const STRIPE_CONFIG = {
       id: 'vaxt',
       name: 'Växt',
       priceId: 'price_1RjpgIRmgE0PBjX9UJ2FFfUL',
+      price: 799,
+      currency: 'SEK',
       features: [
         '3 Booking Forms',
         'Advanced Pricing Calculator',
@@ -50,6 +54,8 @@ export const STRIPE_CONFIG = {
       id: 'starter',
       name: 'Starter',
       priceId: 'price_1RjpfoRmgE0PBjX9y8iPKKoC',
+      price: 349,
+      currency: 'SEK',
       features: [
         '1 Booking Form',
         'Basic Pricing Calculator',
