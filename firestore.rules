@@ -23,11 +23,12 @@ service cloud.firestore {
     }
 
     /**
-     * Checks if the user is an admin of a specific company.
-     * @param companyId The ID of the company to check against.
+     * Checks if the user is the admin of the company by comparing adminUid.
+     * @param companyId The ID of the company document.
      */
     function isCompanyAdmin(companyId) {
-      return isSignedIn() && request.auth.token.adminOf == companyId;
+      let companyDoc = get(/databases/$(database)/documents/companies/$(companyId));
+      return isSignedIn() && companyDoc.data.adminUid == request.auth.uid;
     }
     
     /**

@@ -7,33 +7,30 @@ export const STRIPE_CONFIG = {
   
   // Pricing plans configuration
   plans: {
-    starter: {
-      id: 'starter',
-      name: 'Starter',
-      price: 349,
-      currency: 'SEK',
-      interval: 'month',
-      priceId: import.meta.env.VITE_STRIPE_STARTER_PRICE_ID,
+    enterprise: {
+      id: 'enterprise',
+      name: 'Enterprise',
+      priceId: 'price_1RjpglRmgE0PBjX9Nl1Y1dE0',
       features: [
-        '1 Booking Form',
-        'Basic Pricing Calculator',
-        'Email Notifications',
-        'Up to 50 bookings/month',
-        'Standard Support'
+        'Unlimited Booking Forms',
+        'Custom Pricing Calculator',
+        'Advanced Notifications',
+        'Unlimited bookings',
+        'Dedicated Support',
+        'Custom Integrations',
+        'Advanced Analytics',
+        'API Access'
       ],
       limits: {
-        forms: 1,
-        bookings: 50,
-        customization: 'basic'
+        forms: -1, // unlimited
+        bookings: -1, // unlimited
+        customization: 'full'
       }
     },
     vaxt: {
       id: 'vaxt',
-      name: 'Våxt',
-      price: 799,
-      currency: 'SEK',
-      interval: 'month',
-      priceId: import.meta.env.VITE_STRIPE_VAXT_PRICE_ID,
+      name: 'Växt',
+      priceId: 'price_1RjpgIRmgE0PBjX9UJ2FFfUL',
       features: [
         '3 Booking Forms',
         'Advanced Pricing Calculator',
@@ -49,27 +46,21 @@ export const STRIPE_CONFIG = {
         customization: 'advanced'
       }
     },
-    enterprise: {
-      id: 'enterprise',
-      name: 'Enterprise',
-      price: 2000,
-      currency: 'SEK',
-      interval: 'month',
-      priceId: import.meta.env.VITE_STRIPE_ENTERPRISE_PRICE_ID,
+    starter: {
+      id: 'starter',
+      name: 'Starter',
+      priceId: 'price_1RjpfoRmgE0PBjX9y8iPKKoC',
       features: [
-        'Unlimited Booking Forms',
-        'Custom Pricing Calculator',
-        'Advanced Notifications',
-        'Unlimited bookings',
-        'Dedicated Support',
-        'Custom Integrations',
-        'Advanced Analytics',
-        'API Access'
+        '1 Booking Form',
+        'Basic Pricing Calculator',
+        'Email Notifications',
+        'Up to 50 bookings/month',
+        'Standard Support'
       ],
       limits: {
-        forms: -1, // unlimited
-        bookings: -1, // unlimited
-        customization: 'full'
+        forms: 1,
+        bookings: 50,
+        customization: 'basic'
       }
     }
   }
