@@ -42,9 +42,13 @@ export default function CompanyConfigPage({ companyId: propCompanyId }) {
   const refreshServices = async () => {
     if (!companyId) return;
     try {
-      const services = await getAllServicesForCompany(companyId);
-      setConfig(prev => ({ ...prev, services }));
-    } catch (error) {
+      // Fetch both company config and services
+      const [companyDoc, services] = await Promise.all([
+        getTenant(companyId),
+        getAllServicesForCompany(companyId)
+      ]);
+      setConfig({ ...companyDoc, services }); // This will trigger ConfigForm to update
+    } catch {
       toast.error('Failed to refresh services');
     }
   };

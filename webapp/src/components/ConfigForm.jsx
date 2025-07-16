@@ -28,7 +28,6 @@ import { createService, updateService, deleteService as deleteServiceFromFiresto
 
 // 1. Update the default service structure to support all SwedPrime models and options
 const defaultService = () => ({
-  id: Date.now().toString(),
   name: '',
   pricingModel: 'fixed-tier', // SwedPrime models: fixed-tier, tiered-multiplier, universal, window, hourly, per-room
   tiers: [{ min: 1, max: 50, price: 3000 }], // for fixed-tier and tiered-multiplier
@@ -82,12 +81,13 @@ export default function ConfigForm({ initialConfig, onSave, onChange, refreshSer
 
   useEffect(() => {
     if (initialConfig) {
-      setConfig(prevConfig => ({
-        ...prevConfig,
-        ...initialConfig
-      }))
+      setConfig(config => ({
+        ...config,
+        ...initialConfig,
+        services: initialConfig.services || []
+      }));
     }
-  }, [initialConfig])
+  }, [initialConfig]);
 
   // Validation
   useEffect(() => {
@@ -116,9 +116,6 @@ export default function ConfigForm({ initialConfig, onSave, onChange, refreshSer
     try {
       const newService = defaultService();
       await createService(companyId, newService);
-      if (onChange) {
-        onChange({ ...config });
-      }
       if (typeof refreshServices === 'function') {
         await refreshServices();
       }
@@ -136,8 +133,8 @@ export default function ConfigForm({ initialConfig, onSave, onChange, refreshSer
     }
     try {
       await updateService(companyId, service.id, service);
-      if (onChange) {
-        onChange({ ...config });
+      if (typeof refreshServices === 'function') {
+        await refreshServices();
       }
       toast.success('Service saved!');
     } catch {
@@ -153,8 +150,8 @@ export default function ConfigForm({ initialConfig, onSave, onChange, refreshSer
     }
     try {
       await deleteServiceFromFirestore(companyId, serviceId);
-      if (onChange) {
-        onChange({ ...config });
+      if (typeof refreshServices === 'function') {
+        await refreshServices();
       }
       toast.success('Service deleted');
     } catch {
