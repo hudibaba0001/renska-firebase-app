@@ -88,3 +88,9 @@ npm run dev
 - Firebase hosting setup
 - Automated deployment pipeline
 - Production environment
+
+## Validation Steps
+
+- Test CRUD operations in the UI and verify in Firestore (`companies/{companyId}/services`).
+- Check browser console logs for fetched services after each operation.
+- Ensure no "No document to update" errors appear.

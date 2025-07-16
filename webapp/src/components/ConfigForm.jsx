@@ -233,6 +233,9 @@ export default function ConfigForm({ initialConfig, onSave, onChange, refreshSer
     }))
   }
 
+  // Only show services with a valid Firestore ID
+  const validServices = config.services.filter(s => typeof s.id === 'string' && s.id.length > 0);
+
   return (
     <div className="space-y-6">
       {/* Global Settings */}
@@ -337,8 +340,8 @@ export default function ConfigForm({ initialConfig, onSave, onChange, refreshSer
           </div>
 
           <div className="space-y-4">
-            {/* ROLLBACK: Render each service as a non-collapsible card */}
-            {config.services.map(service => (
+            {/* Only render services with a valid Firestore ID */}
+            {validServices.map(service => (
               <div key={service.id} className="border rounded-lg p-4 mb-6 bg-white shadow relative">
                 <div className="flex items-center justify-between mb-2">
                   <input

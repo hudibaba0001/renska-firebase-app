@@ -7,16 +7,12 @@ import { useAuth } from '../context/AuthContext';
 // Step Components
 import CreateCalculatorStep from '../components/formbuilder/CreateCalculatorStep';
 import DefineServicesStep from '../components/formbuilder/DefineServicesStep';
-import GlobalOptionsStep from '../components/formbuilder/GlobalOptionsStep';
-import FieldOrderingStep from '../components/formbuilder/FieldOrderingStep';
-import PreviewTestStep from '../components/formbuilder/PreviewTestStep';
+import CustomFormStep from '../components/formbuilder/CustomFormStep';
 
 const STEPS = [
   { id: 1, title: 'Create Calculator', component: CreateCalculatorStep },
   { id: 2, title: 'Define Services', component: DefineServicesStep },
-  { id: 3, title: 'Global Options', component: GlobalOptionsStep },
-  { id: 4, title: 'Field Ordering', component: FieldOrderingStep },
-  { id: 5, title: 'Preview & Test', component: PreviewTestStep }
+  { id: 3, title: 'Custom Form', component: CustomFormStep }
 ];
 
 export default function FormBuilderPage() {
