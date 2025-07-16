@@ -19,7 +19,16 @@ function Field({ field, index, onEdit, onDelete }) {
         {field.type === 'checkbox' && <input type="checkbox" className="mt-2" disabled />}
         {field.type === 'date' && <input type="date" className="mt-2 w-full border p-1 rounded" disabled />}
         {field.type === 'time' && <input type="time" className="mt-2 w-full border p-1 rounded" disabled />}
-        {field.type === 'dropdown' && <select className="mt-2 w-full border p-1 rounded" disabled><option>Dropdown</option></select>}
+        {field.type === 'dropdown' && (
+          <select className="mt-2 w-full border p-1 rounded" disabled>
+            {(field.options && field.options.length > 0
+              ? field.options
+              : ['Dropdown']
+            ).map((opt, i) => (
+              <option key={i}>{opt}</option>
+            ))}
+          </select>
+        )}
         {field.type === 'slider' && <input type="range" className="mt-2 w-full" disabled />}
         {field.type === 'divider' && <hr className="my-2" />}
         {/* Add more field types as needed */}
