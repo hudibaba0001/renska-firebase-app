@@ -49,11 +49,18 @@ export const deleteService = async (companyId, serviceId) => {
   }
 };
 
-// Update a service in the 'services' collection by ID
-export const updateService = async (serviceId, serviceData) => {
+// Update a service in the 'services' subcollection for a specific company
+export const updateService = async (companyId, serviceId, serviceData) => {
   try {
-    const serviceDocRef = doc(db, 'services', serviceId);
-    await updateDoc(serviceDocRef, serviceData);
+    // Remove undefined values (e.g., vatRate)
+    const cleanedServiceData = { ...serviceData };
+    Object.keys(cleanedServiceData).forEach(key => {
+      if (cleanedServiceData[key] === undefined) {
+        delete cleanedServiceData[key];
+      }
+    });
+    const serviceDocRef = doc(db, 'companies', companyId, 'services', serviceId);
+    await updateDoc(serviceDocRef, cleanedServiceData);
     return true;
   } catch (error) {
     console.error('Error updating service:', error);

@@ -135,7 +135,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange, refreshSer
       return;
     }
     try {
-      await updateService(service.id, service);
+      await updateService(companyId, service.id, service);
       if (onChange) {
         onChange({ ...config });
       }
