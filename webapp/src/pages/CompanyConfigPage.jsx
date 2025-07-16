@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { getAllServicesForCompany, updateTenant } from '../services/firestore';
+import { getAllServicesForCompany, getTenant, updateTenant } from '../services/firestore';
 import ConfigForm from '../components/ConfigForm';
 import LivePreview from '../components/LivePreview';
 import { Spinner, Alert } from 'flowbite-react';
@@ -22,9 +22,12 @@ export default function CompanyConfigPage({ companyId: propCompanyId }) {
       setLoading(true);
       setError('');
       try {
-        // Use the new service layer function
-        const config = await getAllServicesForCompany(companyId);
-        setConfig(config);
+        // Fetch both company config and services
+        const [companyDoc, services] = await Promise.all([
+          getTenant(companyId),
+          getAllServicesForCompany(companyId)
+        ]);
+        setConfig({ ...companyDoc, services });
       } catch (error) {
         console.error('Error fetching company config:', error);
         setError('Failed to load company configuration');
@@ -34,6 +37,21 @@ export default function CompanyConfigPage({ companyId: propCompanyId }) {
     }
     fetchConfig();
   }, [companyId]);
+
+  // Add this function to refresh services after a new one is added
+  const refreshServices = async () => {
+    if (!companyId) return;
+    try {
+      // Fetch both company config and services
+      const [companyDoc, services] = await Promise.all([
+        getTenant(companyId),
+        getAllServicesForCompany(companyId)
+      ]);
+      setConfig({ ...companyDoc, services }); // This will trigger ConfigForm to update
+    } catch {
+      toast.error('Failed to refresh services');
+    }
+  };
 
   /**
    * Saves the updated configuration using the `updateTenant` service function.
@@ -93,6 +111,7 @@ export default function CompanyConfigPage({ companyId: propCompanyId }) {
             initialConfig={config}
             onSave={handleSave}
             onChange={handleConfigChange}
+            refreshServices={refreshServices}
           />
         </div>
         

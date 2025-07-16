@@ -27,11 +27,13 @@ import {
   ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
 import { doc, getDoc, getFirestore } from 'firebase/firestore';
+import { getAllServicesForCompany } from '../services/firestore';
 
 export default function AdminDashboardPage() {
   const { companyId } = useParams();
   const [loading, setLoading] = useState(true);
   const [isNewCompany, setIsNewCompany] = useState(false);
+  const [services, setServices] = useState([]);
   
   // Demo data for established companies
   const [stats] = useState([
@@ -98,6 +100,9 @@ export default function AdminDashboardPage() {
             setIsNewCompany(creationDate > oneHourAgo);
           }
         }
+        // Fetch services for this company
+        const fetchedServices = await getAllServicesForCompany(companyId);
+        setServices(fetchedServices);
       } catch (error) {
         console.error("Error fetching company data:", error);
       } finally {
@@ -406,6 +411,22 @@ export default function AdminDashboardPage() {
             </Card>
           </div>
         ))}
+      </div>
+
+      <div className="mt-8">
+        <h2 className="text-xl font-bold mb-4">Services</h2>
+        {services.length === 0 ? (
+          <div className="text-gray-500">No services configured yet.</div>
+        ) : (
+          <ul className="space-y-2">
+            {services.map(service => (
+              <li key={service.id} className="border rounded p-3 bg-white shadow">
+                <div className="font-semibold">{service.name || 'Unnamed Service'}</div>
+                <div className="text-gray-600 text-sm">{service.description || 'No description'}</div>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

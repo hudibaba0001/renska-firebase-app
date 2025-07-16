@@ -20,11 +20,16 @@ export const getAllTenants = async () => {
   }
 };
 
-// Create a new service in the 'services' collection for a specific company
+// Create a new service in the 'services' subcollection for a specific company
 export const createService = async (companyId, serviceData) => {
   try {
-    const servicesRef = collection(db, 'services');
-    const docRef = await addDoc(servicesRef, { ...serviceData, companyId });
+    const servicesRef = collection(db, 'companies', companyId, 'services');
+    // Remove vatRate if undefined
+    const cleanedServiceData = { ...serviceData };
+    if (cleanedServiceData.vatRate === undefined) {
+      delete cleanedServiceData.vatRate;
+    }
+    const docRef = await addDoc(servicesRef, cleanedServiceData);
     return docRef.id;
   } catch (error) {
     console.error('Error creating service:', error);
@@ -32,10 +37,10 @@ export const createService = async (companyId, serviceData) => {
   }
 };
 
-// Delete a service from the 'services' collection by ID
-export const deleteService = async (serviceId) => {
+// Delete a service from the 'services' subcollection for a specific company
+export const deleteService = async (companyId, serviceId) => {
   try {
-    const serviceDocRef = doc(db, 'services', serviceId);
+    const serviceDocRef = doc(db, 'companies', companyId, 'services', serviceId);
     await deleteDoc(serviceDocRef);
     return true;
   } catch (error) {
@@ -44,11 +49,18 @@ export const deleteService = async (serviceId) => {
   }
 };
 
-// Update a service in the 'services' collection by ID
-export const updateService = async (serviceId, serviceData) => {
+// Update a service in the 'services' subcollection for a specific company
+export const updateService = async (companyId, serviceId, serviceData) => {
   try {
-    const serviceDocRef = doc(db, 'services', serviceId);
-    await updateDoc(serviceDocRef, serviceData);
+    // Remove undefined values (e.g., vatRate)
+    const cleanedServiceData = { ...serviceData };
+    Object.keys(cleanedServiceData).forEach(key => {
+      if (cleanedServiceData[key] === undefined) {
+        delete cleanedServiceData[key];
+      }
+    });
+    const serviceDocRef = doc(db, 'companies', companyId, 'services', serviceId);
+    await updateDoc(serviceDocRef, cleanedServiceData);
     return true;
   } catch (error) {
     console.error('Error updating service:', error);
@@ -59,13 +71,15 @@ export const updateService = async (serviceId, serviceData) => {
 // Get all services for a specific company (tenant) by companyId
 export const getAllServicesForCompany = async (companyId) => {
   try {
-    const servicesRef = collection(db, 'services');
-    const q = query(servicesRef, where('companyId', '==', companyId), orderBy('createdAt', 'desc'));
+    const servicesRef = collection(db, 'companies', companyId, 'services');
+    // Remove orderBy to fetch all services regardless of createdAt
+    const q = query(servicesRef);
     const snapshot = await getDocs(q);
     const services = [];
     snapshot.forEach(doc => {
       services.push({ id: doc.id, ...doc.data() });
     });
+    console.log('Fetched services:', services);
     return services;
   } catch (error) {
     console.error('Error fetching services for company:', error);

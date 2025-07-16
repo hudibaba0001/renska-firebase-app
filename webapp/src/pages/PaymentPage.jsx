@@ -24,7 +24,7 @@ export default function PaymentPage() {
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState('');
   const [company, setCompany] = useState(null);
-  const { currentUser } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   
   // Get query parameters
   const params = new URLSearchParams(location.search);
@@ -88,15 +88,21 @@ export default function PaymentPage() {
   };
   
   const handlePayment = async () => {
-    if (!companyId || !planId || !company) return;
-    
     setProcessing(true);
     setError('');
+
+    if (!user) {
+      setError('You must be signed in to complete payment. Please log in again.');
+      setProcessing(false);
+      return;
+    }
+
+    if (!companyId || !planId || !company) return;
     
     try {
       // Create a checkout session using the Stripe extension structure
       const checkoutSessionRef = await addDoc(
-        collection(db, `customers/${currentUser.uid}/checkout_sessions`),
+        collection(db, `customers/${user.uid}/checkout_sessions`),
         {
           price: plan.priceId,
           success_url: `${window.location.origin}/admin/${companyId}?payment=success`,
@@ -126,7 +132,7 @@ export default function PaymentPage() {
     }
   };
   
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
         <Spinner size="xl" />

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, writeBatch } from 'firebase/firestore';
+import { doc, writeBatch, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../firebase/init';
 import { nanoid } from 'nanoid';
 
@@ -80,7 +80,7 @@ export default function SignupPage() {
         adminEmail: email,
         adminPhone: phone,
         adminUid: user.uid,
-        created: new Date(),
+        created: serverTimestamp(),
         plan: selectedPlan || 'starter', // Store the selected plan with default to starter
         pricePerSqm: 0,
         services: [],
@@ -111,9 +111,57 @@ export default function SignupPage() {
         phone,
         companyId,
         role: 'admin',
-        created: new Date(),
+        created: serverTimestamp(),
       });
       
+      // Log batch data for debugging
+      console.log('Batch write data:', {
+        company: {
+          id: companyId,
+          data: {
+            companyName,
+            address,
+            orgNumber,
+            adminName,
+            adminEmail: email,
+            adminPhone: phone,
+            adminUid: user.uid,
+            created: new Date(),
+            plan: selectedPlan || 'starter',
+            pricePerSqm: 0,
+            services: [],
+            frequencyMultiplier: {},
+            addOns: {},
+            windowCleaningPrices: {},
+            zipAreas: [],
+            rutEnabled: false,
+            subscriptionStatus: 'pending',
+          }
+        },
+        customer: {
+          id: user.uid,
+          data: {
+            email: email,
+            stripeLink: companyId,
+            metadata: {
+              companyId: companyId,
+              companyName: companyName
+            }
+          }
+        },
+        user: {
+          id: user.uid,
+          data: {
+            name: adminName,
+            email,
+            phone,
+            companyId,
+            role: 'admin',
+            created: new Date(),
+          }
+        }
+      });
+
       try {
         await batch.commit();
         setSuccess('Account created! Redirecting to payment setup...');
