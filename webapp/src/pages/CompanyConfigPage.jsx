@@ -38,6 +38,17 @@ export default function CompanyConfigPage({ companyId: propCompanyId }) {
     fetchConfig();
   }, [companyId]);
 
+  // Add this function to refresh services after a new one is added
+  const refreshServices = async () => {
+    if (!companyId) return;
+    try {
+      const services = await getAllServicesForCompany(companyId);
+      setConfig(prev => ({ ...prev, services }));
+    } catch (error) {
+      toast.error('Failed to refresh services');
+    }
+  };
+
   /**
    * Saves the updated configuration using the `updateTenant` service function.
    * @param {object} newConfig - The complete, updated configuration object.
@@ -96,6 +107,7 @@ export default function CompanyConfigPage({ companyId: propCompanyId }) {
             initialConfig={config}
             onSave={handleSave}
             onChange={handleConfigChange}
+            refreshServices={refreshServices}
           />
         </div>
         

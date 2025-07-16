@@ -61,7 +61,7 @@ const sanitizeConfig = (config) => {
   return config;
 };
 
-export default function ConfigForm({ initialConfig, onSave, onChange }) {
+export default function ConfigForm({ initialConfig, onSave, onChange, refreshServices }) {
   const [config, setConfig] = useState({
     services: [],
     frequencyMultiplier: { weekly: 1, biweekly: 1.15, monthly: 1.4 },
@@ -118,6 +118,9 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
       await createService(companyId, newService);
       if (onChange) {
         onChange({ ...config });
+      }
+      if (typeof refreshServices === 'function') {
+        await refreshServices();
       }
       toast.success('New service added');
     } catch {
