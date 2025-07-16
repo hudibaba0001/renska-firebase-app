@@ -24,6 +24,7 @@ import {
   InformationCircleIcon
 } from '@heroicons/react/24/outline'
 import toast from 'react-hot-toast'
+import { createService, updateService, deleteService as deleteServiceFromFirestore } from '../services/firestore';
 
 // 1. Update the default service structure to support all SwedPrime models and options
 const defaultService = () => ({
@@ -106,30 +107,57 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
   }, [config, onChange])
 
   // Service management
-  const addService = () => {
-    setConfig(prev => ({
-      ...prev,
-      services: [...prev.services, defaultService()]
-    }))
-    toast.success('New service added')
-  }
+  const addService = async () => {
+    const companyId = initialConfig?.id;
+    if (!companyId) {
+      toast.error('Missing company ID');
+      return;
+    }
+    try {
+      const newService = defaultService();
+      await createService(companyId, newService);
+      if (onChange) {
+        onChange({ ...config });
+      }
+      toast.success('New service added');
+    } catch {
+      toast.error('Failed to add service');
+    }
+  };
 
-  const updateService = (serviceId, updates) => {
-    setConfig(prev => ({
-      ...prev,
-      services: prev.services.map(service =>
-        service.id === serviceId ? { ...service, ...updates } : service
-      )
-    }))
-  }
+  const saveService = async (service) => {
+    const companyId = initialConfig?.id;
+    if (!companyId) {
+      toast.error('Missing company ID');
+      return;
+    }
+    try {
+      await updateService(service.id, service);
+      if (onChange) {
+        onChange({ ...config });
+      }
+      toast.success('Service saved!');
+    } catch {
+      toast.error('Failed to save service');
+    }
+  };
 
-  const deleteService = (serviceId) => {
-    setConfig(prev => ({
-      ...prev,
-      services: prev.services.filter(service => service.id !== serviceId)
-    }))
-    toast.success('Service deleted')
-  }
+  const deleteService = async (serviceId) => {
+    const companyId = initialConfig?.id;
+    if (!companyId) {
+      toast.error('Missing company ID');
+      return;
+    }
+    try {
+      await deleteServiceFromFirestore(serviceId);
+      if (onChange) {
+        onChange({ ...config });
+      }
+      toast.success('Service deleted');
+    } catch {
+      toast.error('Failed to delete service');
+    }
+  };
 
   // Add per-service helpers for add-ons, custom fees, and frequency multipliers
   function addAddOn(serviceId) {
@@ -316,7 +344,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
                   <input
                     className="font-bold text-lg flex-1 mr-2 border-b border-gray-200 focus:outline-none"
                     value={service.name}
-                    onChange={e => updateService(service.id, { name: e.target.value })}
+                    onChange={e => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, name: e.target.value } : s) }))}
                     placeholder="Service name"
                   />
                   <button type="button" onClick={() => deleteService(service.id)} className="text-red-500 ml-2">Remove</button>
@@ -326,7 +354,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
                   <label className="block text-sm font-medium">Pricing Model</label>
                   <select
                     value={service.pricingModel}
-                    onChange={e => updateService(service.id, { pricingModel: e.target.value })}
+                    onChange={e => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, pricingModel: e.target.value } : s) }))}
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                   >
                     <option value="fixed-tier">Fixed Tier</option>
@@ -348,7 +376,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
                       </div>
                       <button 
                         type="button" 
-                        onClick={() => updateService(service.id, { tiers: [...service.tiers, { min: 0, max: 0, price: 0 }] })} 
+                        onClick={() => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, tiers: [...s.tiers, { min: 0, max: 0, price: 0 }] } : s) }))} 
                         className="flex items-center px-4 py-2 rounded-full bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium shadow-sm transition"
                       >
                         <PlusIcon className="h-4 w-4 mr-1" /> Add Tier
@@ -365,7 +393,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
                                 <input 
                                   type="number" 
                                   value={tier.min} 
-                                  onChange={e => updateService(service.id, { tiers: service.tiers.map((t, i) => i === tIdx ? { ...t, min: Number(e.target.value) } : t) })} 
+                                  onChange={e => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, tiers: s.tiers.map((t, i) => i === tIdx ? { ...t, min: Number(e.target.value) } : t) } : s) }))} 
                                   className="w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-amber-300 text-gray-900" 
                                 />
                               </div>
@@ -374,7 +402,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
                                 <input 
                                   type="number" 
                                   value={tier.max} 
-                                  onChange={e => updateService(service.id, { tiers: service.tiers.map((t, i) => i === tIdx ? { ...t, max: Number(e.target.value) } : t) })} 
+                                  onChange={e => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, tiers: s.tiers.map((t, i) => i === tIdx ? { ...t, max: Number(e.target.value) } : t) } : s) }))} 
                                   className="w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-amber-300 text-gray-900" 
                                 />
                               </div>
@@ -383,7 +411,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
                                 <input 
                                   type="number" 
                                   value={tier.price} 
-                                  onChange={e => updateService(service.id, { tiers: service.tiers.map((t, i) => i === tIdx ? { ...t, price: Number(e.target.value) } : t) })} 
+                                  onChange={e => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, tiers: s.tiers.map((t, i) => i === tIdx ? { ...t, price: Number(e.target.value) } : t) } : s) }))} 
                                   className="w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-amber-300 text-gray-900" 
                                 />
                               </div>
@@ -391,7 +419,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
                             <div className="ml-4">
                               <button 
                                 type="button" 
-                                onClick={() => updateService(service.id, { tiers: service.tiers.filter((_, i) => i !== tIdx) })} 
+                                onClick={() => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, tiers: s.tiers.filter((_, i) => i !== tIdx) } : s) }))} 
                                 className="text-gray-400 hover:text-red-500 p-1 rounded-full hover:bg-red-50"
                               >
                                 <TrashIcon className="h-5 w-5" />
@@ -409,7 +437,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
                           </div>
                           <button 
                             type="button" 
-                            onClick={() => updateService(service.id, { tiers: [...service.tiers, { min: 0, max: 0, price: 0 }] })} 
+                            onClick={() => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, tiers: [...s.tiers, { min: 0, max: 0, price: 0 }] } : s) }))} 
                             className="mt-2 inline-flex items-center px-4 py-2 rounded-md bg-amber-50 hover:bg-amber-100 text-amber-700 text-sm font-medium"
                           >
                             <PlusIcon className="h-4 w-4 mr-1" /> Add Your First Tier
@@ -431,14 +459,14 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
                     <div className="flex items-center justify-between mb-2">
                       <h3 className="text-lg font-semibold text-gray-900">Universal Rate (kr/sqm)</h3>
                     </div>
-                    <input type="number" value={service.universalRate} onChange={e => updateService(service.id, { universalRate: Number(e.target.value) })} className="w-full border rounded px-2 py-1 focus:ring-2 focus:ring-primary-300" />
+                    <input type="number" value={service.universalRate} onChange={e => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, universalRate: Number(e.target.value) } : s) }))} className="w-full border rounded px-2 py-1 focus:ring-2 focus:ring-primary-300" />
                   </div>
                 ) : null}
                 {service.pricingModel === 'window' ? (
                   <div className="rounded-lg bg-gray-50 p-4 mb-4 border border-gray-200">
                     <div className="flex items-center justify-between mb-2">
                       <h3 className="text-lg font-semibold text-gray-900">Window Types</h3>
-                      <button type="button" onClick={() => updateService(service.id, { windowTypes: [...service.windowTypes, { name: '', price: 0 }] })} className="flex items-center px-4 py-2 rounded bg-primary-600 hover:bg-primary-700 text-black text-sm font-bold shadow-sm transition ml-2">
+                      <button type="button" onClick={() => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, windowTypes: [...s.windowTypes, { name: '', price: 0 }] } : s) }))} className="flex items-center px-4 py-2 rounded bg-primary-600 hover:bg-primary-700 text-black text-sm font-bold shadow-sm transition ml-2">
                         <PlusIcon className="h-4 w-4 mr-1" /> Add Window Type
                       </button>
                     </div>
@@ -453,9 +481,9 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
                       <tbody>
                         {service.windowTypes.map((type, wIdx) => (
                           <tr key={wIdx}>
-                            <td className="border px-3 py-2 text-left align-middle"><input value={type.name} onChange={e => updateService(service.id, { windowTypes: service.windowTypes.map((t, i) => i === wIdx ? { ...t, name: e.target.value } : t) })} className="w-32 border rounded" /></td>
-                            <td className="border px-3 py-2 text-left align-middle"><input type="number" value={type.price} onChange={e => updateService(service.id, { windowTypes: service.windowTypes.map((t, i) => i === wIdx ? { ...t, price: Number(e.target.value) } : t) })} className="w-20 border rounded" /></td>
-                            <td className="border px-3 py-2 text-left align-middle"><button type="button" onClick={() => updateService(service.id, { windowTypes: service.windowTypes.filter((_, i) => i !== wIdx) })} className="text-red-400">Remove</button></td>
+                            <td className="border px-3 py-2 text-left align-middle"><input value={type.name} onChange={e => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, windowTypes: s.windowTypes.map((t, i) => i === wIdx ? { ...t, name: e.target.value } : t) } : s) }))} className="w-32 border rounded" /></td>
+                            <td className="border px-3 py-2 text-left align-middle"><input type="number" value={type.price} onChange={e => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, windowTypes: s.windowTypes.map((t, i) => i === wIdx ? { ...t, price: Number(e.target.value) } : t) } : s) }))} className="w-20 border rounded" /></td>
+                            <td className="border px-3 py-2 text-left align-middle"><button type="button" onClick={() => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, windowTypes: s.windowTypes.filter((_, i) => i !== wIdx) } : s) }))} className="text-red-400">Remove</button></td>
                           </tr>
                         ))}
                       </tbody>
@@ -473,7 +501,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
                       </div>
                       <button 
                         type="button" 
-                        onClick={() => updateService(service.id, { hourlyTiers: [...(service.hourlyTiers || []), { min: 1, max: 50, hours: 3 }] })} 
+                        onClick={() => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, hourlyTiers: [...(s.hourlyTiers || []), { min: 1, max: 50, hours: 3 }] } : s) }))} 
                         className="flex items-center px-4 py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium shadow-sm transition"
                       >
                         <PlusIcon className="h-4 w-4 mr-1" /> Add Tier
@@ -491,7 +519,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
                         <input 
                           type="number" 
                           value={service.hourlyRate || 400} 
-                          onChange={e => updateService(service.id, { hourlyRate: Number(e.target.value) })} 
+                          onChange={e => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, hourlyRate: Number(e.target.value) } : s) }))} 
                           className="w-32 border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-300 focus:border-blue-300 text-lg" 
                         />
                         <span className="ml-2 text-lg font-medium text-gray-700">kr/hour</span>
@@ -514,7 +542,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
                                       onChange={e => {
                                         const newTiers = [...service.hourlyTiers];
                                         newTiers[tIdx] = { ...tier, min: Number(e.target.value) };
-                                        updateService(service.id, { hourlyTiers: newTiers });
+                                        setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, hourlyTiers: newTiers } : s) }));
                                       }} 
                                       className="w-24 border rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-300" 
                                       placeholder="Min" 
@@ -526,7 +554,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
                                       onChange={e => {
                                         const newTiers = [...service.hourlyTiers];
                                         newTiers[tIdx] = { ...tier, max: Number(e.target.value) };
-                                        updateService(service.id, { hourlyTiers: newTiers });
+                                        setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, hourlyTiers: newTiers } : s) }));
                                       }} 
                                       className="w-24 border rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-300" 
                                       placeholder="Max" 
@@ -543,7 +571,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
                                       onChange={e => {
                                         const newTiers = [...service.hourlyTiers];
                                         newTiers[tIdx] = { ...tier, hours: Number(e.target.value) };
-                                        updateService(service.id, { hourlyTiers: newTiers });
+                                        setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, hourlyTiers: newTiers } : s) }));
                                       }} 
                                       className="w-24 border rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-300" 
                                       placeholder="Hours" 
@@ -565,7 +593,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
                                 onClick={() => {
                                   const newTiers = [...service.hourlyTiers];
                                   newTiers.splice(tIdx, 1);
-                                  updateService(service.id, { hourlyTiers: newTiers });
+                                  setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, hourlyTiers: newTiers } : s) }));
                                 }} 
                                 className="text-gray-400 hover:text-red-500 p-1 rounded-full hover:bg-red-50"
                               >
@@ -584,7 +612,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
                           </div>
                           <button 
                             type="button" 
-                            onClick={() => updateService(service.id, { hourlyTiers: [...(service.hourlyTiers || []), { min: 1, max: 50, hours: 3 }] })} 
+                            onClick={() => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, hourlyTiers: [...(s.hourlyTiers || []), { min: 1, max: 50, hours: 3 }] } : s) }))} 
                             className="mt-2 inline-flex items-center px-4 py-2 rounded-md bg-blue-50 hover:bg-blue-100 text-blue-700 text-sm font-medium"
                           >
                             <PlusIcon className="h-4 w-4 mr-1" /> Add Your First Tier
@@ -605,7 +633,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
                   <div className="rounded-lg bg-gray-50 p-4 mb-4 border border-gray-200">
                     <div className="flex items-center justify-between mb-2">
                       <h3 className="text-lg font-semibold text-gray-900">Room Types</h3>
-                      <button type="button" onClick={() => updateService(service.id, { perRoomRates: [...service.perRoomRates, { type: '', price: 0 }] })} className="flex items-center px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 text-red-500 text-sm font-bold shadow-sm transition ml-2">
+                      <button type="button" onClick={() => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, perRoomRates: [...s.perRoomRates, { type: '', price: 0 }] } : s) }))} className="flex items-center px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 text-red-500 text-sm font-bold shadow-sm transition ml-2">
                         <PlusIcon className="h-4 w-4 mr-1" /> Add Room Type
                       </button>
                     </div>
@@ -620,9 +648,9 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
                       <tbody>
                         {service.perRoomRates.map((type, rIdx) => (
                           <tr key={rIdx}>
-                            <td className="border px-3 py-2 text-left align-middle"><input value={type.type} onChange={e => updateService(service.id, { perRoomRates: service.perRoomRates.map((r, i) => i === rIdx ? { ...r, type: e.target.value } : r) })} className="w-32 border rounded" /></td>
-                            <td className="border px-3 py-2 text-left align-middle"><input type="number" value={type.price} onChange={e => updateService(service.id, { perRoomRates: service.perRoomRates.map((r, i) => i === rIdx ? { ...r, price: Number(e.target.value) } : r) })} className="w-20 border rounded" /></td>
-                            <td className="border px-3 py-2 text-left align-middle"><button type="button" onClick={() => updateService(service.id, { perRoomRates: service.perRoomRates.filter((_, i) => i !== rIdx) })} className="text-red-400">Remove</button></td>
+                            <td className="border px-3 py-2 text-left align-middle"><input value={type.type} onChange={e => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, perRoomRates: s.perRoomRates.map((r, i) => i === rIdx ? { ...r, type: e.target.value } : r) } : s) }))} className="w-32 border rounded" /></td>
+                            <td className="border px-3 py-2 text-left align-middle"><input type="number" value={type.price} onChange={e => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, perRoomRates: s.perRoomRates.map((r, i) => i === rIdx ? { ...r, price: Number(e.target.value) } : r) } : s) }))} className="w-20 border rounded" /></td>
+                            <td className="border px-3 py-2 text-left align-middle"><button type="button" onClick={() => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, perRoomRates: s.perRoomRates.filter((_, i) => i !== rIdx) } : s) }))} className="text-red-400">Remove</button></td>
                           </tr>
                         ))}
                       </tbody>
@@ -750,7 +778,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
                           <input
                             type="checkbox"
                             checked={service.frequencyEnabled !== false}
-                            onChange={e => updateService(service.id, { frequencyEnabled: e.target.checked })}
+                            onChange={e => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, frequencyEnabled: e.target.checked } : s) }))}
                             className="sr-only"
                           />
                           <div className={`block w-10 h-6 rounded-full transition ${service.frequencyEnabled !== false ? 'bg-indigo-500' : 'bg-gray-300'}`}></div>
@@ -763,7 +791,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
                       
                       <button 
                         type="button" 
-                        onClick={() => updateService(service.id, { frequencyMultipliers: [...(service.frequencyMultipliers || []), { label: '', multiplier: 1 }] })} 
+                        onClick={() => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, frequencyMultipliers: [...(s.frequencyMultipliers || []), { label: '', multiplier: 1 }] } : s) }))} 
                         className="flex items-center px-4 py-2 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium shadow-sm transition"
                         disabled={service.frequencyEnabled === false}
                       >
@@ -784,7 +812,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
                                   <input
                                     className="w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-indigo-300 text-gray-900"
                                     value={freq.label}
-                                    onChange={e => updateService(service.id, { frequencyMultipliers: service.frequencyMultipliers.map((f, i) => i === fIdx ? { ...f, label: e.target.value } : f) })}
+                                    onChange={e => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, frequencyMultipliers: s.frequencyMultipliers.map((f, i) => i === fIdx ? { ...f, label: e.target.value } : f) } : s) }))}
                                     placeholder="e.g., Weekly, Monthly"
                                   />
                                 </div>
@@ -796,7 +824,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
                                       step="0.01"
                                       className="w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-indigo-300 text-gray-900"
                                       value={freq.multiplier}
-                                      onChange={e => updateService(service.id, { frequencyMultipliers: service.frequencyMultipliers.map((f, i) => i === fIdx ? { ...f, multiplier: Number(e.target.value) } : f) })}
+                                      onChange={e => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, frequencyMultipliers: s.frequencyMultipliers.map((f, i) => i === fIdx ? { ...f, multiplier: Number(e.target.value) } : f) } : s) }))}
                                       placeholder="1.0"
                                     />
                                     <span className="ml-2 text-sm text-gray-500">×</span>
@@ -806,7 +834,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
                               <div className="ml-4">
                                 <button 
                                   type="button" 
-                                  onClick={() => updateService(service.id, { frequencyMultipliers: service.frequencyMultipliers.filter((_, i) => i !== fIdx) })} 
+                                  onClick={() => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, frequencyMultipliers: s.frequencyMultipliers.filter((_, i) => i !== fIdx) } : s) }))} 
                                   className="text-gray-400 hover:text-red-500 p-1 rounded-full hover:bg-red-50"
                                 >
                                   <TrashIcon className="h-5 w-5" />
@@ -823,7 +851,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
                           </div>
                           <button 
                             type="button" 
-                            onClick={() => updateService(service.id, { frequencyMultipliers: [...(service.frequencyMultipliers || []), { label: '', multiplier: 1 }] })} 
+                            onClick={() => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, frequencyMultipliers: [...(s.frequencyMultipliers || []), { label: '', multiplier: 1 }] } : s) }))} 
                             className="mt-2 inline-flex items-center px-4 py-2 rounded-md bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-sm font-medium"
                           >
                             <PlusIcon className="h-4 w-4 mr-1" /> Add Your First Option
@@ -865,7 +893,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
                             <input
                               type="checkbox"
                               checked={service.rutEligible}
-                              onChange={e => updateService(service.id, { rutEligible: e.target.checked })}
+                              onChange={e => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, rutEligible: e.target.checked } : s) }))}
                               className="sr-only"
                             />
                             <div className={`block w-12 h-6 rounded-full transition ${service.rutEligible ? 'bg-sky-500' : 'bg-gray-300'}`}></div>
@@ -1013,7 +1041,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
                     max="100"
                     step="0.1"
                     value={service.vatRate ?? ''}
-                    onChange={e => updateService(service.id, { vatRate: e.target.value ? Number(e.target.value) : undefined })}
+                    onChange={e => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, vatRate: e.target.value ? Number(e.target.value) : undefined } : s) }))}
                     className="mt-1 block w-24 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm text-gray-900"
                     placeholder={`Default: ${config.vatRate}%`}
                   />
@@ -1038,7 +1066,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
                           min="0"
                           step="1"
                           value={service.minPrice ?? ''}
-                          onChange={e => updateService(service.id, { minPrice: e.target.value ? Number(e.target.value) : undefined })}
+                          onChange={e => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, minPrice: e.target.value ? Number(e.target.value) : undefined } : s) }))}
                           className="w-32 border rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-300 focus:border-amber-300 text-lg"
                           placeholder="0"
                         />
@@ -1067,17 +1095,10 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
                       setSaving(true);
                       setMessage('');
                       try {
-                        // Save only this service (update config with just this service updated)
-                        const updatedConfig = {
-                          ...config,
-                          services: config.services.map(s => s.id === service.id ? service : s)
-                        };
-                        await onSave(sanitizeConfig(updatedConfig));
+                        await saveService(service);
                         setMessage('Service saved successfully!');
-                        toast.success('Service saved!');
                       } catch (error) {
                         setMessage('Failed to save service: ' + error.message);
-                        toast.error('Failed to save service');
                       } finally {
                         setSaving(false);
                       }

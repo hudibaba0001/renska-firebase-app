@@ -24,7 +24,12 @@ export const getAllTenants = async () => {
 export const createService = async (companyId, serviceData) => {
   try {
     const servicesRef = collection(db, 'companies', companyId, 'services');
-    const docRef = await addDoc(servicesRef, { ...serviceData });
+    // Remove vatRate if undefined
+    const cleanedServiceData = { ...serviceData };
+    if (cleanedServiceData.vatRate === undefined) {
+      delete cleanedServiceData.vatRate;
+    }
+    const docRef = await addDoc(servicesRef, cleanedServiceData);
     return docRef.id;
   } catch (error) {
     console.error('Error creating service:', error);
