@@ -64,7 +64,8 @@ export default function FormBuilderDragDrop() {
             ...f,
             label: editingField.label,
             placeholder: editingField.placeholder,
-            ...(editingField.type === 'dropdown' ? { options: editingField.options || [] } : {})
+            ...(editingField.type === 'dropdown' ? { options: editingField.options || [] } : {}),
+            ...(editingField.type === 'slider' ? { min: editingField.min ?? 0, max: editingField.max ?? 100 } : {})
           }
         : f
     ));
@@ -78,6 +79,32 @@ export default function FormBuilderDragDrop() {
   const handleDeleteField = (index) => {
     setFields(prev => prev.filter((_, i) => i !== index));
   };
+
+  // Mock services and options for preview
+  const mockServices = [
+    {
+      id: 'service1',
+      name: 'Hemstädning',
+      addOns: [
+        { id: 'oven', label: 'Ugnsrengöring', price: 500 },
+        { id: 'balcony', label: 'Balkong', price: 300 }
+      ],
+      windowCleaning: [
+        { id: 'small', label: 'Litet fönster', price: 100 },
+        { id: 'large', label: 'Stort fönster', price: 200 }
+      ]
+    },
+    {
+      id: 'service2',
+      name: 'Storstädning',
+      addOns: [
+        { id: 'fridge', label: 'Kylskåpsrengöring', price: 400 }
+      ],
+      windowCleaning: []
+    }
+  ];
+  const [selectedServiceId, setSelectedServiceId] = useState(mockServices[0].id);
+  const selectedService = mockServices.find(s => s.id === selectedServiceId);
 
   return (
     <div className="flex flex-col h-[80vh]">
@@ -107,6 +134,25 @@ export default function FormBuilderDragDrop() {
                   placeholder="Field placeholder (optional)"
                   disabled={editingField.type === 'checkbox' || editingField.type === 'divider'}
                 />
+                {/* Slider min/max editing */}
+                {editingField.type === 'slider' && (
+                  <div className="flex gap-4">
+                    <TextInput
+                      name="min"
+                      label="Min Value"
+                      type="number"
+                      value={editingField.min ?? 0}
+                      onChange={e => setEditingField(prev => ({ ...prev, min: Number(e.target.value) }))}
+                    />
+                    <TextInput
+                      name="max"
+                      label="Max Value"
+                      type="number"
+                      value={editingField.max ?? 100}
+                      onChange={e => setEditingField(prev => ({ ...prev, max: Number(e.target.value) }))}
+                    />
+                  </div>
+                )}
                 {/* Dropdown options editing */}
                 {editingField.type === 'dropdown' && (
                   <div>
@@ -139,6 +185,19 @@ export default function FormBuilderDragDrop() {
       {/* Live form preview */}
       <div className="mt-8 p-6 bg-white rounded shadow max-w-xl mx-auto">
         <h3 className="text-lg font-semibold mb-4">Live Form Preview</h3>
+        {/* Mock service selector */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium mb-1">Tjänst</label>
+          <select
+            className="w-full border p-2 rounded"
+            value={selectedServiceId}
+            onChange={e => setSelectedServiceId(e.target.value)}
+          >
+            {mockServices.map(s => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </select>
+        </div>
         <form className="space-y-4">
           {fields.map((field) => (
             <div key={field.id}>
@@ -168,12 +227,46 @@ export default function FormBuilderDragDrop() {
                 </select>
               )}
               {field.type === 'slider' && (
-                <input type="range" className="w-full" disabled />
+                <input type="range" className="w-full" min={field.min || 0} max={field.max || 100} disabled />
               )}
               {field.type === 'divider' && <hr className="my-4" />}
+              {field.type === 'group' && (
+                <div className="border rounded p-3 mb-4 bg-gray-50">
+                  <div className="font-semibold mb-2">{field.label || 'Group'}</div>
+                  <div className="text-gray-400 italic">(Group fields not yet implemented)</div>
+                </div>
+              )}
               {/* Add more field types as needed */}
             </div>
           ))}
+          {/* Mock add-ons */}
+          {selectedService && selectedService.addOns.length > 0 && (
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-1">Tilläggstjänster</label>
+              <div className="space-y-2">
+                {selectedService.addOns.map(addOn => (
+                  <label key={addOn.id} className="flex items-center gap-2">
+                    <input type="checkbox" disabled />
+                    <span>{addOn.label} (+{addOn.price} kr)</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+          {/* Mock window cleaning */}
+          {selectedService && selectedService.windowCleaning.length > 0 && (
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-1">Fönsterputsning</label>
+              <div className="space-y-2">
+                {selectedService.windowCleaning.map(win => (
+                  <label key={win.id} className="flex items-center gap-2">
+                    <input type="number" min="0" className="w-16 border rounded p-1" placeholder="Antal" disabled />
+                    <span>{win.label} ({win.price} kr/st)</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
           <button type="button" className="w-full bg-blue-600 text-white py-2 rounded" disabled>Submit</button>
         </form>
       </div>
