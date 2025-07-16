@@ -152,7 +152,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange, refreshSer
       return;
     }
     try {
-      await deleteServiceFromFirestore(serviceId);
+      await deleteServiceFromFirestore(companyId, serviceId);
       if (onChange) {
         onChange({ ...config });
       }

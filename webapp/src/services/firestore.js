@@ -37,10 +37,10 @@ export const createService = async (companyId, serviceData) => {
   }
 };
 
-// Delete a service from the 'services' collection by ID
-export const deleteService = async (serviceId) => {
+// Delete a service from the 'services' subcollection for a specific company
+export const deleteService = async (companyId, serviceId) => {
   try {
-    const serviceDocRef = doc(db, 'services', serviceId);
+    const serviceDocRef = doc(db, 'companies', companyId, 'services', serviceId);
     await deleteDoc(serviceDocRef);
     return true;
   } catch (error) {
