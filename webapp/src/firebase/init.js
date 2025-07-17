@@ -36,7 +36,7 @@ if (missing.length) {
 
 console.log("🔧 firebaseConfig:", firebaseConfig);
 
-const app = initializeApp(firebaseConfig);
+export const app = initializeApp(firebaseConfig);
 
 try {
   getAnalytics(app);

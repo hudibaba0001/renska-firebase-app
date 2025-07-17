@@ -39,7 +39,8 @@ import {
   ArrowRightOnRectangleIcon,
   UserIcon,
   BuildingOfficeIcon,
-  QuestionMarkCircleIcon
+  QuestionMarkCircleIcon,
+  BanknotesIcon
 } from '@heroicons/react/24/outline'
 import { AnimatePresence } from 'framer-motion'
 import toast, { Toaster } from 'react-hot-toast'
@@ -133,6 +134,8 @@ export default function AdminDashboardLayout() {
       items.push({ label: 'Form Builder', href: `/admin/${companyId}/forms` })
     } else if (pathSegments.includes('customers')) {
       items.push({ label: 'Customers', href: `/admin/${companyId}/customers` })
+    } else if (pathSegments.includes('payment-settings')) {
+      items.push({ label: 'Payment Settings', href: `/admin/${companyId}/payment-settings` })
     }
     
     return items
@@ -146,6 +149,7 @@ export default function AdminDashboardLayout() {
     if (path.includes('/billing')) return 'Billing & Subscriptions'
     if (path.includes('/customers')) return 'Customer Management'
     if (path.includes('/forms')) return 'Form Builder'
+    if (path.includes('/payment-settings')) return 'Payment Settings'
     return 'Dashboard Overview'
   }
 
@@ -227,6 +231,13 @@ export default function AdminDashboardLayout() {
       icon: CogIcon,
       badge: null,
       description: 'Configuration and settings'
+    },
+    {
+      label: 'Payment Settings',
+      href: `/admin/${companyId}/payment-settings`,
+      icon: BanknotesIcon,
+      badge: null,
+      description: 'Configure payment providers'
     },
     {
       label: 'Billing',
