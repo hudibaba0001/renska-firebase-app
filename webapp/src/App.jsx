@@ -45,8 +45,8 @@ export default function App() {
         </Route>
 
         {/* Booking Routes (Public) */}
-        <Route path="/booking/reniska" element={<BookingPage />} />
         <Route path="/booking/:companyId/:formSlug" element={<BookingPage />} />
+        <Route path="/booking/:companyId" element={<BookingPage />} />
 
         {/* Super-Admin Routes */}
         <Route

@@ -80,6 +80,11 @@ export default function ConfigForm({ initialConfig, onSave, onChange, refreshSer
   const [showAddOnModal, setShowAddOnModal] = useState(false)
   const [newAddOnName, setNewAddOnName] = useState('')
   const [expandedServiceId, setExpandedServiceId] = useState(null)
+  const [expandedSections, setExpandedSections] = useState({
+    rut: true,
+    zip: true,
+    vat: true
+  });
   
   // Function to toggle service expansion
   const toggleService = (serviceId) => {
@@ -89,6 +94,14 @@ export default function ConfigForm({ initialConfig, onSave, onChange, refreshSer
   // Function to check if a service is expanded
   const isServiceExpanded = (serviceId) => {
     return expandedServiceId === serviceId;
+  };
+
+  // Function to toggle section expansion
+  const toggleSection = (section) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
   };
 
   useEffect(() => {
@@ -253,79 +266,142 @@ export default function ConfigForm({ initialConfig, onSave, onChange, refreshSer
       {/* Global Settings */}
       <div className="rounded-lg bg-gray-50 p-6 mb-8 border border-gray-200">
         <h2 className="text-2xl font-bold mb-4 text-gray-900">Global Settings</h2>
-
+        
+        <>
           {/* RUT Discount Settings */}
-         <div className="mb-6">
-           <h3 className="text-lg font-semibold mb-3">RUT Discount Settings</h3>
-              <div className="space-y-4">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="rut-enabled"
-                    checked={config.rutEnabled}
-                    onChange={(e) => setConfig(prev => ({ ...prev, rutEnabled: e.target.checked }))}
-                  />
-                  <Label htmlFor="rut-enabled">Enable RUT Discount</Label>
+          <div className="mb-6 border rounded-lg bg-white shadow-sm">
+            <div 
+              className="p-4 cursor-pointer bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 transition-all duration-200 border-b border-gray-200"
+              onClick={() => toggleSection('rut')}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="flex items-center justify-center w-8 h-8 bg-blue-100 rounded-full">
+                    <ChevronDownIcon
+                      className={`h-4 w-4 text-blue-600 transform transition-transform duration-300 ${expandedSections.rut ? 'rotate-180' : ''}`}
+                    />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900">RUT Discount Settings</h3>
                 </div>
-                
-                {config.rutEnabled && (
-                  <>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <div className="mb-2 block">
-                          <Label htmlFor="rut-percentage" value={`RUT Discount (${Math.round(config.rutPercentage * 100)}%)`} />
+              </div>
+            </div>
+            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${expandedSections.rut ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0'}`}>
+              {expandedSections.rut && (
+                <div className="p-4 space-y-4">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="rut-enabled"
+                      checked={config.rutEnabled}
+                      onChange={(e) => setConfig(prev => ({ ...prev, rutEnabled: e.target.checked }))}
+                    />
+                    <Label htmlFor="rut-enabled">Enable RUT Discount</Label>
+                  </div>
+                  
+                  {config.rutEnabled && (
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <div className="mb-2 block">
+                            <Label htmlFor="rut-percentage" value={`RUT Discount (${Math.round(config.rutPercentage * 100)}%)`} />
+                          </div>
+                          <TextInput
+                            id="rut-percentage"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            max="1"
+                            value={config.rutPercentage}
+                            onChange={(e) => setConfig(prev => ({ ...prev, rutPercentage: parseFloat(e.target.value) || 0 }))}
+                            className="text-gray-900"
+                          />
                         </div>
-                        <TextInput
-                          id="rut-percentage"
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          max="1"
-                          value={config.rutPercentage}
-                          onChange={(e) => setConfig(prev => ({ ...prev, rutPercentage: parseFloat(e.target.value) || 0 }))}
-                          className="text-gray-900"
-                        />
                       </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-          {/* Eligible ZIP Codes */}
-         <div className="mb-6">
-           <h3 className="text-lg font-semibold mb-3">Eligible ZIP Codes</h3>
-              <div className="rounded-lg bg-gray-50 p-4 mb-4 border border-gray-200">
-                <div className="mb-2 block">
-                  <Label htmlFor="zip-areas" value="Eligible ZIP Codes" />
+                    </>
+                  )}
                 </div>
-                <TextInput
-                  id="zip-areas"
-                  value={config.zipAreas.join(', ')}
-                  onChange={(e) => updateZipAreas(e.target.value)}
-                  placeholder="41107, 41121, 41254"
-                  icon={MapIcon}
-                  className="text-gray-900"
-                />
-              </div>
+              )}
             </div>
-          {/* VAT Rate */}
-         <div className="mb-6">
-           <h3 className="text-lg font-semibold mb-3">VAT Rate (%)</h3>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700">VAT Rate (%)</label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="0.1"
-                  value={config.vatRate || ''}
-                  onChange={e => setConfig(c => ({ ...c, vatRate: Number(e.target.value) }))}
-                  className="mt-1 block w-32 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                />
-                <div className="flex items-center mt-1 text-xs text-gray-500"><InformationCircleIcon className="h-4 w-4 mr-1" /> VAT will apply to service, add-ons, and custom fees.</div>
-              </div>
-            
           </div>
 
+          {/* Eligible ZIP Codes */}
+          <div className="mb-6 border rounded-lg bg-white shadow-sm">
+            <div 
+              className="p-4 cursor-pointer bg-gradient-to-r from-green-50 to-emerald-50 hover:from-green-100 hover:to-emerald-100 transition-all duration-200 border-b border-gray-200"
+              onClick={() => toggleSection('zip')}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-full">
+                    <ChevronDownIcon
+                      className={`h-4 w-4 text-green-600 transform transition-transform duration-300 ${expandedSections.zip ? 'rotate-180' : ''}`}
+                    />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900">Eligible ZIP Codes</h3>
+                </div>
+              </div>
+            </div>
+            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${expandedSections.zip ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0'}`}>
+              {expandedSections.zip && (
+                <div className="p-4">
+                  <div className="rounded-lg bg-gray-50 p-4 mb-4 border border-gray-200">
+                    <div className="mb-2 block">
+                      <Label htmlFor="zip-areas" value="Eligible ZIP Codes" />
+                    </div>
+                    <TextInput
+                      id="zip-areas"
+                      value={config.zipAreas.join(', ')}
+                      onChange={(e) => updateZipAreas(e.target.value)}
+                      placeholder="41107, 41121, 41254"
+                      icon={MapIcon}
+                      className="text-gray-900"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* VAT Rate */}
+          <div className="mb-6 border rounded-lg bg-white shadow-sm">
+            <div 
+              className="p-4 cursor-pointer bg-gradient-to-r from-purple-50 to-violet-50 hover:from-purple-100 hover:to-violet-100 transition-all duration-200 border-b border-gray-200"
+              onClick={() => toggleSection('vat')}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="flex items-center justify-center w-8 h-8 bg-purple-100 rounded-full">
+                    <ChevronDownIcon
+                      className={`h-4 w-4 text-purple-600 transform transition-transform duration-300 ${expandedSections.vat ? 'rotate-180' : ''}`}
+                    />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900">VAT Rate (%)</h3>
+                </div>
+              </div>
+            </div>
+            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${expandedSections.vat ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0'}`}>
+              {expandedSections.vat && (
+                <div className="p-4">
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700">VAT Rate (%)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.1"
+                      value={config.vatRate || ''}
+                      onChange={e => setConfig(c => ({ ...c, vatRate: Number(e.target.value) }))}
+                      className="mt-1 block w-32 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    />
+                    <div className="flex items-center mt-1 text-xs text-gray-500">
+                      <InformationCircleIcon className="h-4 w-4 mr-1" /> 
+                      VAT will apply to service, add-ons, and custom fees.
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </>
       </div>
 
       {/* Services Section */}
