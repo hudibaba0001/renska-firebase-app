@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { db } from '../firebase/init';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import {
   Card,
@@ -119,7 +119,7 @@ export default function AdminPaymentSettings() {
       />
       {error && <Alert color="failure" onDismiss={() => setError('')} className="mb-4">{error}</Alert>}
       
-      <Card className="max-w-2xl">
+      <Card>
         <div className="space-y-6">
           <div>
             <Label htmlFor="paymentMode" className="text-lg font-semibold">Betalningssätt</Label>

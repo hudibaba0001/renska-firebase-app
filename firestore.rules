@@ -44,8 +44,7 @@ service cloud.firestore {
     // ============================================================================
 
     match /users/{userId} {
-      // TEMPORARY: Allow all users to read any user profile for debugging.
-      allow read: if true;
+      allow read: if isOwner(userId) || isSuperAdmin();
       // Allow a user to create their own profile.
       allow create: if isOwner(userId);
       // Allow a user to update their own profile, but not grant themselves special permissions.
@@ -59,8 +58,7 @@ service cloud.firestore {
     // ============================================================================
     
     match /companies/{companyId} {
-      // TEMPORARY: Allow all users to read any company document for debugging.
-      allow get: if true;
+      allow get: if isSuperAdmin() || isCompanyAdmin(companyId) || (resource != null && resource.data.isPublic == true) || (resource == null && isSignedIn());
 
       // Only allow super admins to list all companies.
       allow list: if isSuperAdmin();
@@ -94,6 +92,11 @@ service cloud.firestore {
                          request.resource.data.totalPrice is number &&
                          request.resource.data.totalPrice >= 0 &&
                          request.resource.data.status == 'pending';
+      }
+      
+      // --- NESTED: PAYMENTCONFIG SUBCOLLECTION ---
+      match /paymentConfig/{configId} {
+        allow read, write: if isCompanyAdmin(companyId);
       }
     }
     
