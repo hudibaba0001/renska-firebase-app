@@ -95,6 +95,11 @@ service cloud.firestore {
                          request.resource.data.totalPrice >= 0 &&
                          request.resource.data.status == 'pending';
       }
+      
+      // --- NESTED: PAYMENT CONFIG SUBCOLLECTION ---
+      match /paymentConfig/{configId} {
+        allow read, write: if isSuperAdmin() || isCompanyAdmin(companyId);
+      }
     }
     
     // ============================================================================

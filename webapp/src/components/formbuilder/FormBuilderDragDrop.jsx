@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import FieldPalette from './FieldPalette';
 import FormCanvas from './FormCanvas';
 import { DndContext, useSensor, useSensors, PointerSensor } from '@dnd-kit/core';
-import { Modal, TextInput, Button } from 'flowbite-react';
+import { Modal, Button, TextInput } from 'flowbite-react';
 
 function generateField(type) {
   // Generate a new field object with a unique ID and sensible defaults
