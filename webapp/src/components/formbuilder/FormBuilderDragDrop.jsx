@@ -1,105 +1,134 @@
-import React, { useState } from 'react';
-import FieldPalette from './FieldPalette';
-import FormCanvas from './FormCanvas';
-import { DndContext, useSensor, useSensors, PointerSensor } from '@dnd-kit/core';
-import Modal from 'flowbite-react/lib/Modal';
-import Button from 'flowbite-react/lib/Button';
-import TextInput from 'flowbite-react/lib/TextInput';
+import React, { useState, useEffect } from 'react';
 
 function generateField(type) {
-  // Generate a new field object with a unique ID and sensible defaults
-  if (type === 'gdpr') {
-    return {
-      id: `gdpr_${Date.now()}_${Math.floor(Math.random() * 10000)}`,
-      type: 'gdpr',
-      label: 'I consent to GDPR and accept the privacy policy and terms.',
-      privacyPolicyUrl: '',
-      termsUrl: '',
-      required: true,
-    };
-  }
-  if (type === 'zipCode') {
-    return {
-      id: `zipCode_${Date.now()}_${Math.floor(Math.random() * 10000)}`,
-      type: 'zipCode',
-      label: 'ZIP Code',
-      placeholder: 'Enter ZIP code',
-      allowedZips: [],
-    };
-  }
-  if (type === 'serviceSelector') {
-    return {
-      id: `serviceSelector_${Date.now()}_${Math.floor(Math.random() * 10000)}`,
-      type: 'serviceSelector',
-      label: 'Service',
-      placeholder: 'Select service',
-    };
-  }
   return {
     id: `${type}_${Date.now()}_${Math.floor(Math.random() * 10000)}`,
     type,
     label: type.charAt(0).toUpperCase() + type.slice(1),
-    // Add more default properties as needed
+    placeholder: type === 'text' ? 'Enter text' : '',
+    required: false,
+    validation: null, // null, 'email', 'phone', 'personal_number', 'custom'
+    validationPattern: '', // custom regex pattern
+    validationMessage: '', // custom error message
+    ...(type === 'dropdown' && { options: ['Option 1', 'Option 2'] }),
+    ...(type === 'time_slots' && { 
+      timeSlots: [
+        { id: 'slot1', time: '08:00', label: '8:00 AM' },
+        { id: 'slot2', time: '13:00', label: '1:00 PM' }
+      ]
+    }),
+    ...(type === 'slider' && { min: 0, max: 100 }),
+    ...(type === 'gdpr' && { 
+      privacyPolicyUrl: '', 
+      termsUrl: '', 
+      required: true,
+      label: 'I consent to GDPR and accept the privacy policy and terms.'
+    }),
   };
 }
 
-export default function FormBuilderDragDrop() {
-  const [fields, setFields] = useState([]);
-  // eslint-disable-next-line no-unused-vars
-  const [editingField, setEditingField] = useState(null); // Track which field is being edited
-  const sensors = useSensors(useSensor(PointerSensor));
+export default function FormBuilderDragDrop({ config, updateConfig }) {
+  const [fields, setFields] = useState(config.customFields || []);
+  const [editingField, setEditingField] = useState(null);
+  const [showAddMenu, setShowAddMenu] = useState(false);
 
-  const handleDragEnd = (event) => {
-    const { active, over } = event;
-    // If dropped from palette (sidebar) to canvas, add new field
-    if (active.data?.current?.fromPalette && over?.id === 'canvas') {
-      setFields(prev => [...prev, generateField(active.id)]);
+  // Sync fields with config when it changes
+  useEffect(() => {
+    if (config.customFields && JSON.stringify(config.customFields) !== JSON.stringify(fields)) {
+      setFields(config.customFields);
+    }
+  }, [config.customFields]);
+
+  const fieldTypes = [
+    { type: 'text', label: 'Text Input', icon: '📝' },
+    { type: 'checkbox', label: 'Checkbox', icon: '☑️' },
+    { type: 'date', label: 'Date Picker', icon: '📅' },
+    { type: 'time', label: 'Time Picker', icon: '⏰' },
+    { type: 'time_slots', label: 'Time Slots', icon: '🕐' },
+    { type: 'dropdown', label: 'Dropdown', icon: '📋' },
+    { type: 'slider', label: 'Slider', icon: '🎚️' },
+    { type: 'gdpr', label: 'GDPR Consent', icon: '🔒' },
+    { type: 'divider', label: 'Divider', icon: '➖' },
+  ];
+
+  const validationTypes = [
+    { value: null, label: 'No validation' },
+    { value: 'email', label: 'Email address' },
+    { value: 'phone', label: 'Phone number (+46 or 07)' },
+    { value: 'personal_number', label: 'Personal number (12 digits)' },
+    { value: 'zip_code', label: 'ZIP code (5 digits)' },
+    { value: 'custom', label: 'Custom pattern' },
+  ];
+
+  const getValidationPattern = (type) => {
+    switch (type) {
+      case 'email':
+        return '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$';
+      case 'phone':
+        return '^(\\+46|0)[0-9]{8,9}$';
+      case 'personal_number':
+        return '^[0-9]{12}$';
+      case 'zip_code':
+        return '^[0-9]{5}$';
+      default:
+        return '';
     }
   };
 
+  const getValidationMessage = (type) => {
+    switch (type) {
+      case 'email':
+        return 'Please enter a valid email address';
+      case 'phone':
+        return 'Please enter a valid phone number (+46 or 07 followed by 8-9 digits)';
+      case 'personal_number':
+        return 'Please enter a 12-digit personal number';
+      case 'zip_code':
+        return 'Please enter a 5-digit ZIP code';
+      default:
+        return 'Please enter a valid value';
+    }
+  };
+
+  const formatTimeLabel = (time) => {
+    const [hours, minutes] = time.split(':');
+    const ampm = parseInt(hours) >= 12 ? 'PM' : 'AM';
+    const displayHours = parseInt(hours) % 12 || 12;
+    return `${displayHours}:${minutes} ${ampm}`;
+  };
+
+  const handleAddField = (type) => {
+    const newField = generateField(type);
+    const newFields = [...fields, newField];
+    setFields(newFields);
+    updateConfig({ customFields: newFields });
+    setShowAddMenu(false);
+  };
+
   const handleEditField = (field) => {
-    setEditingField({ ...field }); // Only store the field, not the index
+    setEditingField({ ...field });
   };
 
   const handleEditFieldChange = (e) => {
     const { name, value } = e.target;
-    setEditingField((prev) => ({ ...prev, [name]: value }));
+    setEditingField(prev => ({ ...prev, [name]: value }));
   };
 
-  // Dropdown options logic
-  const handleDropdownOptionChange = (idx, value) => {
-    setEditingField((prev) => ({
+  const handleValidationChange = (validationType) => {
+    setEditingField(prev => ({
       ...prev,
-      options: prev.options?.map((opt, i) => i === idx ? value : opt) || []
-    }));
-  };
-  const handleAddDropdownOption = () => {
-    setEditingField((prev) => ({
-      ...prev,
-      options: [...(prev.options || []), '']
-    }));
-  };
-  const handleRemoveDropdownOption = (idx) => {
-    setEditingField((prev) => ({
-      ...prev,
-      options: prev.options?.filter((_, i) => i !== idx) || []
+      validation: validationType,
+      validationPattern: validationType ? getValidationPattern(validationType) : '',
+      validationMessage: validationType ? getValidationMessage(validationType) : '',
     }));
   };
 
   const handleEditFieldSave = () => {
-    setFields((prev) => prev.map((f) =>
-      f.id === editingField.id
-        ? {
-            ...f,
-            label: editingField.label,
-            placeholder: editingField.placeholder,
-            ...(editingField.type === 'dropdown' ? { options: editingField.options || [] } : {}),
-            ...(editingField.type === 'slider' ? { min: editingField.min ?? 0, max: editingField.max ?? 100 } : {}),
-            ...(editingField.type === 'zipCode' ? { allowedZips: editingField.allowedZips || [] } : {}),
-            ...(editingField.type === 'gdpr' ? { privacyPolicyUrl: editingField.privacyPolicyUrl || '', termsUrl: editingField.termsUrl || '', required: true } : {})
-          }
-        : f
-    ));
+    const updatedFields = fields.map(f => 
+      f.id === editingField.id ? editingField : f
+    );
+    setFields(updatedFields);
+    updateConfig({ customFields: updatedFields });
     setEditingField(null);
   };
 
@@ -107,146 +136,459 @@ export default function FormBuilderDragDrop() {
     setEditingField(null);
   };
 
-  const handleDeleteField = (index) => {
-    setFields(prev => prev.filter((_, i) => i !== index));
+  const handleDeleteField = (fieldId) => {
+    const updatedFields = fields.filter(f => f.id !== fieldId);
+    setFields(updatedFields);
+    updateConfig({ customFields: updatedFields });
   };
 
-  // Mock services and options for preview
-  const mockServices = [
-    {
-      id: 'service1',
-      name: 'Hemstädning',
-      addOns: [
-        { id: 'oven', label: 'Ugnsrengöring', price: 500 },
-        { id: 'balcony', label: 'Balkong', price: 300 }
-      ],
-      windowCleaning: [
-        { id: 'small', label: 'Litet fönster', price: 100 },
-        { id: 'large', label: 'Stort fönster', price: 200 }
-      ]
-    },
-    {
-      id: 'service2',
-      name: 'Storstädning',
-      addOns: [
-        { id: 'fridge', label: 'Kylskåpsrengöring', price: 400 }
-      ],
-      windowCleaning: []
+  const moveField = (fieldId, direction) => {
+    const index = fields.findIndex(f => f.id === fieldId);
+    if (index === -1) return;
+    
+    const newFields = [...fields];
+    if (direction === 'up' && index > 0) {
+      [newFields[index], newFields[index - 1]] = [newFields[index - 1], newFields[index]];
+    } else if (direction === 'down' && index < newFields.length - 1) {
+      [newFields[index], newFields[index + 1]] = [newFields[index + 1], newFields[index]];
     }
-  ];
-  const [selectedServiceId, setSelectedServiceId] = useState(mockServices[0].id);
+    setFields(newFields);
+    updateConfig({ customFields: newFields });
+  };
+
+  const renderFieldPreview = (field) => {
+    const isInvalid = field.required && field.validation;
+    const hasError = isInvalid && field.validationPattern;
+    
+    switch (field.type) {
+      case 'text':
+        return (
+          <div>
+            <input 
+              type="text" 
+              className={`w-full border p-2 rounded ${hasError ? 'border-red-500' : ''}`} 
+              placeholder={field.placeholder} 
+              disabled 
+            />
+            {hasError && (
+              <p className="text-red-500 text-xs mt-1">{field.validationMessage}</p>
+            )}
+          </div>
+        );
+      case 'checkbox':
+        return <div className="flex items-center gap-2"><input type="checkbox" disabled /> <span>{field.label}</span></div>;
+      case 'date':
+        return <input type="date" className="w-full border p-2 rounded" disabled />;
+      case 'time':
+        return <input type="time" className="w-full border p-2 rounded" disabled />;
+      case 'dropdown':
+        return (
+          <select className="w-full border p-2 rounded" disabled>
+            {field.options?.map((opt, i) => <option key={i}>{opt}</option>) || <option>Dropdown</option>}
+          </select>
+        );
+      case 'slider':
+        return <input type="range" className="w-full" min={field.min} max={field.max} disabled />;
+      case 'gdpr':
+        return (
+          <div className="flex items-center gap-2">
+            <input type="checkbox" disabled />
+            <span>{field.label}</span>
+            {field.privacyPolicyUrl && <a href={field.privacyPolicyUrl} className="text-blue-600 underline">Privacy</a>}
+            {field.termsUrl && <a href={field.termsUrl} className="text-blue-600 underline">Terms</a>}
+          </div>
+        );
+      case 'divider':
+        return <hr className="my-4" />;
+      case 'time_slots':
+        return (
+          <select className="w-full border p-2 rounded" disabled>
+            <option value="">Select a time slot</option>
+            {field.timeSlots?.map((slot) => (
+              <option key={slot.id} value={slot.time}>
+                {slot.label}
+              </option>
+            ))}
+          </select>
+        );
+      default:
+        return <div className="text-gray-500">Unknown field type</div>;
+    }
+  };
 
   return (
-    <div className="flex flex-col h-[80vh]">
-      <div className="flex flex-1">
-        <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-          <FieldPalette />
-          <FormCanvas fields={fields} setFields={setFields} onEdit={handleEditField} onDelete={handleDeleteField} />
-        </DndContext>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-semibold">Custom Form Fields</h2>
+        <div className="relative">
+          <button
+            onClick={() => setShowAddMenu(!showAddMenu)}
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          >
+            + Add Field
+          </button>
+          
+          {showAddMenu && (
+            <div className="absolute right-0 top-full mt-2 bg-white border rounded-lg shadow-lg z-10 min-w-[200px]">
+              {fieldTypes.map(({ type, label, icon }) => (
+                <button
+                  key={type}
+                  onClick={() => handleAddField(type)}
+                  className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2"
+                >
+                  <span>{icon}</span>
+                  <span>{label}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
-      
-      {/* Modal outside DndContext to prevent conflicts */}
-      {/* Temporarily commented out to debug Modal import issue */}
+
+      {/* Fields List */}
+      <div className="space-y-4">
+        {fields.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            <p>No fields added yet. Click "Add Field" to get started.</p>
+          </div>
+        ) : (
+          fields.map((field, index) => (
+            <div key={field.id} className="border rounded-lg p-4 bg-white">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-500">#{index + 1}</span>
+                  <span className="font-medium">{field.label}</span>
+                  <span className="text-xs bg-gray-100 px-2 py-1 rounded">{field.type}</span>
+                  {field.required && <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded">Required</span>}
+                  {field.validation && <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">Validated</span>}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => moveField(field.id, 'up')}
+                    disabled={index === 0}
+                    className="text-gray-400 hover:text-gray-600 disabled:opacity-50"
+                  >
+                    ↑
+                  </button>
+                  <button
+                    onClick={() => moveField(field.id, 'down')}
+                    disabled={index === fields.length - 1}
+                    className="text-gray-400 hover:text-gray-600 disabled:opacity-50"
+                  >
+                    ↓
+                  </button>
+                  <button
+                    onClick={() => handleEditField(field)}
+                    className="text-blue-600 hover:text-blue-800 text-sm"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDeleteField(field.id)}
+                    className="text-red-600 hover:text-red-800 text-sm"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+              <div className="bg-gray-50 p-3 rounded">
+                {renderFieldPreview(field)}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Edit Modal */}
       {editingField && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg max-w-md w-full">
-            <h3 className="text-lg font-semibold mb-4">Edit Field (Debug Mode)</h3>
-            <p>Field type: {editingField.type}</p>
-            <p>Field label: {editingField.label}</p>
-            <div className="mt-4 flex gap-2">
-              <button 
-                className="px-4 py-2 bg-blue-600 text-white rounded"
-                onClick={handleEditFieldSave}
-              >
-                Save
-              </button>
-              <button 
-                className="px-4 py-2 bg-gray-600 text-white rounded"
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-semibold mb-4">Edit Field</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Field Type</label>
+                <p className="text-sm text-gray-500">{editingField.type}</p>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-1">Label</label>
+                <input
+                  type="text"
+                  name="label"
+                  value={editingField.label}
+                  onChange={handleEditFieldChange}
+                  className="w-full border p-2 rounded"
+                  placeholder="Field label"
+                />
+              </div>
+
+              {/* Required Toggle */}
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="required"
+                  name="required"
+                  checked={editingField.required}
+                  onChange={(e) => setEditingField(prev => ({ ...prev, required: e.target.checked }))}
+                  className="rounded"
+                />
+                <label htmlFor="required" className="text-sm font-medium">Required field</label>
+              </div>
+
+              {/* Validation Options */}
+              {editingField.type === 'text' && (
+                <div>
+                  <label className="block text-sm font-medium mb-1">Validation</label>
+                  <select
+                    value={editingField.validation || ''}
+                    onChange={(e) => handleValidationChange(e.target.value || null)}
+                    className="w-full border p-2 rounded"
+                  >
+                    {validationTypes.map(({ value, label }) => (
+                      <option key={value || 'none'} value={value || ''}>{label}</option>
+                    ))}
+                  </select>
+                  
+                  {/* Custom Pattern Input */}
+                  {editingField.validation === 'custom' && (
+                    <div className="mt-2">
+                      <label className="block text-sm font-medium mb-1">Custom Pattern (Regex)</label>
+                      <input
+                        type="text"
+                        name="validationPattern"
+                        value={editingField.validationPattern}
+                        onChange={handleEditFieldChange}
+                        className="w-full border p-2 rounded text-sm"
+                        placeholder="^[a-zA-Z]+$"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Enter a regular expression pattern</p>
+                    </div>
+                  )}
+                  
+                  {/* Custom Error Message */}
+                  {editingField.validation && (
+                    <div className="mt-2">
+                      <label className="block text-sm font-medium mb-1">Error Message</label>
+                      <input
+                        type="text"
+                        name="validationMessage"
+                        value={editingField.validationMessage}
+                        onChange={handleEditFieldChange}
+                        className="w-full border p-2 rounded text-sm"
+                        placeholder="Custom error message"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {editingField.type === 'text' && (
+                <div>
+                  <label className="block text-sm font-medium mb-1">Placeholder</label>
+                  <input
+                    type="text"
+                    name="placeholder"
+                    value={editingField.placeholder}
+                    onChange={handleEditFieldChange}
+                    className="w-full border p-2 rounded"
+                    placeholder="Placeholder text"
+                  />
+                </div>
+              )}
+
+              {editingField.type === 'dropdown' && (
+                <div>
+                  <label className="block text-sm font-medium mb-1">Options</label>
+                  {editingField.options?.map((opt, idx) => (
+                    <div key={idx} className="flex items-center gap-2 mb-2">
+                      <input
+                        type="text"
+                        value={opt}
+                        onChange={(e) => {
+                          const newOptions = [...editingField.options];
+                          newOptions[idx] = e.target.value;
+                          setEditingField(prev => ({ ...prev, options: newOptions }));
+                        }}
+                        className="flex-1 border p-2 rounded"
+                        placeholder={`Option ${idx + 1}`}
+                      />
+                      <button
+                        onClick={() => {
+                          const newOptions = editingField.options.filter((_, i) => i !== idx);
+                          setEditingField(prev => ({ ...prev, options: newOptions }));
+                        }}
+                        className="text-red-600 hover:text-red-800"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    onClick={() => {
+                      const newOptions = [...(editingField.options || []), ''];
+                      setEditingField(prev => ({ ...prev, options: newOptions }));
+                    }}
+                    className="text-blue-600 hover:text-blue-800 text-sm"
+                  >
+                    + Add Option
+                  </button>
+                </div>
+              )}
+
+              {editingField.type === 'time_slots' && (
+                <div>
+                  <label className="block text-sm font-medium mb-1">Time Slots</label>
+                  <p className="text-xs text-gray-500 mb-2">Define specific time slots for bookings</p>
+                  {editingField.timeSlots?.map((slot, idx) => (
+                    <div key={slot.id} className="flex items-center gap-2 mb-2">
+                      <input
+                        type="time"
+                        value={slot.time}
+                        onChange={(e) => {
+                          const newTimeSlots = [...editingField.timeSlots];
+                          newTimeSlots[idx] = { 
+                            ...slot, 
+                            time: e.target.value,
+                            label: formatTimeLabel(e.target.value)
+                          };
+                          setEditingField(prev => ({ ...prev, timeSlots: newTimeSlots }));
+                        }}
+                        className="border p-2 rounded"
+                      />
+                      <input
+                        type="text"
+                        value={slot.label}
+                        onChange={(e) => {
+                          const newTimeSlots = [...editingField.timeSlots];
+                          newTimeSlots[idx] = { ...slot, label: e.target.value };
+                          setEditingField(prev => ({ ...prev, timeSlots: newTimeSlots }));
+                        }}
+                        className="flex-1 border p-2 rounded"
+                        placeholder="Display label (e.g., 8:00 AM)"
+                      />
+                      <button
+                        onClick={() => {
+                          const newTimeSlots = editingField.timeSlots.filter((_, i) => i !== idx);
+                          setEditingField(prev => ({ ...prev, timeSlots: newTimeSlots }));
+                        }}
+                        className="text-red-600 hover:text-red-800"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    onClick={() => {
+                      const newSlot = {
+                        id: `slot_${Date.now()}_${Math.random()}`,
+                        time: '09:00',
+                        label: '9:00 AM'
+                      };
+                      const newTimeSlots = [...(editingField.timeSlots || []), newSlot];
+                      setEditingField(prev => ({ ...prev, timeSlots: newTimeSlots }));
+                    }}
+                    className="text-blue-600 hover:text-blue-800 text-sm"
+                  >
+                    + Add Time Slot
+                  </button>
+                </div>
+              )}
+
+              {editingField.type === 'slider' && (
+                <div className="space-y-2">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Min Value</label>
+                    <input
+                      type="number"
+                      value={editingField.min}
+                      onChange={(e) => setEditingField(prev => ({ ...prev, min: parseInt(e.target.value) || 0 }))}
+                      className="w-full border p-2 rounded"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Max Value</label>
+                    <input
+                      type="number"
+                      value={editingField.max}
+                      onChange={(e) => setEditingField(prev => ({ ...prev, max: parseInt(e.target.value) || 100 }))}
+                      className="w-full border p-2 rounded"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {editingField.type === 'gdpr' && (
+                <div className="space-y-2">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Privacy Policy URL</label>
+                    <input
+                      type="url"
+                      value={editingField.privacyPolicyUrl}
+                      onChange={(e) => setEditingField(prev => ({ ...prev, privacyPolicyUrl: e.target.value }))}
+                      className="w-full border p-2 rounded"
+                      placeholder="https://yourcompany.com/privacy"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Terms & Conditions URL</label>
+                    <input
+                      type="url"
+                      value={editingField.termsUrl}
+                      onChange={(e) => setEditingField(prev => ({ ...prev, termsUrl: e.target.value }))}
+                      className="w-full border p-2 rounded"
+                      placeholder="https://yourcompany.com/terms"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-2 mt-6">
+              <button
                 onClick={handleEditFieldCancel}
+                className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400"
               >
                 Cancel
+              </button>
+              <button
+                onClick={handleEditFieldSave}
+                className="flex-1 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+              >
+                Save
               </button>
             </div>
           </div>
         </div>
       )}
-      
-      {/* Live form preview */}
-      <div className="mt-8 p-6 bg-white rounded shadow max-w-xl mx-auto">
-        <h3 className="text-lg font-semibold mb-4">Live Form Preview</h3>
-        {/* Mock service selector */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">Tjänst</label>
-          <select
-            className="w-full border p-2 rounded"
-            value={selectedServiceId}
-            onChange={e => setSelectedServiceId(e.target.value)}
-          >
-            {mockServices.map(s => (
-              <option key={s.id} value={s.id}>{s.name}</option>
+
+      {/* Live Preview */}
+      {fields.length > 0 ? (
+        <div className="mt-8 p-6 bg-white rounded-lg border">
+          <h3 className="text-lg font-semibold mb-4">Live Preview</h3>
+          <div className="space-y-4">
+            {fields.map((field) => (
+              <div key={field.id}>
+                {field.type !== 'divider' && field.type !== 'checkbox' && field.type !== 'gdpr' && (
+                  <label className="block text-sm font-medium mb-1">
+                    {field.label}
+                    {field.required && <span className="text-red-500 ml-1">*</span>}
+                  </label>
+                )}
+                {renderFieldPreview(field)}
+              </div>
             ))}
-          </select>
+            <button className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
+              Submit Form
+            </button>
+          </div>
         </div>
-        <form className="space-y-4">
-          {fields.map((field) => (
-            <div key={field.id}>
-              {field.type !== 'divider' && field.type !== 'group' && field.type !== 'gdpr' && (
-                <label className="block text-sm font-medium mb-1">{field.label}</label>
-              )}
-              {field.type === 'text' && (
-                <input type="text" className="w-full border p-2 rounded" placeholder={field.placeholder || ''} disabled />
-              )}
-              {field.type === 'checkbox' && (
-                <div className="flex items-center gap-2">
-                  <input type="checkbox" disabled />
-                  <span>{field.label}</span>
-                </div>
-              )}
-              {field.type === 'date' && (
-                <input type="date" className="w-full border p-2 rounded" placeholder={field.placeholder || ''} disabled />
-              )}
-              {field.type === 'time' && (
-                <input type="time" className="w-full border p-2 rounded" placeholder={field.placeholder || ''} disabled />
-              )}
-              {field.type === 'dropdown' && (
-                <select className="w-full border p-2 rounded" disabled>
-                  {(field.options && field.options.length > 0 ? field.options : ['Dropdown']).map((opt, i) => (
-                    <option key={i}>{opt}</option>
-                  ))}
-                </select>
-              )}
-              {field.type === 'slider' && (
-                <input type="range" className="w-full" min={field.min || 0} max={field.max || 100} disabled />
-              )}
-              {field.type === 'gdpr' && (
-                <div className="flex items-center gap-2">
-                  <input type="checkbox" disabled />
-                  <span>{field.label}</span>
-                  {field.privacyPolicyUrl && (
-                    <a href={field.privacyPolicyUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline ml-2">Privacy Policy</a>
-                  )}
-                  {field.termsUrl && (
-                    <a href={field.termsUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline ml-2">Terms & Conditions</a>
-                  )}
-                </div>
-              )}
-              {field.type === 'divider' && <hr className="my-4" />}
-              {field.type === 'group' && (
-                <div className="border rounded p-3 mb-4 bg-gray-50">
-                  <div className="font-semibold mb-2">{field.label || 'Group'}</div>
-                  <div className="text-gray-400 italic">(Group fields not yet implemented)</div>
-                </div>
-              )}
-              {/* Add more field types as needed */}
-            </div>
-          ))}
-          {/* Prevent submit if GDPR is required and not all URLs are set */}
-          {fields.some(f => f.type === 'gdpr' && (!f.privacyPolicyUrl || !f.termsUrl)) && (
-            <div className="text-red-600 text-sm mb-2">Please provide both Privacy Policy and Terms & Conditions URLs for GDPR consent.</div>
-          )}
-          <button type="button" className="w-full bg-blue-600 text-white py-2 rounded" disabled={fields.some(f => f.type === 'gdpr' && (!f.privacyPolicyUrl || !f.termsUrl))}>Submit</button>
-        </form>
-      </div>
+      ) : (
+        <div className="mt-8 p-6 bg-gray-50 rounded-lg border border-dashed border-gray-300 text-center">
+          <p className="text-gray-500">No custom fields added yet. Click "Add Field" to get started.</p>
+        </div>
+      )}
     </div>
   );
 } 
