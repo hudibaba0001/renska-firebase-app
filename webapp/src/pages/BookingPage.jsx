@@ -12,7 +12,7 @@ import { Spinner, Alert, Table, Modal, Button } from 'flowbite-react';
  * It fetches the necessary configuration for a specific company and form.
  */
 export default function BookingPage() {
-  const { companyId, formId } = useParams();
+  const { companyId, formSlug } = useParams();
   const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -37,18 +37,18 @@ export default function BookingPage() {
         // Fetch all services for this company.
         const allServices = await getAllServicesForCompany(companyId);
 
-        // If a specific formId is provided, filter services based on the form's configuration.
+        // If a specific formSlug is provided, filter services based on the form's configuration.
         // NOTE: This assumes the form configuration is stored within the company document.
         // If forms are in a subcollection, this would need another service function.
-        if (formId && companyData.forms && companyData.forms[formId]) {
-            const formConfig = companyData.forms[formId];
+        if (formSlug && companyData.forms && companyData.forms[formSlug]) {
+            const formConfig = companyData.forms[formSlug];
             const selectedServiceIds = new Set(formConfig.selectedServices || []);
             const availableServices = allServices.filter(service => selectedServiceIds.has(service.id));
             
             const mergedConfig = { ...companyData, ...formConfig, services: availableServices, formMode: true };
             setConfig(mergedConfig);
         } else {
-            // If no formId or form not found, use all company services.
+            // If no formSlug or form not found, use all company services.
             setConfig({ ...companyData, services: allServices, formMode: false });
         }
 
@@ -60,7 +60,7 @@ export default function BookingPage() {
       }
     }
     loadConfig();
-  }, [companyId, formId]);
+  }, [companyId, formSlug]);
 
   if (loading) return <div className="p-6 text-center"><Spinner /></div>;
   if (error) return <div className="p-6"><Alert color="failure">{error}</Alert></div>;
@@ -94,7 +94,7 @@ export function AdminDashboard() {
         // Use the correct service function to fetch bookings from the subcollection.
         await getAllBookingsForCompany(companyId);
         // setBookings(companyBookings); // This line was removed as per the edit hint.
-      } catch (e) {
+      } catch (_error) {
         setError('Failed to load bookings.');
       } finally {
         setLoading(false);
@@ -103,7 +103,7 @@ export function AdminDashboard() {
     fetchBookings();
   }, [companyId]);
 
-  const handleSignOut = () => signOut(auth).catch(e => console.error('Sign out failed', e));
+  const handleSignOut = () => signOut(auth).catch(error => console.error('Sign out failed', error));
 
   return (
     <div className="p-6">

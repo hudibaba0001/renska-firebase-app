@@ -26,7 +26,7 @@ import {
   ArrowTrendingUpIcon,
   ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
-import { doc, getDoc, getFirestore } from 'firebase/firestore';
+import { doc, getDoc, getFirestore, collection, getDocs } from 'firebase/firestore';
 import { getAllServicesForCompany } from '../services/firestore';
 
 export default function AdminDashboardPage() {
@@ -34,50 +34,57 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [isNewCompany, setIsNewCompany] = useState(false);
   const [services, setServices] = useState([]);
+  const [calculators, setCalculators] = useState([]);
+  const [realStats, setRealStats] = useState({
+    totalRevenue: 0,
+    activeBookings: 0,
+    conversionRate: 0,
+    activeCalculators: 0
+  });
   
-  // Demo data for established companies
-  const [stats] = useState([
+  // Real stats based on fetched data
+  const stats = [
     {
       name: 'Total Revenue',
-      value: '45,230',
+      value: realStats.totalRevenue.toLocaleString(),
       unit: 'kr',
-      change: '+12.5%',
-      changeType: 'positive',
+      change: '+0%',
+      changeType: 'neutral',
       icon: BanknotesIcon,
       color: 'blue',
       description: 'vs last month'
     },
     {
       name: 'Active Bookings',
-      value: '127',
+      value: realStats.activeBookings.toString(),
       unit: '',
-      change: '+23',
-      changeType: 'positive',
+      change: '+0',
+      changeType: 'neutral',
       icon: CalendarIcon,
       color: 'green',
       description: 'this month'
     },
     {
       name: 'Conversion Rate',
-      value: '3.2',
+      value: realStats.conversionRate.toFixed(1),
       unit: '%',
-      change: '+0.5%',
-      changeType: 'positive',
+      change: '+0%',
+      changeType: 'neutral',
       icon: ArrowTrendingUpIcon,
       color: 'yellow',
       description: 'vs last month'
     },
     {
       name: 'Active Calculators',
-      value: '3',
+      value: realStats.activeCalculators.toString(),
       unit: '',
-      change: '+1',
-      changeType: 'positive',
+      change: `+${realStats.activeCalculators}`,
+      changeType: realStats.activeCalculators > 0 ? 'positive' : 'neutral',
       icon: CogIcon,
       color: 'purple',
       description: 'published'
     }
-  ]);
+  ];
 
   // Fetch company data
   useEffect(() => {
@@ -100,9 +107,29 @@ export default function AdminDashboardPage() {
             setIsNewCompany(creationDate > oneHourAgo);
           }
         }
+        
         // Fetch services for this company
         const fetchedServices = await getAllServicesForCompany(companyId);
         setServices(fetchedServices);
+        
+        // Fetch calculators for this company
+        const calculatorsRef = collection(db, 'companies', companyId, 'calculators');
+        const calculatorsSnapshot = await getDocs(calculatorsRef);
+        const calculatorsData = calculatorsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setCalculators(calculatorsData);
+        
+        // Calculate real stats
+        const publishedCalculators = calculatorsData.filter(calc => calc.status === 'published');
+        setRealStats({
+          totalRevenue: 0, // Will be calculated from bookings
+          activeBookings: 0, // Will be calculated from bookings
+          conversionRate: 0, // Will be calculated from analytics
+          activeCalculators: publishedCalculators.length
+        });
+        
       } catch (error) {
         console.error("Error fetching company data:", error);
       } finally {
@@ -146,32 +173,18 @@ export default function AdminDashboardPage() {
     }
   ]);
 
-  const calculatorStats = [
-    {
-      name: 'Hemstädning Premium',
-      views: 1247,
-      conversions: 89,
-      revenue: '28,450 kr',
-      status: 'published',
-      trend: '+15%'
-    },
-    {
-      name: 'Window Cleaning',
-      views: 623,
-      conversions: 34,
-      revenue: '12,800 kr',
-      status: 'published',
-      trend: '+8%'
-    },
-    {
-      name: 'Deep Clean Special',
-      views: 445,
-      conversions: 28,
-      revenue: '15,200 kr',
-      status: 'draft',
-      trend: '+12%'
-    }
-  ];
+  // Generate real calculator stats from fetched data
+  const calculatorStats = calculators.map(calc => ({
+    id: calc.id,
+    name: calc.name || 'Unnamed Calculator',
+    views: calc.views || 0,
+    conversions: calc.conversions || 0,
+    revenue: calc.revenue || '0 kr',
+    status: calc.status || 'draft',
+    trend: calc.trend || '+0%',
+    slug: calc.slug,
+    publishedAt: calc.publishedAt
+  }));
 
   const quickActions = [
     {
@@ -603,43 +616,70 @@ export default function AdminDashboardPage() {
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {calculatorStats.map((calc) => (
-            <div
-              key={calc.name}
-            >
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-text-heading dark:text-white">{calc.name}</h3>
-                <Badge color={calc.status === 'published' ? 'success' : 'warning'} size="sm">
-                  {calc.status}
-                </Badge>
+        {calculatorStats.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {calculatorStats.map((calc) => (
+              <div
+                key={calc.id}
+                className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg"
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold text-text-heading dark:text-white">{calc.name}</h3>
+                  <Badge color={calc.status === 'published' ? 'success' : 'warning'} size="sm">
+                    {calc.status}
+                  </Badge>
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex justify-between text-base">
+                    <span className="text-base text-text-subtle dark:text-gray-400">Views</span>
+                    <span className="font-medium">{calc.views.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between text-base">
+                    <span className="text-base text-text-subtle dark:text-gray-400">Conversions</span>
+                    <span className="font-medium">{calc.conversions}</span>
+                  </div>
+                  <div className="flex justify-between text-base">
+                    <span className="text-base text-text-subtle dark:text-gray-400">Revenue</span>
+                    <span className="font-medium">{calc.revenue}</span>
+                  </div>
+                  {calc.publishedAt && (
+                    <div className="flex justify-between text-base">
+                      <span className="text-base text-text-subtle dark:text-gray-400">Published</span>
+                      <span className="font-medium text-xs">
+                        {calc.publishedAt.toDate ? calc.publishedAt.toDate().toLocaleDateString() : new Date(calc.publishedAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                
+                                  <div className="flex items-center justify-between mt-4">
+                    <span className="text-base text-green-600 font-medium">{calc.trend}</span>
+                    <div className="flex space-x-2">
+                      <Button as={Link} to={`/admin/${companyId}/forms/${calc.id}`} className="bg-gray-200 hover:bg-gray-300 text-gray-800 border-gray-300" size="xs">Edit</Button>
+                      {calc.status === 'published' && calc.slug && (
+                        <Button as={Link} to={`/booking/${companyId}/${calc.slug}`} className="bg-gray-200 hover:bg-gray-300 text-gray-800 border-gray-300" size="xs" target="_blank">View Live</Button>
+                      )}
+                    </div>
+                  </div>
               </div>
-              
-              <div className="space-y-2">
-                <div className="flex justify-between text-base">
-                  <span className="text-base text-text-subtle dark:text-gray-400">Views</span>
-                  <span className="font-medium">{calc.views.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between text-base">
-                  <span className="text-base text-text-subtle dark:text-gray-400">Conversions</span>
-                  <span className="font-medium">{calc.conversions}</span>
-                </div>
-                <div className="flex justify-between text-base">
-                  <span className="text-base text-text-subtle dark:text-gray-400">Revenue</span>
-                  <span className="font-medium">{calc.revenue}</span>
-                </div>
-              </div>
-              
-              <div className="flex items-center justify-between mt-4">
-                <span className="text-base text-green-600 font-medium">{calc.trend}</span>
-                <div className="flex space-x-2">
-                  <Button color="gray" size="xs">Edit</Button>
-                  <Button color="gray" size="xs">View</Button>
-                </div>
-              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CogIcon className="w-8 h-8 text-gray-400" />
             </div>
-          ))}
-        </div>
+            <h3 className="text-lg font-semibold text-text-heading dark:text-white mb-2">No Calculators Yet</h3>
+            <p className="text-base text-text-subtle dark:text-gray-400 mb-4">
+              Create your first booking calculator to start accepting customer bookings.
+            </p>
+            <Button as={Link} to={`/admin/${companyId}/forms/new`} color="blue">
+              <PlusIcon className="w-4 h-4 mr-2" />
+              Create Your First Calculator
+            </Button>
+          </div>
+        )}
       </Card>
 
       {/* System Alerts */}

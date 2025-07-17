@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { db } from '../firebase/init';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useAuth } from '../context/AuthContext';
 import { getTenant, getAllServicesForCompany } from '../services/firestore';
 
@@ -9,7 +9,7 @@ import { getTenant, getAllServicesForCompany } from '../services/firestore';
 import CreateCalculatorStep from '../components/formbuilder/CreateCalculatorStep';
 import DefineServicesStep from '../components/formbuilder/DefineServicesStep';
 import CustomFormStep from '../components/formbuilder/CustomFormStep';
-import FormBuilderDragDrop from '../components/formbuilder/FormBuilderDragDrop';
+// import FormBuilderDragDrop from '../components/formbuilder/FormBuilderDragDrop';
 import ServiceSelectionStep from '../components/formbuilder/ServiceSelectionStep';
 import ZipCodeValidationStep from '../components/formbuilder/ZipCodeValidationStep';
 
@@ -17,7 +17,7 @@ const STEPS = [
   { id: 1, title: 'Create Calculator', component: CreateCalculatorStep },
   { id: 2, title: 'ZIP Code Validation', component: ZipCodeValidationStep },
   { id: 3, title: 'Service Selection', component: ServiceSelectionStep },
-  { id: 4, title: 'Custom Questions', component: FormBuilderDragDrop }
+  { id: 4, title: 'Custom Questions', component: CustomFormStep }
 ];
 
 export default function FormBuilderPage() {
@@ -152,16 +152,26 @@ export default function FormBuilderPage() {
     setSaving(true);
     try {
       const docRef = doc(db, 'companies', companyId, 'calculators', formId || config.slug);
-      await updateDoc(docRef, {
-        status: 'published',
-        publishedAt: new Date()
-      });
+      const now = new Date();
       
-      setConfig(prev => ({ 
-        ...prev, 
+      const publishedConfig = {
+        ...config,
         status: 'published',
-        publishedAt: new Date()
-      }));
+        publishedAt: now,
+        updatedAt: now,
+        ...(formId === 'new' && {
+          createdAt: now,
+          createdBy: user?.uid
+        })
+      };
+      
+      await setDoc(docRef, publishedConfig);
+      setConfig(publishedConfig);
+      
+      // Update URL if this is a new form
+      if (formId === 'new') {
+        navigate(`/admin/${companyId}/forms/${config.slug}`, { replace: true });
+      }
     } catch (error) {
       console.error('Error publishing form:', error);
     } finally {

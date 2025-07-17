@@ -94,9 +94,16 @@ service cloud.firestore {
                          request.resource.data.status == 'pending';
       }
       
-      // --- NESTED: PAYMENTCONFIG SUBCOLLECTION ---
+      // --- NESTED: PAYMENT CONFIG SUBCOLLECTION ---
       match /paymentConfig/{configId} {
-        allow read, write: if isCompanyAdmin(companyId);
+        allow read, write: if isSuperAdmin() || isCompanyAdmin(companyId);
+      }
+      
+      // --- NESTED: CALCULATORS SUBCOLLECTION ---
+      match /calculators/{calculatorId} {
+        allow read: if get(/databases/$(database)/documents/companies/$(companyId)).data.isPublic == true || 
+                       isSuperAdmin() || isCompanyAdmin(companyId);
+        allow create, update, delete: if isSuperAdmin() || isCompanyAdmin(companyId);
       }
     }
     
