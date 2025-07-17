@@ -144,7 +144,7 @@ export default function FormBuilderDragDrop() {
         <Modal show={!!editingField} onClose={handleEditFieldCancel} size="md">
           <Modal.Header>Edit Field</Modal.Header>
           <Modal.Body>
-            {editingField && (
+            {editingField && typeof editingField === 'object' && editingField.type ? (
               <div className="space-y-4">
                 <TextInput
                   name="label"
@@ -236,6 +236,8 @@ export default function FormBuilderDragDrop() {
                   </div>
                 )}
               </div>
+            ) : (
+              <div className="text-red-600">Error: Invalid field data. Please close and try again.</div>
             )}
           </Modal.Body>
           <Modal.Footer>
