@@ -359,31 +359,53 @@ export default function ConfigForm({ initialConfig, onSave, onChange, refreshSer
                 <div key={service.id} className="border rounded-lg bg-white shadow relative">
                   {/* Service Header - Always Visible */}
                   <div
-                    className="p-4 cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors"
+                    className="p-6 cursor-pointer bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-200 transition-all duration-200 border-b border-gray-200"
                     onClick={() => toggleService(service.id)}
                   >
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <ChevronDownIcon
-                          className={`h-5 w-5 mr-2 transform transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
-                        />
-                        <span className="font-bold text-lg text-gray-900">{service.name || 'Unnamed Service'}</span>
-                        {service.status === 'draft' && (
-                          <span className="ml-2 px-2 py-0.5 rounded bg-yellow-100 text-yellow-800 text-xs font-semibold">Draft</span>
-                        )}
+                      <div className="flex items-center space-x-4">
+                        <div className="flex items-center justify-center w-10 h-10 bg-white rounded-full shadow-sm border-2 border-gray-200">
+                          <ChevronDownIcon
+                            className={`h-5 w-5 text-gray-600 transform transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
+                          />
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <span className="font-bold text-xl text-gray-900">{service.name || 'Unnamed Service'}</span>
+                          {service.status === 'draft' && (
+                            <span className="px-3 py-1 rounded-full bg-yellow-100 text-yellow-800 text-xs font-semibold border border-yellow-200">
+                              Draft
+                            </span>
+                          )}
+                          <span className="text-sm text-gray-500 font-medium">
+                            {service.pricingModel ? service.pricingModel.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'No Model'}
+                          </span>
+                        </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={e => { e.stopPropagation(); deleteService(service.id); }}
-                        className="text-red-500 ml-2"
-                      >
-                        Remove
-                      </button>
+                      <div className="flex items-center space-x-3">
+                        <button
+                          type="button"
+                          onClick={e => { e.stopPropagation(); deleteService(service.id); }}
+                          className="flex items-center space-x-2 px-4 py-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors duration-200"
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                          <span className="text-sm font-medium">Remove</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                   {/* Service Content - Collapsible */}
-                  {isExpanded && (
-                    <div className="p-4 border-t bg-white">
+                  <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isExpanded ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0'}`}>
+                    {isExpanded && (
+                    <div className="p-6 border-t border-gray-200 bg-gradient-to-br from-white to-gray-50">
+                      <div className="max-w-4xl mx-auto">
+                        <div className="mb-6">
+                          <h3 className="text-lg font-semibold text-gray-900 mb-2 flex items-center">
+                            <CogIcon className="h-5 w-5 mr-2 text-blue-600" />
+                            Service Configuration
+                          </h3>
+                          <div className="h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
+                        </div>
+                        <div>
                       {/* Pricing Model */}
                 <div className="mb-2">
                   <label className="block text-sm font-medium">Pricing Model</label>
@@ -1145,7 +1167,13 @@ export default function ConfigForm({ initialConfig, onSave, onChange, refreshSer
                   </Button>
                 </div>
               </div>
-            ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )
+          })}
             {config.services.length === 0 && (
               <div className="text-center py-12 text-gray-500">
                 <BuildingOfficeIcon className="h-12 w-12 mx-auto mb-4 text-gray-300" />

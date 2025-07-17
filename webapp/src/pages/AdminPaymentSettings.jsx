@@ -119,7 +119,7 @@ export default function AdminPaymentSettings() {
       />
       {error && <Alert color="failure" onDismiss={() => setError('')} className="mb-4">{error}</Alert>}
       
-      <Card className="max-w-2xl">
+      <Card className="w-full">
         <div className="space-y-6">
           <div>
             <Label htmlFor="paymentMode" className="text-lg font-semibold">Betalningssätt</Label>
