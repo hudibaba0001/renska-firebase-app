@@ -113,9 +113,9 @@ export default function ServiceConfigForm({ initialConfig }) {
                         const isExpanded = expandedService === service.id;
                         const isSaving = savingServices.has(service.id);
                         return (
-                            <div key={service.id || idx} className="border rounded-lg mb-2">
+                            <div key={service.id || idx} className="border rounded-lg mb-2 shadow-sm">
                                 <div
-                                    className="flex items-center justify-between p-4 cursor-pointer bg-gray-50"
+                                    className="flex items-center justify-between p-4 cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors duration-200"
                                     onClick={() => {
                                         console.log('Clicked service header', service.id, 'was expanded:', isExpanded);
                                         setExpandedService(isExpanded ? null : service.id);
@@ -123,10 +123,34 @@ export default function ServiceConfigForm({ initialConfig }) {
                                     aria-expanded={isExpanded}
                                     aria-controls={`service-panel-${service.id}`}
                                 >
-                                    <h3 className="font-semibold">{service.name || `Service #${idx + 1}`}</h3>
+                                    <div className="flex items-center gap-3">
+                                        <div className={`transform transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}>
+                                            <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                            </svg>
+                                        </div>
+                                        <h3 className="font-semibold text-gray-900">{service.name || `Service #${idx + 1}`}</h3>
+                                        {service.description && (
+                                            <span className="text-sm text-gray-500 truncate max-w-xs">
+                                                - {service.description}
+                                            </span>
+                                        )}
+                                    </div>
                                     <div className="flex items-center gap-2">
                                         {isSaving && <Spinner size="sm" />}
-                                        <Button size="xs" color="failure" onClick={e => { e.stopPropagation(); handleDeleteService(service.id); }} aria-label={`Delete ${service.name || `Service #${idx + 1}`}`}> <TrashIcon className="h-4 w-4" /> </Button>
+                                        <Button 
+                                            size="xs" 
+                                            color="failure" 
+                                            onClick={e => { 
+                                                e.stopPropagation(); 
+                                                if (window.confirm(`Are you sure you want to delete "${service.name || `Service #${idx + 1}`}"?`)) {
+                                                    handleDeleteService(service.id);
+                                                }
+                                            }} 
+                                            aria-label={`Delete ${service.name || `Service #${idx + 1}`}`}
+                                        > 
+                                            <TrashIcon className="h-4 w-4" /> 
+                                        </Button>
                                     </div>
                                 </div>
                                 {isExpanded && (
