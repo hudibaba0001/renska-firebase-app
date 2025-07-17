@@ -139,7 +139,7 @@ export default function ReportExporter({ companyId, type = 'company' }) {
           case 'revenue':
             reportData = await exportRevenueData(companyId, startDate, endDate);
             break;
-          case 'comprehensive':
+          case 'comprehensive': {
             const metrics = await getCompanyMetrics(companyId);
             const revenueData = await exportRevenueData(companyId, startDate, endDate);
             reportData = {
@@ -149,6 +149,7 @@ export default function ReportExporter({ companyId, type = 'company' }) {
               dateRange: { startDate, endDate }
             };
             break;
+          }
           default:
             reportData = await getCompanyMetrics(companyId);
         }

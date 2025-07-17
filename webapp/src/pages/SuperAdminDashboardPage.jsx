@@ -28,11 +28,12 @@ import {
   CheckCircleIcon,
   ArrowPathIcon
 } from '@heroicons/react/24/outline';
-import { collection, getDocs, query, where, getFirestore, Timestamp } from 'firebase/firestore';
+
 import { Link } from 'react-router-dom';
 import { useRealtimeSuperadminMetrics } from '../hooks/useRealtimeMetrics';
 import { SystemAlertsCenter } from '../components/NotificationCenter';
 import ReportExporter from '../components/ReportExporter';
+import ErrorBoundary from '../components/ErrorBoundary';
 
 // Import a chart library - We'll use Chart.js via react-chartjs-2
 import { Line, Bar, Pie } from 'react-chartjs-2';
@@ -63,23 +64,11 @@ ChartJS.register(
 );
 
 export default function SuperAdminDashboardPage() {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  // Use real-time hooks for data
+  const { metrics, loading, error, lastUpdated, refresh } = useRealtimeSuperadminMetrics();
   
-  // State for superadmin metrics
-  const [metrics, setMetrics] = useState({
-    activeCompanies: 0,
-    suspendedCompanies: 0,
-    mrr: 0,
-    arr: 0,
-    churnRate: 0,
-    cac: 0,
-    ltv: 0,
-    totalActiveUsers: 0
-  });
-  
-  // State for companies data
-  const [companies, setCompanies] = useState([]);
+  // State for companies data (will be included in metrics)
+  const companies = metrics?.companies || [];
   
   // Historical MRR data for chart
   const [mrrData, setMrrData] = useState({
@@ -147,145 +136,78 @@ export default function SuperAdminDashboardPage() {
     ],
   });
 
+  // Update chart data when metrics change
   useEffect(() => {
-    async function fetchSuperadminData() {
-      setLoading(true);
-      setError(null);
+    if (metrics) {
+      const { mrr, activeCompanies, suspendedCompanies, churnRate, ltv, cac } = metrics;
       
-      try {
-        const db = getFirestore();
-        
-        // Get all companies
-        const companiesRef = collection(db, 'companies');
-        const companiesSnapshot = await getDocs(companiesRef);
-        const companiesData = companiesSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        
-        setCompanies(companiesData);
-        
-        // Count active companies (those with active subscription)
-        const activeCompanies = companiesData.filter(
-          company => company.subscriptionStatus === 'active'
-        ).length;
-        
-        // Count suspended companies
-        const suspendedCompanies = companiesData.filter(
-          company => company.subscriptionStatus === 'suspended'
-        ).length;
-        
-        // Calculate MRR (Monthly Recurring Revenue)
-        const mrr = companiesData.reduce((total, company) => {
-          if (company.subscriptionStatus === 'active') {
-            return total + (company.subscriptionAmount || 0);
-          }
-          return total;
-        }, 0);
-        
-        // ARR is simply MRR * 12
-        const arr = mrr * 12;
-        
-        // For demonstration, we'll set placeholder values for metrics
-        // that would typically require more complex calculations or
-        // data from multiple sources
-        
-        // In a real implementation, you would:
-        // 1. Calculate churn based on companies that canceled in the last month
-        // 2. Pull CAC from your financial records
-        // 3. Calculate LTV based on customer lifetime and revenue
-        // 4. Count active users across all companies
-        
-        setMetrics({
-          activeCompanies,
-          suspendedCompanies,
-          mrr,
-          arr,
-          churnRate: 3.5, // Placeholder: 3.5%
-          cac: 5000, // Placeholder: 5000 SEK
-          ltv: 25000, // Placeholder: 25000 SEK
-          totalActiveUsers: activeCompanies * 10, // Assuming ~10 users per company
-        });
-        
-        // Generate mock historical data for charts
-        // In a real implementation, you would pull this data from your database
-        
-        // Mock MRR growth data
-        setMrrData({
-          labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
-          datasets: [
-            {
-              label: 'MRR (SEK)',
-              data: [mrr * 0.7, mrr * 0.75, mrr * 0.8, mrr * 0.85, mrr * 0.9, mrr * 0.95, mrr],
-              borderColor: 'rgb(53, 162, 235)',
-              backgroundColor: 'rgba(53, 162, 235, 0.5)',
-            },
-          ],
-        });
-        
-        // Mock churn rate data
-        setChurnData({
-          labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
-          datasets: [
-            {
-              label: 'Churn Rate (%)',
-              data: [5.2, 4.8, 4.5, 4.2, 3.9, 3.7, 3.5],
-              borderColor: 'rgb(255, 99, 132)',
-              backgroundColor: 'rgba(255, 99, 132, 0.5)',
-            },
-          ],
-        });
-        
-        // Mock company status distribution
-        setCompanyStatusData({
-          labels: ['Active', 'Suspended', 'Trial', 'Churned'],
-          datasets: [
-            {
-              data: [activeCompanies, suspendedCompanies, 3, 5],
-              backgroundColor: [
-                'rgba(75, 192, 192, 0.5)',
-                'rgba(255, 159, 64, 0.5)',
-                'rgba(54, 162, 235, 0.5)',
-                'rgba(255, 99, 132, 0.5)',
-              ],
-              borderColor: [
-                'rgb(75, 192, 192)',
-                'rgb(255, 159, 64)',
-                'rgb(54, 162, 235)',
-                'rgb(255, 99, 132)',
-              ],
-              borderWidth: 1,
-            },
-          ],
-        });
-        
-        // Mock LTV:CAC ratio data
-        setLtvCacData({
-          labels: ['2024', '2025'],
-          datasets: [
-            {
-              label: 'LTV (SEK)',
-              data: [20000, 25000],
-              backgroundColor: 'rgba(75, 192, 192, 0.5)',
-            },
-            {
-              label: 'CAC (SEK)',
-              data: [6000, 5000],
-              backgroundColor: 'rgba(255, 99, 132, 0.5)',
-            },
-          ],
-        });
-        
-      } catch (err) {
-        console.error("Error fetching superadmin data:", err);
-        setError("Failed to load dashboard data. Please try again later.");
-      } finally {
-        setLoading(false);
-      }
+      // Update MRR chart with mock historical data
+      setMrrData({
+        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
+        datasets: [
+          {
+            label: 'MRR (SEK)',
+            data: [mrr * 0.7, mrr * 0.75, mrr * 0.8, mrr * 0.85, mrr * 0.9, mrr * 0.95, mrr],
+            borderColor: 'rgb(53, 162, 235)',
+            backgroundColor: 'rgba(53, 162, 235, 0.5)',
+          },
+        ],
+      });
+      
+      // Update churn rate chart
+      setChurnData({
+        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
+        datasets: [
+          {
+            label: 'Churn Rate (%)',
+            data: [5.2, 4.8, 4.5, 4.2, 3.9, 3.7, churnRate],
+            borderColor: 'rgb(255, 99, 132)',
+            backgroundColor: 'rgba(255, 99, 132, 0.5)',
+          },
+        ],
+      });
+      
+      // Update company status distribution
+      setCompanyStatusData({
+        labels: ['Active', 'Suspended', 'Trial', 'Churned'],
+        datasets: [
+          {
+            data: [activeCompanies, suspendedCompanies, 3, 5],
+            backgroundColor: [
+              'rgba(75, 192, 192, 0.5)',
+              'rgba(255, 159, 64, 0.5)',
+              'rgba(54, 162, 235, 0.5)',
+              'rgba(255, 99, 132, 0.5)',
+            ],
+            borderColor: [
+              'rgb(75, 192, 192)',
+              'rgb(255, 159, 64)',
+              'rgb(54, 162, 235)',
+              'rgb(255, 99, 132)',
+            ],
+            borderWidth: 1,
+          },
+        ],
+      });
+      
+      // Update LTV:CAC ratio chart
+      setLtvCacData({
+        labels: ['2024', '2025'],
+        datasets: [
+          {
+            label: 'LTV (SEK)',
+            data: [ltv * 0.8, ltv],
+            backgroundColor: 'rgba(75, 192, 192, 0.5)',
+          },
+          {
+            label: 'CAC (SEK)',
+            data: [cac * 1.2, cac],
+            backgroundColor: 'rgba(255, 99, 132, 0.5)',
+          },
+        ],
+      });
     }
-    
-    fetchSuperadminData();
-  }, []);
+  }, [metrics]);
 
   const chartOptions = {
     responsive: true,
@@ -407,16 +329,39 @@ export default function SuperAdminDashboardPage() {
             <p className="text-base text-purple-100">
               Platform overview and performance metrics
             </p>
+            {lastUpdated && (
+              <p className="text-sm text-purple-200 mt-1">
+                Last updated: {lastUpdated.toLocaleTimeString('sv-SE')}
+              </p>
+            )}
           </div>
-          <div className="hidden md:flex items-center space-x-4">
-            <div className="text-right">
-              <p className="text-base text-purple-100">Today's Date</p>
-              <p className="text-xl font-bold text-white">July 18, 2025</p>
-            </div>
-            <div className="w-px h-12 bg-purple-400"></div>
-            <div className="text-right">
-              <p className="text-base text-purple-100">Fiscal Quarter</p>
-              <p className="text-xl font-bold text-white">Q3 2025</p>
+          <div className="flex items-center space-x-4">
+            <Button
+              color="purple"
+              size="sm"
+              onClick={refresh}
+              disabled={loading}
+              className="bg-purple-500 hover:bg-purple-600"
+            >
+              {loading ? (
+                <Spinner size="sm" className="mr-2" />
+              ) : (
+                <ArrowPathIcon className="w-4 h-4 mr-2" />
+              )}
+              Refresh
+            </Button>
+            <ReportExporter type="superadmin" />
+            <div className="hidden md:flex items-center space-x-4">
+              <div className="w-px h-12 bg-purple-400"></div>
+              <div className="text-right">
+                <p className="text-base text-purple-100">Today's Date</p>
+                <p className="text-xl font-bold text-white">July 18, 2025</p>
+              </div>
+              <div className="w-px h-12 bg-purple-400"></div>
+              <div className="text-right">
+                <p className="text-base text-purple-100">Fiscal Quarter</p>
+                <p className="text-xl font-bold text-white">Q3 2025</p>
+              </div>
             </div>
           </div>
         </div>
@@ -465,14 +410,18 @@ export default function SuperAdminDashboardPage() {
         <Card className="w-full h-96">
           <h5 className="text-lg font-bold">Monthly Recurring Revenue (MRR)</h5>
           <div className="h-80">
-            <Line options={chartOptions} data={mrrData} />
+            <ErrorBoundary fallbackMessage="Unable to load MRR chart">
+              <Line options={chartOptions} data={mrrData} />
+            </ErrorBoundary>
           </div>
         </Card>
 
         <Card className="w-full h-96">
           <h5 className="text-lg font-bold">Churn Rate Trend</h5>
           <div className="h-80">
-            <Line options={chartOptions} data={churnData} />
+            <ErrorBoundary fallbackMessage="Unable to load churn rate chart">
+              <Line options={chartOptions} data={churnData} />
+            </ErrorBoundary>
           </div>
         </Card>
       </div>
@@ -483,7 +432,9 @@ export default function SuperAdminDashboardPage() {
           <h5 className="text-lg font-bold">Company Status Distribution</h5>
           <div className="h-80 flex justify-center items-center">
             <div style={{ width: '80%', height: '80%' }}>
-              <Pie options={chartOptions} data={companyStatusData} />
+              <ErrorBoundary fallbackMessage="Unable to load company status chart">
+                <Pie options={chartOptions} data={companyStatusData} />
+              </ErrorBoundary>
             </div>
           </div>
         </Card>
@@ -491,7 +442,9 @@ export default function SuperAdminDashboardPage() {
         <Card className="w-full h-96">
           <h5 className="text-lg font-bold">LTV vs CAC</h5>
           <div className="h-80">
-            <Bar options={chartOptions} data={ltvCacData} />
+            <ErrorBoundary fallbackMessage="Unable to load LTV vs CAC chart">
+              <Bar options={chartOptions} data={ltvCacData} />
+            </ErrorBoundary>
           </div>
         </Card>
       </div>
@@ -504,78 +457,75 @@ export default function SuperAdminDashboardPage() {
             View All
           </Button>
         </div>
-        <Table hoverable>
-          <Table.Head>
-            <Table.HeadCell>Company Name</Table.HeadCell>
-            <Table.HeadCell>Status</Table.HeadCell>
-            <Table.HeadCell>Subscription</Table.HeadCell>
-            <Table.HeadCell>MRR</Table.HeadCell>
-            <Table.HeadCell>Users</Table.HeadCell>
-            <Table.HeadCell>Actions</Table.HeadCell>
-          </Table.Head>
-          <Table.Body className="divide-y">
-            {companies.slice(0, 5).map((company) => (
-              <Table.Row key={company.id} className="bg-white dark:border-gray-700 dark:bg-gray-800">
-                <Table.Cell className="font-medium text-gray-900 dark:text-white">
-                  {company.companyName || "Unnamed Company"}
-                </Table.Cell>
-                <Table.Cell>
-                  <Badge color={company.subscriptionStatus === 'active' ? 'success' : 'warning'}>
-                    {company.subscriptionStatus || "Unknown"}
-                  </Badge>
-                </Table.Cell>
-                <Table.Cell>
-                  {company.subscriptionPlan || "No Plan"}
-                </Table.Cell>
-                <Table.Cell>
-                  {formatCurrency(company.subscriptionAmount || 0)}
-                </Table.Cell>
-                <Table.Cell>
-                  {company.userCount || 0}
-                </Table.Cell>
-                <Table.Cell>
-                  <Button size="xs" as={Link} to={`/superadmin/companies/${company.id}`}>
-                    View
-                  </Button>
-                </Table.Cell>
-              </Table.Row>
-            ))}
-          </Table.Body>
-        </Table>
+        <ErrorBoundary fallbackMessage="Unable to load recent companies table">
+          {companies && companies.length > 0 ? (
+            <Table hoverable>
+              <Table.Head>
+                <Table.HeadCell>Company Name</Table.HeadCell>
+                <Table.HeadCell>Status</Table.HeadCell>
+                <Table.HeadCell>Subscription</Table.HeadCell>
+                <Table.HeadCell>MRR</Table.HeadCell>
+                <Table.HeadCell>Users</Table.HeadCell>
+                <Table.HeadCell>Actions</Table.HeadCell>
+              </Table.Head>
+              <Table.Body className="divide-y">
+                {companies.slice(0, 5).map((company) => {
+                  // Defensive programming - ensure company has required properties
+                  if (!company || !company.id) {
+                    return null;
+                  }
+                  
+                  return (
+                    <Table.Row key={company.id} className="bg-white dark:border-gray-700 dark:bg-gray-800">
+                      <Table.Cell className="font-medium text-gray-900 dark:text-white">
+                        {company.companyName || "Unnamed Company"}
+                      </Table.Cell>
+                      <Table.Cell>
+                        <Badge color={company.subscriptionStatus === 'active' ? 'success' : 'warning'}>
+                          {company.subscriptionStatus || "Unknown"}
+                        </Badge>
+                      </Table.Cell>
+                      <Table.Cell>
+                        {company.subscriptionPlan || "No Plan"}
+                      </Table.Cell>
+                      <Table.Cell>
+                        {formatCurrency(company.subscriptionAmount || 0)}
+                      </Table.Cell>
+                      <Table.Cell>
+                        {company.userCount || 0}
+                      </Table.Cell>
+                      <Table.Cell>
+                        <Button size="xs" as={Link} to={`/superadmin/companies/${company.id}`}>
+                          View
+                        </Button>
+                      </Table.Cell>
+                    </Table.Row>
+                  );
+                })}
+              </Table.Body>
+            </Table>
+          ) : (
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+              {loading ? (
+                <div className="flex items-center justify-center">
+                  <Spinner size="md" className="mr-2" />
+                  Loading companies...
+                </div>
+              ) : (
+                "No companies found"
+              )}
+            </div>
+          )}
+        </ErrorBoundary>
       </Card>
 
-      {/* Alerts and Notifications */}
+      {/* System Alerts */}
       <Card>
         <div className="flex justify-between items-center mb-4">
           <h5 className="text-xl font-bold">System Alerts</h5>
-          <Badge color="gray">{3} New</Badge>
+          <Badge color="gray">Live</Badge>
         </div>
-        <div className="space-y-4">
-          <Alert color="warning">
-            <div className="flex items-center gap-3">
-              <ExclamationTriangleIcon className="w-5 h-5" />
-              <span className="font-medium">
-                3 companies have overdue payments
-              </span>
-            </div>
-          </Alert>
-          <Alert color="info">
-            <div className="flex items-center gap-3">
-              <CheckCircleIcon className="w-5 h-5" />
-              <span className="font-medium">
-                System maintenance scheduled for July 25, 2025
-              </span>
-            </div>
-          </Alert>
-          <Alert color="success">
-            <div className="flex items-center gap-3">
-              <CheckCircleIcon className="w-5 h-5" />
-              <span className="font-medium">
-                Stripe payment integration update completed successfully
-              </span>
-            </div>
-          </Alert>
-        </div>
+        <SystemAlertsCenter />
       </Card>
     </div>
   );

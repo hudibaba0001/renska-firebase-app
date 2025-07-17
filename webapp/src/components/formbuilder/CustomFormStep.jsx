@@ -20,6 +20,7 @@ export default function CustomFormStep({ config, onNext }) {
     personalNumber: '',
     date: '',
     time: '',
+    timeSlots: '',
     rut: false,
     gdpr: false,
     gdprModal: false,
@@ -28,9 +29,9 @@ export default function CustomFormStep({ config, onNext }) {
     frequency: false,
     serviceId: '',
     zipCode: '',
-    area: '',
-    addOns: {},
-    windowCleaning: false,
+    checkboxes: {},
+    radioSelections: {},
+    dropdownSelections: {},
     // Add more as needed
   });
   const [submitting, setSubmitting] = useState(false);
@@ -38,19 +39,12 @@ export default function CustomFormStep({ config, onNext }) {
   // Dynamic fields for selected service
   const selectedService = (config.services || []).find(s => s.id === form.serviceId);
 
-  // Example: fetch add-ons, custom fees, etc. from selectedService
-  const addOns = selectedService?.addOns || [];
-  const customFees = selectedService?.customFees || [];
-  const basePrice = selectedService?.basePrice || 0;
-
   // Price calculation
   const price = useMemo(() => {
-    let total = basePrice;
-    addOns.forEach(a => { if (form.addOns[a.id]) total += a.price; });
-    customFees.forEach(f => { total += f.amount; });
+    let total = selectedService?.basePrice || 0;
     if (form.rut) total = total * 0.5;
     return Math.round(total);
-  }, [basePrice, addOns, customFees, form.rut, form.addOns]);
+  }, [selectedService?.basePrice, form.rut]);
 
   // Handle field changes
   const handleChange = (field, value) => {
@@ -64,6 +58,7 @@ export default function CustomFormStep({ config, onNext }) {
   const renderField = (fieldId) => {
     const fieldLabel = config.fieldLabels?.[fieldId] || fieldId.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
     const fieldHelp = config.fieldHelp?.[fieldId] || '';
+    const placeholder = config.fieldPlaceholders?.[fieldId] || '';
 
     switch (fieldId) {
       case 'zipCode':
@@ -96,20 +91,6 @@ export default function CustomFormStep({ config, onNext }) {
           </Select>
         );
 
-      case 'area':
-        return (
-          <TextInput
-            key={fieldId}
-            label={fieldLabel}
-            value={form.area}
-            onChange={e => handleChange('area', e.target.value)}
-            placeholder="Enter area in sqm"
-            type="number"
-            required
-            helperText={fieldHelp}
-          />
-        );
-
       case 'frequency':
         return (
           <Select
@@ -128,33 +109,6 @@ export default function CustomFormStep({ config, onNext }) {
           </Select>
         );
 
-      case 'addOns':
-        return selectedService && addOns.length > 0 ? (
-          <div key={fieldId} className="space-y-3">
-            <Label>{fieldLabel}</Label>
-            {addOns.map(addon => (
-              <Checkbox
-                key={addon.id}
-                checked={form.addOns[addon.id] || false}
-                onChange={e => handleChange('addOns', { ...form.addOns, [addon.id]: e.target.checked })}
-                label={`${addon.name} (+${addon.price} kr)`}
-              />
-            ))}
-            {fieldHelp && <p className="text-sm text-gray-500">{fieldHelp}</p>}
-          </div>
-        ) : null;
-
-      case 'windowCleaning':
-        return (
-          <Checkbox
-            key={fieldId}
-            checked={form.windowCleaning}
-            onChange={e => handleChange('windowCleaning', e.target.checked)}
-            label={fieldLabel}
-            helperText={fieldHelp}
-          />
-        );
-
       case 'rutToggle':
         return config.rutEnabled ? (
           <Checkbox
@@ -165,6 +119,73 @@ export default function CustomFormStep({ config, onNext }) {
             helperText={fieldHelp}
           />
         ) : null;
+
+      case 'radio':
+        return (
+          <div key={fieldId} className="space-y-3">
+            <Label>{fieldLabel}</Label>
+            <div className="space-y-2">
+              {(config.fieldRadioOptions?.[fieldId] || ['Alternativ 1', 'Alternativ 2']).map((option, index) => (
+                <label key={index} className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name={`radio-${fieldId}`}
+                    checked={form.radioSelections?.[fieldId] === index}
+                    onChange={() => {
+                      const newRadioSelections = { ...form.radioSelections, [fieldId]: index };
+                      handleChange('radioSelections', newRadioSelections);
+                    }}
+                    className="text-blue-600"
+                  />
+                  <span className="text-sm">{option}</span>
+                </label>
+              ))}
+            </div>
+            {fieldHelp && <p className="text-sm text-gray-500">{fieldHelp}</p>}
+          </div>
+        );
+
+      case 'dropdown':
+        return (
+          <div key={fieldId} className="space-y-3">
+            <Label>{fieldLabel}</Label>
+            <Select
+              value={form.dropdownSelections?.[fieldId] || ''}
+              onChange={e => {
+                const newDropdownSelections = { ...form.dropdownSelections, [fieldId]: e.target.value };
+                handleChange('dropdownSelections', newDropdownSelections);
+              }}
+              required
+            >
+              <option value="">{placeholder || '-- Välj --'}</option>
+              {(config.fieldDropdownOptions?.[fieldId] || ['Alternativ 1', 'Alternativ 2']).map((option, index) => (
+                <option key={index} value={option}>{option}</option>
+              ))}
+            </Select>
+            {fieldHelp && <p className="text-sm text-gray-500">{fieldHelp}</p>}
+          </div>
+        );
+
+      case 'gdprConsent':
+        return (
+          <div key={fieldId} className="space-y-3">
+            <Checkbox
+              checked={form.gdpr}
+              onChange={e => handleChange('gdpr', e.target.checked)}
+              label={
+                <span 
+                  dangerouslySetInnerHTML={{
+                    __html: (config.fieldGdprText?.[fieldId] || 'Jag godkänner integritetspolicy och villkor')
+                      .replace('[privacy]', `<a href="${config.fieldPrivacyPolicyUrl?.[fieldId] || '#'}" target="_blank" rel="noopener noreferrer" class="text-blue-600 underline">integritetspolicy</a>`)
+                      .replace('[terms]', `<a href="${config.fieldTermsUrl?.[fieldId] || '#'}" target="_blank" rel="noopener noreferrer" class="text-blue-600 underline">villkor</a>`)
+                  }}
+                />
+              }
+              required
+            />
+            {fieldHelp && <p className="text-sm text-gray-500">{fieldHelp}</p>}
+          </div>
+        );
 
       case 'name':
         return (
@@ -201,6 +222,25 @@ export default function CustomFormStep({ config, onNext }) {
             required
             helperText={fieldHelp}
           />
+        );
+
+      case 'checkbox':
+        return (
+          <div key={fieldId} className="space-y-3">
+            <Label>{fieldLabel}</Label>
+            {(config.fieldCheckboxOptions?.[fieldId] || ['Jag godkänner villkoren']).map((option, index) => (
+              <Checkbox
+                key={index}
+                checked={form.checkboxes?.[index] || false}
+                onChange={e => {
+                  const newCheckboxes = { ...form.checkboxes, [index]: e.target.checked };
+                  handleChange('checkboxes', newCheckboxes);
+                }}
+                label={option}
+              />
+            ))}
+            {fieldHelp && <p className="text-sm text-gray-500">{fieldHelp}</p>}
+          </div>
         );
 
       case 'address':
@@ -255,6 +295,24 @@ export default function CustomFormStep({ config, onNext }) {
           </Select>
         );
 
+      case 'timeSlots':
+        return (
+          <div key={fieldId} className="space-y-3">
+            <Label>{fieldLabel}</Label>
+            <div className="space-y-2">
+              {(config.timeSlots || ['08:00', '13:00']).map(time => (
+                <Checkbox
+                  key={time}
+                  checked={form.timeSlots === time}
+                  onChange={e => handleChange('timeSlots', e.target.checked ? time : '')}
+                  label={time}
+                />
+              ))}
+            </div>
+            {fieldHelp && <p className="text-sm text-gray-500">{fieldHelp}</p>}
+          </div>
+        );
+
       default:
         return null;
     }
@@ -282,19 +340,6 @@ export default function CustomFormStep({ config, onNext }) {
       <form className="space-y-6" onSubmit={handleSubmit}>
         {/* Render fields based on fieldOrder */}
         {(config.fieldOrder || []).map(fieldId => renderField(fieldId))}
-        
-        {/* GDPR Consent */}
-        <Checkbox
-          checked={form.gdpr}
-          onChange={e => handleChange('gdpr', e.target.checked)}
-          label={t('I consent to GDPR and accept the privacy policy and terms.')}
-          required
-        />
-        
-        <div className="flex gap-4">
-          <a href={form.privacyLink} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">{t('Privacy Policy')}</a>
-          <a href={form.termsLink} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">{t('Terms & Conditions')}</a>
-        </div>
         
         {/* Price Display */}
         {selectedService && (

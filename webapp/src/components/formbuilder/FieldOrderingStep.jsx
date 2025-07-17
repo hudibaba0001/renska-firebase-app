@@ -89,14 +89,6 @@ const FIELD_DEFINITIONS = {
     defaultPlaceholder: '',
     defaultHelp: 'Jag godkänner att mina uppgifter behandlas enligt integritetspolicy'
   },
-  area: {
-    name: 'Area/Size',
-    description: 'Square meters or room count',
-    icon: '📏',
-    defaultLabel: 'Bostadsarea (m²)',
-    defaultPlaceholder: '50',
-    defaultHelp: 'Ange din bostads area i kvadratmeter'
-  },
   frequency: {
     name: 'Frequency',
     description: 'How often to book service',
@@ -105,22 +97,6 @@ const FIELD_DEFINITIONS = {
     defaultPlaceholder: '',
     defaultHelp: 'Hur ofta vill du ha städning?'
   },
-  addOns: {
-    name: 'Add-Ons',
-    description: 'Optional additional services',
-    icon: '➕',
-    defaultLabel: 'Tilläggstjänster',
-    defaultPlaceholder: '',
-    defaultHelp: 'Välj eventuella tilläggstjänster'
-  },
-  windowCleaning: {
-    name: 'Window Cleaning',
-    description: 'Window cleaning options',
-    icon: '🪟',
-    defaultLabel: 'Fönsterputsning',
-    defaultPlaceholder: '',
-    defaultHelp: 'Lägg till fönsterputsning'
-  },
   rutToggle: {
     name: 'RUT/ROT Toggle',
     description: 'Tax deduction option',
@@ -128,6 +104,14 @@ const FIELD_DEFINITIONS = {
     defaultLabel: 'RUT-avdrag',
     defaultPlaceholder: '',
     defaultHelp: 'Vill du använda RUT-avdrag?'
+  },
+  timeSlots: {
+    name: 'Time Slots',
+    description: 'Predefined time slot selection',
+    icon: '⏰',
+    defaultLabel: 'Välj tid',
+    defaultPlaceholder: '',
+    defaultHelp: 'Välj en tid som passar dig'
   }
 };
 
@@ -141,6 +125,7 @@ export default function FieldOrderingStep({ config, updateConfig, onNext, onPrev
   const fieldHelp = config.fieldHelp || {};
   const fieldRequired = config.fieldRequired || {};
   const fieldVisible = config.fieldVisible || {};
+  const timeSlots = config.timeSlots || ['08:00', '13:00'];
 
   const moveField = (fromIndex, toIndex) => {
     const newOrder = [...fieldOrder];
@@ -177,6 +162,26 @@ export default function FieldOrderingStep({ config, updateConfig, onNext, onPrev
     }
     if (updates.visible !== undefined) {
       newConfig.fieldVisible = { ...fieldVisible, [fieldKey]: updates.visible };
+    }
+    
+    // Handle field-specific options
+    if (updates.checkboxOptions !== undefined) {
+      newConfig.fieldCheckboxOptions = { ...(config.fieldCheckboxOptions || {}), [fieldKey]: updates.checkboxOptions };
+    }
+    if (updates.radioOptions !== undefined) {
+      newConfig.fieldRadioOptions = { ...(config.fieldRadioOptions || {}), [fieldKey]: updates.radioOptions };
+    }
+    if (updates.dropdownOptions !== undefined) {
+      newConfig.fieldDropdownOptions = { ...(config.fieldDropdownOptions || {}), [fieldKey]: updates.dropdownOptions };
+    }
+    if (updates.privacyPolicyUrl !== undefined) {
+      newConfig.fieldPrivacyPolicyUrl = { ...(config.fieldPrivacyPolicyUrl || {}), [fieldKey]: updates.privacyPolicyUrl };
+    }
+    if (updates.termsUrl !== undefined) {
+      newConfig.fieldTermsUrl = { ...(config.fieldTermsUrl || {}), [fieldKey]: updates.termsUrl };
+    }
+    if (updates.gdprText !== undefined) {
+      newConfig.fieldGdprText = { ...(config.fieldGdprText || {}), [fieldKey]: updates.gdprText };
     }
     
     updateConfig(newConfig);
@@ -300,8 +305,16 @@ export default function FieldOrderingStep({ config, updateConfig, onNext, onPrev
                 placeholder: fieldPlaceholders[editingField] || FIELD_DEFINITIONS[editingField].defaultPlaceholder,
                 help: fieldHelp[editingField] || FIELD_DEFINITIONS[editingField].defaultHelp,
                 required: fieldRequired[editingField] || false,
-                visible: fieldVisible[editingField] !== false
+                visible: fieldVisible[editingField] !== false,
+                checkboxOptions: (config.fieldCheckboxOptions || {})[editingField] || ['Jag godkänner villkoren'],
+                radioOptions: (config.fieldRadioOptions || {})[editingField] || ['Alternativ 1', 'Alternativ 2'],
+                dropdownOptions: (config.fieldDropdownOptions || {})[editingField] || ['Alternativ 1', 'Alternativ 2'],
+                privacyPolicyUrl: (config.fieldPrivacyPolicyUrl || {})[editingField] || 'https://swedprime.com/privacy',
+                termsUrl: (config.fieldTermsUrl || {})[editingField] || 'https://swedprime.com/terms',
+                gdprText: (config.fieldGdprText || {})[editingField] || 'Jag godkänner integritetspolicy och villkor'
               }}
+              timeSlots={timeSlots}
+              updateConfig={updateConfig}
               onUpdate={(updates) => updateFieldConfig(editingField, updates)}
             />
           ) : (
@@ -330,6 +343,8 @@ export default function FieldOrderingStep({ config, updateConfig, onNext, onPrev
           fieldHelp={fieldHelp}
           fieldRequired={fieldRequired}
           fieldVisible={fieldVisible}
+          timeSlots={timeSlots}
+          config={config}
         />
       </div>
 
@@ -388,7 +403,7 @@ export default function FieldOrderingStep({ config, updateConfig, onNext, onPrev
 }
 
 // Field Editor Component
-function FieldEditor({ fieldKey, field, config, onUpdate }) {
+function FieldEditor({ fieldKey, field, config, timeSlots, updateConfig, onUpdate }) {
   return (
     <div className="bg-white shadow rounded-lg p-6">
       <h3 className="text-lg font-semibold mb-6">
@@ -472,6 +487,256 @@ function FieldEditor({ fieldKey, field, config, onUpdate }) {
           </label>
         </div>
 
+        {/* Time Slots Configuration */}
+        {fieldKey === 'timeSlots' && (
+          <div className="border-t pt-6">
+            <h4 className="font-medium mb-4">Time Slot Options</h4>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Available Time Slots
+                </label>
+                <div className="space-y-2">
+                  {['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00'].map((time) => (
+                    <label key={time} className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={timeSlots.includes(time)}
+                        onChange={(e) => {
+                          const newTimeSlots = e.target.checked
+                            ? [...timeSlots, time]
+                            : timeSlots.filter(t => t !== time);
+                          updateConfig({ timeSlots: newTimeSlots });
+                        }}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-sm">{time}</span>
+                    </label>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  Select which time slots customers can choose from
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Checkbox Options Configuration */}
+        {fieldKey === 'checkbox' && (
+          <div className="border-t pt-6">
+            <h4 className="font-medium mb-4">Checkbox Options</h4>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Checkbox Choices
+                </label>
+                <div className="space-y-2">
+                  {(config.checkboxOptions || ['Jag godkänner villkoren']).map((option, index) => (
+                    <div key={index} className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={option}
+                        onChange={(e) => {
+                          const newOptions = [...(config.checkboxOptions || ['Jag godkänner villkoren'])];
+                          newOptions[index] = e.target.value;
+                          onUpdate({ checkboxOptions: newOptions });
+                        }}
+                        className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        placeholder="Enter checkbox option"
+                      />
+                      <button
+                        onClick={() => {
+                          const newOptions = (config.checkboxOptions || ['Jag godkänner villkoren']).filter((_, i) => i !== index);
+                          onUpdate({ checkboxOptions: newOptions });
+                        }}
+                        className="text-red-500 hover:text-red-700 text-sm"
+                        disabled={(config.checkboxOptions || ['Jag godkänner villkoren']).length <= 1}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    onClick={() => {
+                      const newOptions = [...(config.checkboxOptions || ['Jag godkänner villkoren']), 'Ny checkbox'];
+                      onUpdate({ checkboxOptions: newOptions });
+                    }}
+                    className="text-blue-600 hover:text-blue-800 text-sm"
+                  >
+                    + Add Checkbox Option
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  Define the checkbox options that customers can select
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Radio Options Configuration */}
+        {fieldKey === 'radio' && (
+          <div className="border-t pt-6">
+            <h4 className="font-medium mb-4">Radio Button Options</h4>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Radio Choices
+                </label>
+                <div className="space-y-2">
+                  {(config.radioOptions || ['Alternativ 1', 'Alternativ 2']).map((option, index) => (
+                    <div key={index} className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={option}
+                        onChange={(e) => {
+                          const newOptions = [...(config.radioOptions || ['Alternativ 1', 'Alternativ 2'])];
+                          newOptions[index] = e.target.value;
+                          onUpdate({ radioOptions: newOptions });
+                        }}
+                        className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        placeholder="Enter radio option"
+                      />
+                      <button
+                        onClick={() => {
+                          const newOptions = (config.radioOptions || ['Alternativ 1', 'Alternativ 2']).filter((_, i) => i !== index);
+                          onUpdate({ radioOptions: newOptions });
+                        }}
+                        className="text-red-500 hover:text-red-700 text-sm"
+                        disabled={(config.radioOptions || ['Alternativ 1', 'Alternativ 2']).length <= 1}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    onClick={() => {
+                      const newOptions = [...(config.radioOptions || ['Alternativ 1', 'Alternativ 2']), 'Nytt alternativ'];
+                      onUpdate({ radioOptions: newOptions });
+                    }}
+                    className="text-blue-600 hover:text-blue-800 text-sm"
+                  >
+                    + Add Radio Option
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  Define the radio button options that customers can choose from
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Dropdown Options Configuration */}
+        {fieldKey === 'dropdown' && (
+          <div className="border-t pt-6">
+            <h4 className="font-medium mb-4">Dropdown Options</h4>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Dropdown Choices
+                </label>
+                <div className="space-y-2">
+                  {(config.dropdownOptions || ['Alternativ 1', 'Alternativ 2']).map((option, index) => (
+                    <div key={index} className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={option}
+                        onChange={(e) => {
+                          const newOptions = [...(config.dropdownOptions || ['Alternativ 1', 'Alternativ 2'])];
+                          newOptions[index] = e.target.value;
+                          onUpdate({ dropdownOptions: newOptions });
+                        }}
+                        className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        placeholder="Enter dropdown option"
+                      />
+                      <button
+                        onClick={() => {
+                          const newOptions = (config.dropdownOptions || ['Alternativ 1', 'Alternativ 2']).filter((_, i) => i !== index);
+                          onUpdate({ dropdownOptions: newOptions });
+                        }}
+                        className="text-red-500 hover:text-red-700 text-sm"
+                        disabled={(config.dropdownOptions || ['Alternativ 1', 'Alternativ 2']).length <= 1}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    onClick={() => {
+                      const newOptions = [...(config.dropdownOptions || ['Alternativ 1', 'Alternativ 2']), 'Nytt alternativ'];
+                      onUpdate({ dropdownOptions: newOptions });
+                    }}
+                    className="text-blue-600 hover:text-blue-800 text-sm"
+                  >
+                    + Add Dropdown Option
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  Define the dropdown options that customers can select from
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* GDPR Links Configuration */}
+        {fieldKey === 'gdprConsent' && (
+          <div className="border-t pt-6">
+            <h4 className="font-medium mb-4">GDPR Links Configuration</h4>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Privacy Policy URL
+                </label>
+                <input
+                  type="url"
+                  value={config.privacyPolicyUrl || 'https://swedprime.com/privacy'}
+                  onChange={(e) => updateConfig({ privacyPolicyUrl: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="https://yourcompany.com/privacy"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  URL to your privacy policy page
+                </p>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Terms & Conditions URL
+                </label>
+                <input
+                  type="url"
+                  value={config.termsUrl || 'https://swedprime.com/terms'}
+                  onChange={(e) => updateConfig({ termsUrl: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="https://yourcompany.com/terms"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  URL to your terms and conditions page
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Custom Consent Text
+                </label>
+                <textarea
+                  value={config.gdprText || 'Jag godkänner integritetspolicy och villkor'}
+                  onChange={(e) => updateConfig({ gdprText: e.target.value })}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Custom GDPR consent text"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Custom text for the GDPR consent checkbox. Use [privacy] and [terms] as placeholders for links.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="bg-gray-50 p-4 rounded-lg">
           <h4 className="font-medium mb-2">Field Type: {field.name}</h4>
           <p className="text-sm text-gray-600">{field.description}</p>
@@ -489,7 +754,9 @@ function FormPreview({
   fieldPlaceholders, 
   fieldHelp, 
   fieldRequired, 
-  fieldVisible 
+  fieldVisible,
+  timeSlots,
+  config
 }) {
   const visibleFields = fieldOrder.filter(fieldKey => fieldVisible[fieldKey] !== false);
   
@@ -543,21 +810,29 @@ function FormPreview({
               
               {fieldKey === 'radio' ? (
                 <div className="space-y-2">
-                  <label className="flex items-center gap-2">
-                    <input type="radio" name="radio-preview" className="text-blue-600" />
-                    <span className="text-sm">Alternativ 1</span>
-                  </label>
-                  <label className="flex items-center gap-2">
-                    <input type="radio" name="radio-preview" className="text-blue-600" />
-                    <span className="text-sm">Alternativ 2</span>
-                  </label>
+                  {(config.fieldRadioOptions?.[fieldKey] || ['Alternativ 1', 'Alternativ 2']).map((option, index) => (
+                    <label key={index} className="flex items-center gap-2">
+                      <input type="radio" name="radio-preview" className="text-blue-600" />
+                      <span className="text-sm">{option}</span>
+                    </label>
+                  ))}
                 </div>
               ) : fieldKey === 'dropdown' ? (
                 <select className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white">
                   <option>{placeholder || '-- Välj --'}</option>
-                  <option disabled>Alternativ 1</option>
-                  <option disabled>Alternativ 2</option>
+                  {(config.fieldDropdownOptions?.[fieldKey] || ['Alternativ 1', 'Alternativ 2']).map((option, index) => (
+                    <option key={index} disabled>{option}</option>
+                  ))}
                 </select>
+              ) : fieldKey === 'checkbox' ? (
+                <div className="space-y-2">
+                  {(config.fieldCheckboxOptions?.[fieldKey] || ['Jag godkänner villkoren']).map((option, index) => (
+                    <label key={index} className="flex items-center gap-2">
+                      <input type="checkbox" className="text-blue-600" />
+                      <span className="text-sm">{option}</span>
+                    </label>
+                  ))}
+                </div>
               ) : fieldKey === 'frequency' ? (
                 <div className="space-y-2">
                   <label className="flex items-center gap-2">
@@ -569,22 +844,18 @@ function FormPreview({
                     <span className="text-sm">Varannan vecka</span>
                   </label>
                 </div>
-              ) : fieldKey === 'addOns' ? (
-                <div className="space-y-2">
-                  <label className="flex items-center gap-2">
-                    <input type="checkbox" className="text-blue-600" />
-                    <span className="text-sm">Ugnsrengöring (+500kr)</span>
-                  </label>
-                  <label className="flex items-center gap-2">
-                    <input type="checkbox" className="text-blue-600" />
-                    <span className="text-sm">Balkong (+500kr)</span>
-                  </label>
-                </div>
               ) : fieldKey === 'gdprConsent' ? (
                 <div className="space-y-2">
                   <label className="flex items-center gap-2">
                     <input type="checkbox" className="text-blue-600" />
-                    <span className="text-sm">Jag godkänner <a href="#" className="text-blue-600 underline">integritetspolicy</a> och <a href="#" className="text-blue-600 underline">villkor</a></span>
+                    <span 
+                      className="text-sm"
+                      dangerouslySetInnerHTML={{
+                        __html: (config.fieldGdprText?.[fieldKey] || 'Jag godkänner integritetspolicy och villkor')
+                          .replace('[privacy]', `<a href="${config.fieldPrivacyPolicyUrl?.[fieldKey] || '#'}" class="text-blue-600 underline">integritetspolicy</a>`)
+                          .replace('[terms]', `<a href="${config.fieldTermsUrl?.[fieldKey] || '#'}" class="text-blue-600 underline">villkor</a>`)
+                      }}
+                    />
                   </label>
                 </div>
               ) : fieldKey === 'rutToggle' ? (
@@ -611,9 +882,18 @@ function FormPreview({
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   disabled
                 />
+              ) : fieldKey === 'timeSlots' ? (
+                <div className="space-y-2">
+                  {timeSlots.map((time) => (
+                    <label key={time} className="flex items-center gap-2">
+                      <input type="radio" name="timeSlots-preview" className="text-blue-600" />
+                      <span className="text-sm">{time}</span>
+                    </label>
+                  ))}
+                </div>
               ) : (
                 <input
-                  type={fieldKey === 'area' ? 'number' : 'text'}
+                  type="text"
                   placeholder={placeholder}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   disabled

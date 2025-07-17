@@ -60,13 +60,9 @@ export default function FormBuilderPage() {
     
     // Field Ordering & Customization
     fieldOrder: [
-      'zipCode',
-      'serviceSelector',
-      'area',
-      'frequency',
-      'addOns',
-      'windowCleaning',
-      'rutToggle'
+      'name',
+      'email',
+      'phone'
     ],
     fieldLabels: {},
     fieldHelp: {},
@@ -234,6 +230,8 @@ export default function FormBuilderPage() {
     slug: config.slug,
     formId,
     companyId,
+    currentStep,
+    totalSteps: STEPS.length,
     fieldOrder: config.fieldOrder,
     services: config.services?.length
   });
@@ -310,6 +308,25 @@ export default function FormBuilderPage() {
 
       {/* Step Content */}
       <div>
+        {/* Debug Info */}
+        <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <h3 className="font-medium text-yellow-800 mb-2">Debug Info</h3>
+          <p className="text-sm text-yellow-700">
+            Current Step: {currentStep} of {STEPS.length} - {STEPS[currentStep - 1]?.title}
+          </p>
+          <div className="mt-2 space-x-2">
+            {STEPS.map((step, idx) => (
+              <button
+                key={step.id}
+                onClick={() => goToStep(idx + 1)}
+                className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+              >
+                {idx + 1}: {step.title}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {CurrentStepComponent && (
           <CurrentStepComponent
             config={config}
