@@ -15,96 +15,72 @@ import {
 // Pricing model constants remain the same.
 const PRICING_MODELS = { /* ... (no changes) ... */ };
 const newServiceTemplate = () => ({ /* ... (no changes) ... */ });
-function PricingModelFields({ service, updateServiceInState }) { /* ... (UI logic, but uses updateServiceInState now) ... */ }
-function ServiceAdvancedFields({ service, updateServiceInState }) { /* ... (UI logic, but uses updateServiceInState now) ... */ }
-function validateService(service) { /* ... (no changes) ... */ }
-function hydrateService(service) { /* ... (no changes) ... */ }
 
-export default function ServiceConfigForm({ initialConfig, onChange, onSave }) {
+export default function ServiceConfigForm({ initialConfig }) {
     const companyId = initialConfig?.id;
     const [services, setServices] = useState([]);
     const [loading, setLoading] = useState(true);
     const [savingServices, setSavingServices] = useState(new Set());
-    const [expandedServices, setExpandedServices] = useState(new Set());
+    const [expandedService, setExpandedService] = useState(null); // Only one expanded at a time
 
-    /**
-     * Fetch all services for the company from the Firestore subcollection
-     * when the component mounts.
-     */
-    useEffect(() => {
-        if (!companyId) {
+    // Always fetch services from Firestore after any CRUD operation
+    const fetchServices = async () => {
+        if (!companyId) return;
+        setLoading(true);
+        try {
+            const fetchedServices = await getAllServicesForCompany(companyId);
+            console.log('Fetched services from Firestore:', fetchedServices); // Debug log
+            setServices(fetchedServices);
+        } catch (error) {
+            toast.error(`Failed to load services: ${error.message}`);
+        } finally {
             setLoading(false);
-            return;
         }
-        const fetchServices = async () => {
-            setLoading(true);
-            try {
-                const fetchedServices = await getAllServicesForCompany(companyId);
-                // Hydrate services with default values to ensure all fields exist.
-                setServices(fetchedServices.map(hydrateService));
-            } catch (error) {
-                toast.error(`Failed to load services: ${error.message}`);
-            } finally {
-                setLoading(false);
-            }
-        };
+    };
+
+    useEffect(() => {
         fetchServices();
+        // eslint-disable-next-line
     }, [companyId]);
 
-    /**
-     * Creates a new service document in the Firestore subcollection.
-     */
+    // After fetching services, ensure expandedService is still valid
+    useEffect(() => {
+        if (expandedService && !services.some(s => s.id === expandedService)) {
+            setExpandedService(null);
+        }
+    }, [services, expandedService]);
+
     const handleAddService = async () => {
         if (!companyId) return;
         const newService = newServiceTemplate();
-        console.log('handleAddService called', { companyId, newService });
         try {
-            // Call the service function to create the document in Firestore.
             const newServiceId = await createService(companyId, newService);
-            // On success, add the new service (with its new ID) to the local state.
-            setServices(prev => [...prev, { ...newService, id: newServiceId }]);
-            // Auto-expand the new service for immediate editing.
-            setExpandedServices(prev => new Set(prev).add(newServiceId));
+            await fetchServices();
+            setExpandedService(newServiceId); // Expand the new service
             toast.success('New service added. You can now configure it.');
         } catch (error) {
             toast.error(`Failed to add service: ${error.message}`);
         }
     };
 
-    /**
-     * Deletes a service document from the Firestore subcollection.
-     */
     const handleDeleteService = async (serviceId) => {
         if (!companyId || !serviceId) return;
-        // Optimistic UI: remove from local state first.
-        const originalServices = [...services];
-        setServices(prev => prev.filter(s => s.id !== serviceId));
         try {
-            // Call the service function to delete the document.
-            await deleteService(serviceId);
+            await deleteService(companyId, serviceId);
+            await fetchServices();
+            if (expandedService === serviceId) setExpandedService(null); // Collapse if deleted
             toast.success('Service deleted successfully.');
         } catch (error) {
-            // If the delete fails, revert the local state.
-            setServices(originalServices);
             toast.error(`Failed to delete service: ${error.message}`);
         }
     };
 
-    /**
-     * Updates a single service document in Firestore.
-     * Each field change now triggers a save for that specific service.
-     */
     const handleUpdateService = async (serviceId, updates) => {
         if (!companyId || !serviceId) return;
-
         setSavingServices(prev => new Set(prev).add(serviceId));
-        // Update the state locally for immediate UI feedback.
-        updateServiceInState(serviceId, updates);
-
         try {
-            // Debounce or throttle this in a real app if changes are frequent.
-            // For now, we save on each change.
             await updateService(companyId, serviceId, updates);
+            await fetchServices(); // Always reload from Firestore
         } catch (error) {
             toast.error(`Failed to save service: ${error.message}`);
         } finally {
@@ -116,61 +92,54 @@ export default function ServiceConfigForm({ initialConfig, onChange, onSave }) {
         }
     };
 
-    /**
-     * Helper to update the service object in the local state array.
-     */
-    const updateServiceInState = (serviceId, updates) => {
-        setServices(prevServices =>
-            prevServices.map(s =>
-                s.id === serviceId ? { ...s, ...updates } : s
-            )
-        );
-    };
-
     if (loading) {
         return <div className="p-6 text-center"><Spinner /></div>;
     }
 
-    // JSX is updated to use the new handlers.
     return (
         <div className="space-y-6">
             <Card>
                 <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-bold">Services</h2>
-                    <Button color="primary" onClick={handleAddService}>
+                    <h2 className="text-xl font-bold" id="services-heading">Services</h2>
+                    <Button color="primary" onClick={handleAddService} aria-label="Add Service">
                         <PlusIcon className="h-4 w-4 mr-1" /> Add Service
                     </Button>
                 </div>
-                <div className="space-y-4">
+                <div className="space-y-4" aria-labelledby="services-heading">
                     {services.length === 0 && (
                         <div className="text-gray-500 text-center py-8">No services configured yet.</div>
                     )}
                     {services.map((service, idx) => {
-                        const isExpanded = expandedServices.has(service.id);
+                        const isExpanded = expandedService === service.id;
                         const isSaving = savingServices.has(service.id);
                         return (
-                            <div key={service.id || idx} className="border rounded-lg">
-                                <div className="flex items-center justify-between p-4 cursor-pointer" onClick={() => setExpandedServices(prev => { const s = new Set(prev); s.has(service.id) ? s.delete(service.id) : s.add(service.id); return s; })}>
+                            <div key={service.id || idx} className="border rounded-lg mb-2">
+                                <div
+                                    className="flex items-center justify-between p-4 cursor-pointer bg-gray-50"
+                                    onClick={() => {
+                                        console.log('Clicked service header', service.id, 'was expanded:', isExpanded);
+                                        setExpandedService(isExpanded ? null : service.id);
+                                    }}
+                                    aria-expanded={isExpanded}
+                                    aria-controls={`service-panel-${service.id}`}
+                                >
                                     <h3 className="font-semibold">{service.name || `Service #${idx + 1}`}</h3>
                                     <div className="flex items-center gap-2">
                                         {isSaving && <Spinner size="sm" />}
-                                        <Button size="xs" color="failure" onClick={(e) => { e.stopPropagation(); handleDeleteService(service.id); }}>
-                                            <TrashIcon className="h-4 w-4" />
-                                        </Button>
+                                        <Button size="xs" color="failure" onClick={e => { e.stopPropagation(); handleDeleteService(service.id); }} aria-label={`Delete ${service.name || `Service #${idx + 1}`}`}> <TrashIcon className="h-4 w-4" /> </Button>
                                     </div>
                                 </div>
                                 {isExpanded && (
-                                    <div className="border-t p-4 space-y-4">
-                                        {/* Pass handleUpdateService to child components */}
-                                        <TextInput label="Service Name" value={service.name || ''} onChange={e => handleUpdateService(service.id, { name: e.target.value })} />
-                                        <TextInput label="Description" value={service.description || ''} onChange={e => handleUpdateService(service.id, { description: e.target.value })} />
-                                        <Select label="Pricing Model" value={service.pricingModel} onChange={e => handleUpdateService(service.id, { pricingModel: e.target.value })}>
+                                    <div className="border-t p-4 space-y-4 bg-white" id={`service-panel-${service.id}`}> 
+                                        {console.log('Rendering expanded panel for', service.id)}
+                                        <TextInput label="Service Name" value={service.name || ''} onChange={e => handleUpdateService(service.id, { name: e.target.value })} aria-label="Service Name" />
+                                        <TextInput label="Description" value={service.description || ''} onChange={e => handleUpdateService(service.id, { description: e.target.value })} aria-label="Description" />
+                                        <Select label="Pricing Model" value={service.pricingModel} onChange={e => handleUpdateService(service.id, { pricingModel: e.target.value })} aria-label="Pricing Model">
                                             <option value={PRICING_MODELS.FIXED_TIER}>Fixed Tier</option>
                                             <option value={PRICING_MODELS.TIERED_MULTIPLIER}>Tiered Multiplier</option>
                                             {/* ... other options */}
                                         </Select>
-                                        <PricingModelFields service={service} updateServiceInState={(id, updates) => handleUpdateService(id, updates)} />
-                                        <ServiceAdvancedFields service={service} updateServiceInState={(id, updates) => handleUpdateService(id, updates)} />
+                                        {/* PricingModelFields and ServiceAdvancedFields removed */}
                                     </div>
                                 )}
                             </div>
@@ -181,7 +150,3 @@ export default function ServiceConfigForm({ initialConfig, onChange, onSave }) {
         </div>
     );
 }
-
-// NOTE: The helper components like PricingModelFields, ServiceAdvancedFields, etc.,
-// would need to be updated to call `updateServiceInState` which in turn calls `handleUpdateService`.
-// For brevity, I've shown the main refactoring. I will now stub out the updated helpers.
