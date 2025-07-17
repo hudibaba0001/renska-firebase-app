@@ -1,18 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { TextInput, Checkbox, Button } from 'flowbite-react';
+import { Checkbox, Button } from 'flowbite-react';
 
 export default function ZipCodeValidationStep({ config, updateConfig, onNext, onPrev }) {
   const [enabled, setEnabled] = useState(!!(config.zipAreas && config.zipAreas.length > 0));
-  const [zipString, setZipString] = useState((config.zipAreas || []).join(', '));
 
   useEffect(() => {
     if (!enabled) {
       updateConfig({ zipAreas: [] });
-    } else {
-      updateConfig({ zipAreas: zipString.split(',').map(z => z.trim()).filter(Boolean) });
+    } else if (!config.zipAreas) {
+      updateConfig({ zipAreas: [] });
     }
     // eslint-disable-next-line
-  }, [enabled, zipString]);
+  }, [enabled]);
 
   return (
     <div className="max-w-xl mx-auto bg-white p-8 rounded shadow">
@@ -27,13 +26,17 @@ export default function ZipCodeValidationStep({ config, updateConfig, onNext, on
       </div>
       {enabled && (
         <div className="mb-6">
-          <label className="block text-sm font-medium mb-2">Allowed ZIP Codes (comma-separated)</label>
-          <TextInput
-            value={zipString}
-            onChange={e => setZipString(e.target.value)}
-            placeholder="e.g. 41107, 41121, 41254"
-          />
-          <div className="text-xs text-gray-500 mt-1">Customers must enter one of these ZIP codes to proceed. Leave blank to allow all ZIPs.</div>
+          <label className="block text-sm font-medium mb-2">Allowed ZIP Codes (managed in Settings)</label>
+          {Array.isArray(config.zipAreas) && config.zipAreas.length > 0 ? (
+            <ul className="list-disc pl-6 text-gray-700">
+              {config.zipAreas.map(zip => (
+                <li key={zip}>{zip}</li>
+              ))}
+            </ul>
+          ) : (
+            <div className="text-gray-400">No ZIP codes configured. Edit in Settings.</div>
+          )}
+          <div className="text-xs text-gray-500 mt-1">Customers must enter one of these ZIP codes to proceed. Edit ZIP codes in Settings.</div>
         </div>
       )}
       <div className="flex justify-between mt-8">

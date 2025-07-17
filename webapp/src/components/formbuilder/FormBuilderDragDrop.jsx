@@ -6,6 +6,16 @@ import { Modal, TextInput, Button } from 'flowbite-react';
 
 function generateField(type) {
   // Generate a new field object with a unique ID and sensible defaults
+  if (type === 'gdpr') {
+    return {
+      id: `gdpr_${Date.now()}_${Math.floor(Math.random() * 10000)}`,
+      type: 'gdpr',
+      label: 'I consent to GDPR and accept the privacy policy and terms.',
+      privacyPolicyUrl: '',
+      termsUrl: '',
+      required: true,
+    };
+  }
   if (type === 'zipCode') {
     return {
       id: `zipCode_${Date.now()}_${Math.floor(Math.random() * 10000)}`,
@@ -83,7 +93,8 @@ export default function FormBuilderDragDrop() {
             placeholder: editingField.placeholder,
             ...(editingField.type === 'dropdown' ? { options: editingField.options || [] } : {}),
             ...(editingField.type === 'slider' ? { min: editingField.min ?? 0, max: editingField.max ?? 100 } : {}),
-            ...(editingField.type === 'zipCode' ? { allowedZips: editingField.allowedZips || [] } : {})
+            ...(editingField.type === 'zipCode' ? { allowedZips: editingField.allowedZips || [] } : {}),
+            ...(editingField.type === 'gdpr' ? { privacyPolicyUrl: editingField.privacyPolicyUrl || '', termsUrl: editingField.termsUrl || '', required: true } : {})
           }
         : f
     ));
@@ -122,7 +133,6 @@ export default function FormBuilderDragDrop() {
     }
   ];
   const [selectedServiceId, setSelectedServiceId] = useState(mockServices[0].id);
-  const selectedService = mockServices.find(s => s.id === selectedServiceId);
 
   return (
     <div className="flex flex-col h-[80vh]">
@@ -144,13 +154,34 @@ export default function FormBuilderDragDrop() {
                   placeholder="Field label"
                   required
                 />
+                {/* GDPR URLs editing */}
+                {editingField.type === 'gdpr' && (
+                  <>
+                    <TextInput
+                      name="privacyPolicyUrl"
+                      label="Privacy Policy URL"
+                      value={editingField.privacyPolicyUrl || ''}
+                      onChange={handleEditFieldChange}
+                      placeholder="https://yourcompany.com/privacy"
+                      required
+                    />
+                    <TextInput
+                      name="termsUrl"
+                      label="Terms & Conditions URL"
+                      value={editingField.termsUrl || ''}
+                      onChange={handleEditFieldChange}
+                      placeholder="https://yourcompany.com/terms"
+                      required
+                    />
+                  </>
+                )}
                 <TextInput
                   name="placeholder"
                   label="Placeholder"
                   value={editingField.placeholder || ''}
                   onChange={handleEditFieldChange}
                   placeholder="Field placeholder (optional)"
-                  disabled={editingField.type === 'checkbox' || editingField.type === 'divider'}
+                  disabled={editingField.type === 'checkbox' || editingField.type === 'divider' || editingField.type === 'gdpr'}
                 />
                 {/* ZIP Code allowedZips editing */}
                 {editingField.type === 'zipCode' && (
@@ -232,7 +263,7 @@ export default function FormBuilderDragDrop() {
         <form className="space-y-4">
           {fields.map((field) => (
             <div key={field.id}>
-              {field.type !== 'divider' && field.type !== 'group' && (
+              {field.type !== 'divider' && field.type !== 'group' && field.type !== 'gdpr' && (
                 <label className="block text-sm font-medium mb-1">{field.label}</label>
               )}
               {field.type === 'text' && (
@@ -260,16 +291,17 @@ export default function FormBuilderDragDrop() {
               {field.type === 'slider' && (
                 <input type="range" className="w-full" min={field.min || 0} max={field.max || 100} disabled />
               )}
-              {field.type === 'zipCode' && (
-                <input type="text" className="w-full border p-2 rounded" placeholder={field.placeholder || 'Enter ZIP code'} disabled />
-              )}
-              {field.type === 'serviceSelector' && (
-                <select className="w-full border p-2 rounded" disabled>
-                  <option>{field.placeholder || 'Select service'}</option>
-                  {mockServices.map(s => (
-                    <option key={s.id}>{s.name}</option>
-                  ))}
-                </select>
+              {field.type === 'gdpr' && (
+                <div className="flex items-center gap-2">
+                  <input type="checkbox" disabled />
+                  <span>{field.label}</span>
+                  {field.privacyPolicyUrl && (
+                    <a href={field.privacyPolicyUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline ml-2">Privacy Policy</a>
+                  )}
+                  {field.termsUrl && (
+                    <a href={field.termsUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline ml-2">Terms & Conditions</a>
+                  )}
+                </div>
               )}
               {field.type === 'divider' && <hr className="my-4" />}
               {field.type === 'group' && (
@@ -281,35 +313,11 @@ export default function FormBuilderDragDrop() {
               {/* Add more field types as needed */}
             </div>
           ))}
-          {/* Mock add-ons */}
-          {selectedService && selectedService.addOns.length > 0 && (
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-1">Tilläggstjänster</label>
-              <div className="space-y-2">
-                {selectedService.addOns.map(addOn => (
-                  <label key={addOn.id} className="flex items-center gap-2">
-                    <input type="checkbox" disabled />
-                    <span>{addOn.label} (+{addOn.price} kr)</span>
-                  </label>
-                ))}
-              </div>
-            </div>
+          {/* Prevent submit if GDPR is required and not all URLs are set */}
+          {fields.some(f => f.type === 'gdpr' && (!f.privacyPolicyUrl || !f.termsUrl)) && (
+            <div className="text-red-600 text-sm mb-2">Please provide both Privacy Policy and Terms & Conditions URLs for GDPR consent.</div>
           )}
-          {/* Mock window cleaning */}
-          {selectedService && selectedService.windowCleaning.length > 0 && (
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-1">Fönsterputsning</label>
-              <div className="space-y-2">
-                {selectedService.windowCleaning.map(win => (
-                  <label key={win.id} className="flex items-center gap-2">
-                    <input type="number" min="0" className="w-16 border rounded p-1" placeholder="Antal" disabled />
-                    <span>{win.label} ({win.price} kr/st)</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-          )}
-          <button type="button" className="w-full bg-blue-600 text-white py-2 rounded" disabled>Submit</button>
+          <button type="button" className="w-full bg-blue-600 text-white py-2 rounded" disabled={fields.some(f => f.type === 'gdpr' && (!f.privacyPolicyUrl || !f.termsUrl))}>Submit</button>
         </form>
       </div>
     </div>
