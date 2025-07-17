@@ -21,7 +21,8 @@ import {
   BuildingOfficeIcon,
   TagIcon,
   MapIcon,
-  InformationCircleIcon
+  InformationCircleIcon,
+  ChevronDownIcon
 } from '@heroicons/react/24/outline'
 import toast from 'react-hot-toast'
 import { createService, updateService, deleteService as deleteServiceFromFirestore } from '../services/firestore';
@@ -78,6 +79,17 @@ export default function ConfigForm({ initialConfig, onSave, onChange, refreshSer
   const [isValid, setIsValid] = useState(false)
   const [showAddOnModal, setShowAddOnModal] = useState(false)
   const [newAddOnName, setNewAddOnName] = useState('')
+  const [expandedServiceId, setExpandedServiceId] = useState(null)
+  
+  // Function to toggle service expansion
+  const toggleService = (serviceId) => {
+    setExpandedServiceId(expandedServiceId === serviceId ? null : serviceId);
+  };
+  
+  // Function to check if a service is expanded
+  const isServiceExpanded = (serviceId) => {
+    return expandedServiceId === serviceId;
+  };
 
   useEffect(() => {
     if (initialConfig) {
@@ -341,18 +353,38 @@ export default function ConfigForm({ initialConfig, onSave, onChange, refreshSer
 
           <div className="space-y-4">
             {/* Only render services with a valid Firestore ID */}
-            {validServices.map(service => (
-              <div key={service.id} className="border rounded-lg p-4 mb-6 bg-white shadow relative">
-                <div className="flex items-center justify-between mb-2">
-                  <input
-                    className="font-bold text-lg flex-1 mr-2 border-b border-gray-200 focus:outline-none"
-                    value={service.name}
-                    onChange={e => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, name: e.target.value } : s) }))}
-                    placeholder="Service name"
-                  />
-                  <button type="button" onClick={() => deleteService(service.id)} className="text-red-500 ml-2">Remove</button>
-                </div>
-                {/* Pricing Model */}
+            {validServices.map(service => {
+              const isExpanded = isServiceExpanded(service.id);
+              return (
+                <div key={service.id} className="border rounded-lg bg-white shadow relative">
+                  {/* Service Header - Always Visible */}
+                  <div
+                    className="p-4 cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors"
+                    onClick={() => toggleService(service.id)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <ChevronDownIcon
+                          className={`h-5 w-5 mr-2 transform transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+                        />
+                        <span className="font-bold text-lg text-gray-900">{service.name || 'Unnamed Service'}</span>
+                        {service.status === 'draft' && (
+                          <span className="ml-2 px-2 py-0.5 rounded bg-yellow-100 text-yellow-800 text-xs font-semibold">Draft</span>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={e => { e.stopPropagation(); deleteService(service.id); }}
+                        className="text-red-500 ml-2"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                  {/* Service Content - Collapsible */}
+                  {isExpanded && (
+                    <div className="p-4 border-t bg-white">
+                      {/* Pricing Model */}
                 <div className="mb-2">
                   <label className="block text-sm font-medium">Pricing Model</label>
                   <select

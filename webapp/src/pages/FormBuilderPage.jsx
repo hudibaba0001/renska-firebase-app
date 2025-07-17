@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { db } from '../firebase/init';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useAuth } from '../context/AuthContext';
 import { getTenant, getAllServicesForCompany } from '../services/firestore';
 
@@ -152,16 +152,26 @@ export default function FormBuilderPage() {
     setSaving(true);
     try {
       const docRef = doc(db, 'companies', companyId, 'calculators', formId || config.slug);
-      await updateDoc(docRef, {
-        status: 'published',
-        publishedAt: new Date()
-      });
+      const now = new Date();
       
-      setConfig(prev => ({ 
-        ...prev, 
+      const publishedConfig = {
+        ...config,
         status: 'published',
-        publishedAt: new Date()
-      }));
+        publishedAt: now,
+        updatedAt: now,
+        ...(formId === 'new' && {
+          createdAt: now,
+          createdBy: user?.uid
+        })
+      };
+      
+      await setDoc(docRef, publishedConfig);
+      setConfig(publishedConfig);
+      
+      // Update URL if this is a new form
+      if (formId === 'new') {
+        navigate(`/admin/${companyId}/forms/${config.slug}`, { replace: true });
+      }
     } catch (error) {
       console.error('Error publishing form:', error);
     } finally {
