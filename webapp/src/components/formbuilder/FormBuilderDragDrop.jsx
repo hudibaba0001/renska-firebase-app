@@ -55,8 +55,8 @@ export default function FormBuilderDragDrop() {
     }
   };
 
-  const handleEditField = (field, index) => {
-    setEditingField({ ...field, index });
+  const handleEditField = (field) => {
+    setEditingField({ ...field }); // Only store the field, not the index
   };
 
   const handleEditFieldChange = (e) => {
@@ -85,8 +85,8 @@ export default function FormBuilderDragDrop() {
   };
 
   const handleEditFieldSave = () => {
-    setFields((prev) => prev.map((f, i) =>
-      i === editingField.index
+    setFields((prev) => prev.map((f) =>
+      f.id === editingField.id
         ? {
             ...f,
             label: editingField.label,
