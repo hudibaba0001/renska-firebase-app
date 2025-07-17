@@ -28,6 +28,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { doc, getDoc, getFirestore, collection, getDocs } from 'firebase/firestore';
 import { getAllServicesForCompany } from '../services/firestore';
+import CompanyMetrics from '../components/CompanyMetrics';
 
 export default function AdminDashboardPage() {
   const { companyId } = useParams();
@@ -682,6 +683,9 @@ export default function AdminDashboardPage() {
         )}
       </Card>
 
+      {/* Enhanced Company Metrics */}
+      <CompanyMetrics companyId={companyId} />
+
       {/* System Alerts */}
       <Alert color="info" className="border-l-4 border-blue-500">
         <ExclamationTriangleIcon className="w-5 h-5" />
@@ -692,4 +696,4 @@ export default function AdminDashboardPage() {
       </Alert>
     </div>
   );
-} 
+}

@@ -1,21 +1,93 @@
 import React, { useState } from 'react';
 
 const FIELD_DEFINITIONS = {
-  zipCode: {
-    name: 'ZIP Code',
-    description: 'Customer location validation',
-    icon: '📍',
-    defaultLabel: 'Postnummer',
-    defaultPlaceholder: '41107',
-    defaultHelp: 'Ange ditt postnummer'
+  name: {
+    name: 'Name Field',
+    description: 'Customer name input',
+    icon: '👤',
+    defaultLabel: 'Namn',
+    defaultPlaceholder: 'Ditt namn',
+    defaultHelp: 'Ange ditt fullständiga namn'
   },
-  serviceSelector: {
-    name: 'Service Selector',
-    description: 'Choose from available services',
-    icon: '🛠️',
-    defaultLabel: 'Välj tjänst',
-    defaultPlaceholder: '-- Välj tjänst --',
-    defaultHelp: 'Välj den tjänst du behöver'
+  email: {
+    name: 'Email Field',
+    description: 'Customer email input',
+    icon: '📧',
+    defaultLabel: 'E-post',
+    defaultPlaceholder: 'din@email.se',
+    defaultHelp: 'Ange din e-postadress'
+  },
+  phone: {
+    name: 'Phone Field',
+    description: 'Customer phone number',
+    icon: '📞',
+    defaultLabel: 'Telefon',
+    defaultPlaceholder: '070-123 45 67',
+    defaultHelp: 'Ange ditt telefonnummer'
+  },
+  address: {
+    name: 'Address Field',
+    description: 'Customer address input',
+    icon: '🏠',
+    defaultLabel: 'Adress',
+    defaultPlaceholder: 'Gatunamn 123',
+    defaultHelp: 'Ange din adress'
+  },
+  date: {
+    name: 'Date Field',
+    description: 'Date selection',
+    icon: '📅',
+    defaultLabel: 'Datum',
+    defaultPlaceholder: '',
+    defaultHelp: 'Välj önskat datum'
+  },
+  time: {
+    name: 'Time Field',
+    description: 'Time selection',
+    icon: '🕐',
+    defaultLabel: 'Tid',
+    defaultPlaceholder: '',
+    defaultHelp: 'Välj önskad tid'
+  },
+  message: {
+    name: 'Message Field',
+    description: 'Text area for comments',
+    icon: '💬',
+    defaultLabel: 'Meddelande',
+    defaultPlaceholder: 'Skriv ditt meddelande här...',
+    defaultHelp: 'Lägg till eventuella kommentarer eller önskemål'
+  },
+  checkbox: {
+    name: 'Checkbox Field',
+    description: 'Yes/No option',
+    icon: '☑️',
+    defaultLabel: 'Jag godkänner villkoren',
+    defaultPlaceholder: '',
+    defaultHelp: 'Kryssa i för att godkänna'
+  },
+  radio: {
+    name: 'Radio Buttons',
+    description: 'Single choice from options',
+    icon: '🔘',
+    defaultLabel: 'Välj alternativ',
+    defaultPlaceholder: '',
+    defaultHelp: 'Välj ett alternativ'
+  },
+  dropdown: {
+    name: 'Dropdown Field',
+    description: 'Select from dropdown list',
+    icon: '📋',
+    defaultLabel: 'Välj från lista',
+    defaultPlaceholder: '',
+    defaultHelp: 'Välj från listan'
+  },
+  gdprConsent: {
+    name: 'GDPR Consent',
+    description: 'Privacy and terms consent',
+    icon: '🔒',
+    defaultLabel: 'Jag godkänner integritetspolicy och villkor',
+    defaultPlaceholder: '',
+    defaultHelp: 'Jag godkänner att mina uppgifter behandlas enligt integritetspolicy'
   },
   area: {
     name: 'Area/Size',
@@ -61,6 +133,7 @@ const FIELD_DEFINITIONS = {
 
 export default function FieldOrderingStep({ config, updateConfig, onNext, onPrev }) {
   const [editingField, setEditingField] = useState(null);
+  const [showAddFieldModal, setShowAddFieldModal] = useState(false);
   
   const fieldOrder = config.fieldOrder || Object.keys(FIELD_DEFINITIONS);
   const fieldLabels = config.fieldLabels || {};
@@ -73,6 +146,17 @@ export default function FieldOrderingStep({ config, updateConfig, onNext, onPrev
     const newOrder = [...fieldOrder];
     const [removed] = newOrder.splice(fromIndex, 1);
     newOrder.splice(toIndex, 0, removed);
+    updateConfig({ fieldOrder: newOrder });
+  };
+
+  const addField = (fieldType) => {
+    const newOrder = [...fieldOrder, fieldType];
+    updateConfig({ fieldOrder: newOrder });
+    setShowAddFieldModal(false);
+  };
+
+  const removeField = (fieldKey) => {
+    const newOrder = fieldOrder.filter(f => f !== fieldKey);
     updateConfig({ fieldOrder: newOrder });
   };
 
@@ -104,10 +188,20 @@ export default function FieldOrderingStep({ config, updateConfig, onNext, onPrev
         {/* Field Order */}
         <div>
           <div className="bg-white shadow rounded-lg p-6">
-            <h2 className="text-xl font-semibold mb-6">Field Order & Visibility</h2>
-            <p className="text-gray-600 mb-6">
-              Drag fields to reorder them in your form. Click to configure each field.
-            </p>
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-xl font-semibold">Field Order & Visibility</h2>
+                <p className="text-gray-600 mt-1">
+                  Drag fields to reorder them in your form. Click to configure each field.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowAddFieldModal(true)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              >
+                + Add Field
+              </button>
+            </div>
             
             <div className="space-y-3">
               {fieldOrder.map((fieldKey, index) => {
@@ -174,6 +268,16 @@ export default function FieldOrderingStep({ config, updateConfig, onNext, onPrev
                             className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-50"
                           >
                             ↓
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeField(fieldKey);
+                            }}
+                            className="p-1 text-red-400 hover:text-red-600"
+                            title="Remove field"
+                          >
+                            ×
                           </button>
                         </div>
                       </div>
@@ -245,6 +349,40 @@ export default function FieldOrderingStep({ config, updateConfig, onNext, onPrev
           Continue to Preview →
         </button>
       </div>
+
+      {/* Add Field Modal */}
+      {showAddFieldModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold mb-4">Add New Field</h3>
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {Object.entries(FIELD_DEFINITIONS).map(([fieldKey, field]) => (
+                <button
+                  key={fieldKey}
+                  onClick={() => addField(fieldKey)}
+                  className="w-full p-3 text-left border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl">{field.icon}</span>
+                    <div>
+                      <div className="font-medium">{field.name}</div>
+                      <div className="text-sm text-gray-500">{field.description}</div>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => setShowAddFieldModal(false)}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

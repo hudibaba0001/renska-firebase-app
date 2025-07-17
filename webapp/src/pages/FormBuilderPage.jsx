@@ -7,18 +7,28 @@ import { getTenant, getAllServicesForCompany } from '../services/firestore';
 
 // Step Components
 import CreateCalculatorStep from '../components/formbuilder/CreateCalculatorStep';
-import DefineServicesStep from '../components/formbuilder/DefineServicesStep';
+import FieldOrderingStep from '../components/formbuilder/FieldOrderingStep';
 import CustomFormStep from '../components/formbuilder/CustomFormStep';
 // import FormBuilderDragDrop from '../components/formbuilder/FormBuilderDragDrop';
 import ServiceSelectionStep from '../components/formbuilder/ServiceSelectionStep';
 import ZipCodeValidationStep from '../components/formbuilder/ZipCodeValidationStep';
 
-const STEPS = [
-  { id: 1, title: 'Create Calculator', component: CreateCalculatorStep },
-  { id: 2, title: 'ZIP Code Validation', component: ZipCodeValidationStep },
-  { id: 3, title: 'Service Selection', component: ServiceSelectionStep },
-  { id: 4, title: 'Custom Questions', component: CustomFormStep }
-];
+// Dynamically build steps based on config
+function getSteps(config) {
+  const steps = [
+    { id: 1, title: 'Form Details', component: CreateCalculatorStep }
+  ];
+  
+  if (config.zipAreas && config.zipAreas.length > 0) {
+    steps.push({ id: 2, title: 'ZIP Code Validation', component: ZipCodeValidationStep });
+  }
+  
+  steps.push({ id: 3, title: 'Service Selection', component: ServiceSelectionStep });
+  steps.push({ id: 4, title: 'Custom Form Builder', component: FieldOrderingStep });
+  steps.push({ id: 5, title: 'Preview & Test', component: CustomFormStep });
+  
+  return steps;
+}
 
 export default function FormBuilderPage() {
   const { companyId, formId } = useParams();
@@ -103,14 +113,19 @@ export default function FormBuilderPage() {
   const loadExistingConfig = async () => {
     setLoading(true);
     try {
+      console.log('Loading form config for:', { companyId, formId });
       const docRef = doc(db, 'companies', companyId, 'calculators', formId);
       const docSnap = await getDoc(docRef);
       
       if (docSnap.exists()) {
+        const formData = docSnap.data();
+        console.log('Loaded form data:', formData);
         setConfig(prevConfig => ({
           ...prevConfig,
-          ...docSnap.data()
+          ...formData
         }));
+      } else {
+        console.log('Form not found in Firestore');
       }
     } catch (error) {
       console.error('Error loading config:', error);
@@ -183,6 +198,9 @@ export default function FormBuilderPage() {
     setConfig(prev => ({ ...prev, ...updates }));
   };
 
+  // Dynamically get steps based on config
+  const STEPS = getSteps(config);
+
   const nextStep = () => {
     if (currentStep < STEPS.length) {
       setCurrentStep(currentStep + 1);
@@ -210,7 +228,17 @@ export default function FormBuilderPage() {
     );
   }
 
-  const CurrentStepComponent = STEPS.find(step => step.id === currentStep)?.component;
+  // Debug logging
+  console.log('Current form config:', {
+    name: config.name,
+    slug: config.slug,
+    formId,
+    companyId,
+    fieldOrder: config.fieldOrder,
+    services: config.services?.length
+  });
+
+  const CurrentStepComponent = STEPS[currentStep - 1]?.component;
 
   return (
     <div className="p-6">
@@ -250,27 +278,27 @@ export default function FormBuilderPage() {
         {/* Progress Steps */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
           <nav className="flex space-x-8 px-6">
-            {STEPS.map((step) => (
+            {STEPS.map((step, idx) => (
               <button
                 key={step.id}
-                onClick={() => goToStep(step.id)}
+                onClick={() => goToStep(idx + 1)}
                 className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                  step.id === currentStep
+                  idx + 1 === currentStep
                     ? 'border-blue-500 text-blue-600'
-                    : step.id < currentStep
+                    : idx + 1 < currentStep
                     ? 'border-green-500 text-green-600'
                     : 'border-transparent text-text-subtle hover:text-text-main'
                 }`}
               >
                 <span className="flex items-center">
                   <span className={`mr-2 w-6 h-6 rounded-full text-xs flex items-center justify-center ${
-                    step.id === currentStep
+                    idx + 1 === currentStep
                       ? 'bg-blue-100 text-blue-600'
-                      : step.id < currentStep
+                      : idx + 1 < currentStep
                       ? 'bg-green-100 text-green-600'
                       : 'bg-gray-100 text-text-subtle'
                   }`}>
-                    {step.id < currentStep ? '✓' : step.id}
+                    {idx + 1 < currentStep ? '✓' : idx + 1}
                   </span>
                   {step.title}
                 </span>

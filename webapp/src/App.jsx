@@ -21,6 +21,7 @@ import TenantListPage from './pages/TenantListPage';
 import TenantOnboardPage from './pages/TenantOnboardPage';
 import TenantDetailPage from './pages/TenantDetailPage';
 import PaymentPage from './pages/PaymentPage';
+import SuperAdminDashboardPage from './pages/SuperAdminDashboardPage';
 
 // Import Layout and Auth Components
 import AdminLayout from './components/AdminLayout';
@@ -178,7 +179,6 @@ function PublicLayout() {
 }
 
 // Placeholder Page Components
-function SuperAdminDashboardPage() { return <div className="text-center p-8"><h2 className="text-xl font-bold">Super Admin Dashboard</h2></div>; }
 function GlobalConfigPage() { return <div className="text-center p-8"><h2 className="text-xl font-bold">Global Configuration (Coming Soon)</h2></div>; }
 function PlansManagementPage() { return <div className="text-center p-8"><h2 className="text-xl font-bold">Plans Management (Coming Soon)</h2></div>; }
 function AuditLogsPage() { return <div className="text-center p-8"><h2 className="text-xl font-bold">Audit Logs (Coming Soon)</h2></div>; }

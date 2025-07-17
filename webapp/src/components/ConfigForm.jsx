@@ -1249,7 +1249,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange, refreshSer
                   </div>
                 </div>
               )
-          })}
+            })}
             {config.services.length === 0 && (
               <div className="text-center py-12 text-gray-500">
                 <BuildingOfficeIcon className="h-12 w-12 mx-auto mb-4 text-gray-300" />
