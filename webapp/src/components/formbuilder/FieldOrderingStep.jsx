@@ -495,9 +495,37 @@ function FormPreview({
   
   return (
     <div className="bg-white shadow rounded-lg p-6">
-      <h3 className="text-lg font-semibold mb-6">Form Preview</h3>
+      <h3 className="text-lg font-semibold mb-6">Complete User Form Preview</h3>
       
       <div className="max-w-md mx-auto space-y-4">
+        {/* ZIP Code (always first if enabled) */}
+        <div className="space-y-1">
+          <label className="block text-sm font-medium text-gray-700">
+            Postnummer <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            placeholder="41107"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            disabled
+          />
+          <p className="text-xs text-gray-500">Ange ditt postnummer</p>
+        </div>
+
+        {/* Service Selection (always second) */}
+        <div className="space-y-1">
+          <label className="block text-sm font-medium text-gray-700">
+            Välj tjänst <span className="text-red-500">*</span>
+          </label>
+          <select className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white">
+            <option>-- Välj tjänst --</option>
+            <option disabled>Hemstädning</option>
+            <option disabled>Storstädning</option>
+          </select>
+          <p className="text-xs text-gray-500">Välj den tjänst du behöver</p>
+        </div>
+
+        {/* Custom Fields */}
         {visibleFields.map((fieldKey) => {
           const field = fieldDefinitions[fieldKey];
           if (!field) return null;
@@ -513,11 +541,22 @@ function FormPreview({
                 {label} {required && <span className="text-red-500">*</span>}
               </label>
               
-              {fieldKey === 'serviceSelector' ? (
+              {fieldKey === 'radio' ? (
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2">
+                    <input type="radio" name="radio-preview" className="text-blue-600" />
+                    <span className="text-sm">Alternativ 1</span>
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input type="radio" name="radio-preview" className="text-blue-600" />
+                    <span className="text-sm">Alternativ 2</span>
+                  </label>
+                </div>
+              ) : fieldKey === 'dropdown' ? (
                 <select className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white">
-                  <option>{placeholder}</option>
-                  <option disabled>Hemstädning</option>
-                  <option disabled>Storstädning</option>
+                  <option>{placeholder || '-- Välj --'}</option>
+                  <option disabled>Alternativ 1</option>
+                  <option disabled>Alternativ 2</option>
                 </select>
               ) : fieldKey === 'frequency' ? (
                 <div className="space-y-2">
@@ -541,11 +580,37 @@ function FormPreview({
                     <span className="text-sm">Balkong (+500kr)</span>
                   </label>
                 </div>
+              ) : fieldKey === 'gdprConsent' ? (
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2">
+                    <input type="checkbox" className="text-blue-600" />
+                    <span className="text-sm">Jag godkänner <a href="#" className="text-blue-600 underline">integritetspolicy</a> och <a href="#" className="text-blue-600 underline">villkor</a></span>
+                  </label>
+                </div>
               ) : fieldKey === 'rutToggle' ? (
                 <label className="flex items-center gap-2">
                   <input type="checkbox" className="text-blue-600" />
                   <span className="text-sm">Ja, jag vill använda RUT-avdrag</span>
                 </label>
+              ) : fieldKey === 'message' ? (
+                <textarea
+                  placeholder={placeholder}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled
+                />
+              ) : fieldKey === 'date' ? (
+                <input
+                  type="date"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled
+                />
+              ) : fieldKey === 'time' ? (
+                <input
+                  type="time"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled
+                />
               ) : (
                 <input
                   type={fieldKey === 'area' ? 'number' : 'text'}
