@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Card, 
   Button, 
@@ -30,7 +30,6 @@ import {
 } from '@heroicons/react/24/outline';
 
 import { Link } from 'react-router-dom';
-import { useRealtimeSuperadminMetrics } from '../hooks/useRealtimeMetrics';
 import { SystemAlertsCenter } from '../components/NotificationCenter';
 import ReportExporter from '../components/ReportExporter';
 import ErrorBoundary from '../components/ErrorBoundary';
@@ -64,11 +63,46 @@ ChartJS.register(
 );
 
 export default function SuperAdminDashboardPage() {
-  // Use real-time hooks for data
-  const { metrics, loading, error, lastUpdated, refresh } = useRealtimeSuperadminMetrics();
+  // Simplified version for debugging
+  const [loading, setLoading] = useState(false);
+  const error = null;
+  const lastUpdated = new Date();
   
-  // State for companies data (will be included in metrics)
-  const companies = metrics?.companies || [];
+  // Mock data for testing
+  const metrics = useMemo(() => ({
+    activeCompanies: 5,
+    suspendedCompanies: 1,
+    mrr: 25000,
+    arr: 300000,
+    churnRate: 2.5,
+    cac: 1200,
+    ltv: 15000,
+    totalUsers: 150
+  }), []);
+  
+  const companies = [
+    {
+      id: '1',
+      companyName: 'Test Company 1',
+      subscriptionStatus: 'active',
+      subscriptionPlan: 'Premium',
+      subscriptionAmount: 5000,
+      userCount: 25
+    },
+    {
+      id: '2',
+      companyName: 'Test Company 2',
+      subscriptionStatus: 'active',
+      subscriptionPlan: 'Basic',
+      subscriptionAmount: 2000,
+      userCount: 10
+    }
+  ];
+  
+  const refresh = () => {
+    setLoading(true);
+    setTimeout(() => setLoading(false), 1000);
+  };
   
   // Historical MRR data for chart
   const [mrrData, setMrrData] = useState({

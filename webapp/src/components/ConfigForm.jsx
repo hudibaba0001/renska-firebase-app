@@ -24,6 +24,7 @@ import {
   InformationCircleIcon,
   ChevronDownIcon
 } from '@heroicons/react/24/outline'
+import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 import { createService, updateService, deleteService as deleteServiceFromFirestore } from '../services/firestore';
 
@@ -405,7 +406,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange, refreshSer
       </div>
 
       {/* Services Section */}
-      <div
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
@@ -1299,7 +1300,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange, refreshSer
         </Modal>
 
         {/* Save Section */}
-        <div
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.2 }}
@@ -1367,8 +1368,8 @@ export default function ConfigForm({ initialConfig, onSave, onChange, refreshSer
               </div>
             )}
           </Card>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
     </div>
   )
 } 

@@ -1,6 +1,6 @@
 // webapp/src/pages/TenantListPage.jsx
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   // Import the full suite of tenant service functions.
@@ -56,10 +56,10 @@ export default function TenantListPage() {
   const [loading, setLoading] = useState(true);
   const [creatingTestData, setCreatingTestData] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [planFilter, setPlanFilter] = useState('all');
-  const [sortBy, setSortBy] = useState('createdAt');
-  const [sortOrder, setSortOrder] = useState('desc');
+  const [statusFilter, setStatusFilter] = useState('all'); // Used in UI and filtering
+  const [planFilter, setPlanFilter] = useState('all'); // Used in UI and filtering
+  const [sortBy, setSortBy] = useState('createdAt'); // Used in UI and filtering
+  const [sortOrder, setSortOrder] = useState('desc'); // Used in UI and filtering
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [tenantToDelete, setTenantToDelete] = useState(null);
   const navigate = useNavigate();
@@ -70,7 +70,7 @@ export default function TenantListPage() {
 
   useEffect(() => {
     filterAndSortTenants();
-  }, [tenants, searchTerm, statusFilter, planFilter, sortBy, sortOrder]);
+  }, [filterAndSortTenants]);
 
   /**
    * Fetches all tenant data by calling the centralized `getAllTenants` service function.
@@ -95,19 +95,42 @@ export default function TenantListPage() {
   }
 
   // The filterAndSortTenants function remains the same as it operates on local state.
-  function filterAndSortTenants() {
+  // Use useCallback to memoize the filterAndSortTenants function
+  const filterAndSortTenants = useCallback(() => {
     let filtered = [...tenants];
+    console.log('Filtering tenants, total before filter:', filtered.length);
+    
     if (searchTerm) {
       filtered = filtered.filter(tenant => 
         (tenant.companyName || tenant.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         (tenant.id || '').toLowerCase().includes(searchTerm.toLowerCase())
       );
+      console.log('After search filter:', filtered.length);
     }
+    
     if (statusFilter !== 'all') {
-      filtered = filtered.filter(tenant => (statusFilter === 'active' ? tenant.subscription?.active : !tenant.subscription?.active));
+      // More defensive check for subscription status
+      filtered = filtered.filter(tenant => {
+        // Default to treating companies without subscription info as active
+        if (!tenant.subscription) {
+          console.log(`Tenant ${tenant.id} missing subscription, treating as ${statusFilter === 'active' ? 'active' : 'not active'}`);
+          return statusFilter === 'active';
+        }
+        
+        // If subscription exists but active is undefined, default to active
+        if (tenant.subscription.active === undefined) {
+          console.log(`Tenant ${tenant.id} has subscription but active is undefined, treating as ${statusFilter === 'active' ? 'active' : 'not active'}`);
+          return statusFilter === 'active';
+        }
+        
+        return statusFilter === 'active' ? tenant.subscription.active : !tenant.subscription.active;
+      });
+      console.log('After status filter:', filtered.length);
     }
+    
     if (planFilter !== 'all') {
       filtered = filtered.filter(tenant => tenant.subscription?.plan === planFilter);
+      console.log('After plan filter:', filtered.length);
     }
     filtered.sort((a, b) => {
       let aValue = a[sortBy];
@@ -209,8 +232,10 @@ export default function TenantListPage() {
   // The rest of the component (stat calculations and JSX) remains largely the same,
   // as it primarily consumes the state that is now populated by our service functions.
   const totalTenants = tenants.length;
-  const activeTenants = tenants.filter(t => t.subscription?.active).length;
-  const getStatusColor = (status) => (status ? 'success' : 'failure');
+  // Count tenants as active unless explicitly set to inactive
+  const activeTenants = tenants.filter(t => t.subscription?.active !== false).length;
+  // Modified to treat undefined/null as active (success)
+  const getStatusColor = (status) => (status !== false ? 'success' : 'failure');
   const getPlanColor = (plan) => ({ premium: 'purple', standard: 'blue', basic: 'green' }[plan] || 'gray');
   const getAvatarUrl = (name) => `https://ui-avatars.com/api/?name=${(name || 'U').split(' ').map(n=>n[0]).join('')}&background=random&color=fff&size=40`;
 
@@ -237,7 +262,7 @@ export default function TenantListPage() {
         {filteredTenants.length === 0 ? (
           <div className="text-center py-12">
             <h3 className="text-lg font-semibold text-text-heading dark:text-white">No tenants found</h3>
-            <p className="text-gray-500 mb-6 text-text-main dark:text-white">Create the first tenant or add test data.</p>
+            <p className="mb-6 text-text-main dark:text-white">Create the first tenant or add test data.</p>
             <Button onClick={createTestData} disabled={creatingTestData}>{creatingTestData ? <Spinner/> : 'Add Test Data'}</Button>
           </div>
         ) : (
@@ -264,7 +289,7 @@ export default function TenantListPage() {
                         </div>
                       </td>
                       <td onClick={() => navigate(`/super-admin/tenants/${tenant.id}`)}><Badge color={getPlanColor(tenant.subscription?.plan)}>{tenant.subscription?.plan || 'NO PLAN'}</Badge></td>
-                      <td onClick={() => navigate(`/super-admin/tenants/${tenant.id}`)}><Badge color={getStatusColor(tenant.subscription?.active)}>{tenant.subscription?.active ? 'Active' : 'Suspended'}</Badge></td>
+                      <td onClick={() => navigate(`/super-admin/tenants/${tenant.id}`)}><Badge color={getStatusColor(tenant.subscription?.active !== false)}>{tenant.subscription?.active !== false ? 'Active' : 'Suspended'}</Badge></td>
                       <td onClick={() => navigate(`/super-admin/tenants/${tenant.id}`)}>{tenant.createdAt?.seconds ? new Date(tenant.createdAt.seconds * 1000).toLocaleDateString() : '—'}</td>
                       <td>
                         <div style={{background: 'red', color: 'white', padding: '2px 8px', borderRadius: '4px', marginBottom: '4px'}}>DEBUG: Actions Cell Rendered</div>

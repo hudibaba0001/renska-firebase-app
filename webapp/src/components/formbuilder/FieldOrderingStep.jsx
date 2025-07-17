@@ -33,6 +33,14 @@ const FIELD_DEFINITIONS = {
     defaultPlaceholder: 'Gatunamn 123',
     defaultHelp: 'Ange din adress'
   },
+  personalNumber: {
+    name: 'Personal Number Field',
+    description: 'Swedish personal identification number',
+    icon: '🆔',
+    defaultLabel: 'Personnummer',
+    defaultPlaceholder: 'YYYYMMDD-XXXX',
+    defaultHelp: 'Ange ditt personnummer i format YYYYMMDD-XXXX'
+  },
   date: {
     name: 'Date Field',
     description: 'Date selection',

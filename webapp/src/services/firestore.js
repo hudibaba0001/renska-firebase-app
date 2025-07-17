@@ -11,8 +11,22 @@ export const getAllTenants = async () => {
     const snapshot = await getDocs(q);
     const tenants = [];
     snapshot.forEach(doc => {
-      tenants.push({ id: doc.id, ...doc.data() });
+      // Add the document to our array
+      const tenantData = { id: doc.id, ...doc.data() };
+      tenants.push(tenantData);
+      
+      // Log each tenant for debugging
+      console.log(`Tenant found: ${doc.id}`, tenantData);
+      
+      // Check if subscription is properly structured
+      if (!tenantData.subscription) {
+        console.warn(`Tenant ${doc.id} is missing subscription object`);
+      } else if (tenantData.subscription.active === undefined) {
+        console.warn(`Tenant ${doc.id} has subscription but missing active status`);
+      }
     });
+    
+    console.log(`Total tenants found: ${tenants.length}`);
     return tenants;
   } catch (error) {
     console.error('Error fetching tenants:', error);
