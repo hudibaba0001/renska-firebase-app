@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import FieldPalette from './FieldPalette';
 import FormCanvas from './FormCanvas';
 import { DndContext, useSensor, useSensors, PointerSensor } from '@dnd-kit/core';
-import { Modal, Button, TextInput } from 'flowbite-react';
+import Modal from 'flowbite-react/lib/Modal';
+import Button from 'flowbite-react/lib/Button';
+import TextInput from 'flowbite-react/lib/TextInput';
 
 function generateField(type) {
   // Generate a new field object with a unique ID and sensible defaults
@@ -141,111 +143,34 @@ export default function FormBuilderDragDrop() {
           <FieldPalette />
           <FormCanvas fields={fields} setFields={setFields} onEdit={handleEditField} onDelete={handleDeleteField} />
         </DndContext>
-        <Modal show={!!editingField} onClose={handleEditFieldCancel} size="md">
-          <Modal.Header>Edit Field</Modal.Header>
-          <Modal.Body>
-            {editingField && typeof editingField === 'object' && editingField.type ? (
-              <div className="space-y-4">
-                <TextInput
-                  name="label"
-                  label="Label"
-                  value={editingField.label || ''}
-                  onChange={handleEditFieldChange}
-                  placeholder="Field label"
-                  required
-                />
-                {/* GDPR URLs editing */}
-                {editingField.type === 'gdpr' && (
-                  <>
-                    <TextInput
-                      name="privacyPolicyUrl"
-                      label="Privacy Policy URL"
-                      value={editingField.privacyPolicyUrl || ''}
-                      onChange={handleEditFieldChange}
-                      placeholder="https://yourcompany.com/privacy"
-                      required
-                    />
-                    <TextInput
-                      name="termsUrl"
-                      label="Terms & Conditions URL"
-                      value={editingField.termsUrl || ''}
-                      onChange={handleEditFieldChange}
-                      placeholder="https://yourcompany.com/terms"
-                      required
-                    />
-                  </>
-                )}
-                <TextInput
-                  name="placeholder"
-                  label="Placeholder"
-                  value={editingField.placeholder || ''}
-                  onChange={handleEditFieldChange}
-                  placeholder="Field placeholder (optional)"
-                  disabled={editingField.type === 'checkbox' || editingField.type === 'divider' || editingField.type === 'gdpr'}
-                />
-                {/* ZIP Code allowedZips editing */}
-                {editingField.type === 'zipCode' && (
-                  <div>
-                    <TextInput
-                      name="allowedZips"
-                      label="Allowed ZIP Codes (comma-separated)"
-                      value={(editingField.allowedZips || []).join(', ')}
-                      onChange={e => setEditingField(prev => ({ ...prev, allowedZips: e.target.value.split(',').map(z => z.trim()).filter(Boolean) }))}
-                      placeholder="e.g. 41107, 41121, 41254"
-                    />
-                    <div className="text-xs text-gray-500 mt-1">Leave empty to allow all ZIP codes.</div>
-                  </div>
-                )}
-                {/* Slider min/max editing */}
-                {editingField.type === 'slider' && (
-                  <div className="flex gap-4">
-                    <TextInput
-                      name="min"
-                      label="Min Value"
-                      type="number"
-                      value={editingField.min ?? 0}
-                      onChange={e => setEditingField(prev => ({ ...prev, min: Number(e.target.value) }))}
-                    />
-                    <TextInput
-                      name="max"
-                      label="Max Value"
-                      type="number"
-                      value={editingField.max ?? 100}
-                      onChange={e => setEditingField(prev => ({ ...prev, max: Number(e.target.value) }))}
-                    />
-                  </div>
-                )}
-                {/* Dropdown options editing */}
-                {editingField.type === 'dropdown' && (
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Dropdown Options</label>
-                    <div className="space-y-2">
-                      {(editingField.options || []).map((opt, idx) => (
-                        <div key={idx} className="flex gap-2 items-center">
-                          <TextInput
-                            value={opt}
-                            onChange={e => handleDropdownOptionChange(idx, e.target.value)}
-                            placeholder={`Option ${idx + 1}`}
-                            className="flex-1"
-                          />
-                          <Button color="gray" size="xs" onClick={() => handleRemoveDropdownOption(idx)} disabled={(editingField.options || []).length <= 1}>Remove</Button>
-                        </div>
-                      ))}
-                    </div>
-                    <Button color="primary" size="xs" className="mt-2" onClick={handleAddDropdownOption}>Add Option</Button>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="text-red-600">Error: Invalid field data. Please close and try again.</div>
-            )}
-          </Modal.Body>
-          <Modal.Footer>
-            <Button color="primary" onClick={handleEditFieldSave}>Save</Button>
-            <Button color="gray" onClick={handleEditFieldCancel}>Cancel</Button>
-          </Modal.Footer>
-        </Modal>
       </div>
+      
+      {/* Modal outside DndContext to prevent conflicts */}
+      {/* Temporarily commented out to debug Modal import issue */}
+      {editingField && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg max-w-md w-full">
+            <h3 className="text-lg font-semibold mb-4">Edit Field (Debug Mode)</h3>
+            <p>Field type: {editingField.type}</p>
+            <p>Field label: {editingField.label}</p>
+            <div className="mt-4 flex gap-2">
+              <button 
+                className="px-4 py-2 bg-blue-600 text-white rounded"
+                onClick={handleEditFieldSave}
+              >
+                Save
+              </button>
+              <button 
+                className="px-4 py-2 bg-gray-600 text-white rounded"
+                onClick={handleEditFieldCancel}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Live form preview */}
       <div className="mt-8 p-6 bg-white rounded shadow max-w-xl mx-auto">
         <h3 className="text-lg font-semibold mb-4">Live Form Preview</h3>
