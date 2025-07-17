@@ -1,6 +1,6 @@
 import React from 'react';
-import { DndContext, useDroppable, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
-import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { useDroppable } from '@dnd-kit/core';
+import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 
 function Field({ field, index, onEdit, onDelete }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: field.id });
@@ -41,33 +41,16 @@ function Field({ field, index, onEdit, onDelete }) {
   );
 }
 
-export default function FormCanvas({ fields, setFields, onEdit, onDelete }) {
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor)
-  );
-
-  const handleDragEnd = (event) => {
-    const { active, over } = event;
-    if (active.id !== over.id) {
-      const oldIndex = fields.findIndex(f => f.id === active.id);
-      const newIndex = fields.findIndex(f => f.id === over.id);
-      setFields(arrayMove(fields, oldIndex, newIndex));
-    }
-  };
-
+export default function FormCanvas({ fields, onEdit, onDelete }) {
   const { setNodeRef } = useDroppable({ id: 'canvas' });
-
   return (
-    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-      <SortableContext items={fields.map(f => f.id)} strategy={verticalListSortingStrategy}>
-        <div ref={setNodeRef} className="flex-1 min-h-[400px] bg-gray-100 p-4 rounded border-dashed border-2 border-gray-300">
-          {fields.length === 0 && <div className="text-gray-400 text-center py-12">Drag fields here to build your form</div>}
-          {fields.map((field, idx) => (
-            <Field key={field.id} field={field} index={idx} onEdit={onEdit} onDelete={onDelete} />
-          ))}
-        </div>
-      </SortableContext>
-    </DndContext>
+    <SortableContext items={fields.map(f => f.id)} strategy={verticalListSortingStrategy}>
+      <div ref={setNodeRef} className="flex-1 min-h-[400px] bg-gray-100 p-4 rounded border-dashed border-2 border-gray-300">
+        {fields.length === 0 && <div className="text-gray-400 text-center py-12">Drag fields here to build your form</div>}
+        {fields.map((field, idx) => (
+          <Field key={field.id} field={field} index={idx} onEdit={onEdit} onDelete={onDelete} />
+        ))}
+      </div>
+    </SortableContext>
   );
 } 

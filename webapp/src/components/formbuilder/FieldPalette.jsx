@@ -8,15 +8,14 @@ const FIELD_TYPES = [
   { type: 'time', label: 'Time Picker' },
   { type: 'dropdown', label: 'Dropdown' },
   { type: 'slider', label: 'Slider' },
-  { type: 'zipCode', label: 'ZIP Code' },
-  { type: 'serviceSelector', label: 'Service Selector' },
+  { type: 'gdpr', label: 'GDPR Consent' },
   { type: 'group', label: 'Group' },
   { type: 'divider', label: 'Divider' },
   // Add more as needed
 ];
 
 function DraggableField({ type, label }) {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: type });
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: type, data: { fromPalette: true } });
   return (
     <div
       ref={setNodeRef}

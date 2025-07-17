@@ -6,6 +6,23 @@ import { Modal, TextInput, Button } from 'flowbite-react';
 
 function generateField(type) {
   // Generate a new field object with a unique ID and sensible defaults
+  if (type === 'zipCode') {
+    return {
+      id: `zipCode_${Date.now()}_${Math.floor(Math.random() * 10000)}`,
+      type: 'zipCode',
+      label: 'ZIP Code',
+      placeholder: 'Enter ZIP code',
+      allowedZips: [],
+    };
+  }
+  if (type === 'serviceSelector') {
+    return {
+      id: `serviceSelector_${Date.now()}_${Math.floor(Math.random() * 10000)}`,
+      type: 'serviceSelector',
+      label: 'Service',
+      placeholder: 'Select service',
+    };
+  }
   return {
     id: `${type}_${Date.now()}_${Math.floor(Math.random() * 10000)}`,
     type,
@@ -65,7 +82,8 @@ export default function FormBuilderDragDrop() {
             label: editingField.label,
             placeholder: editingField.placeholder,
             ...(editingField.type === 'dropdown' ? { options: editingField.options || [] } : {}),
-            ...(editingField.type === 'slider' ? { min: editingField.min ?? 0, max: editingField.max ?? 100 } : {})
+            ...(editingField.type === 'slider' ? { min: editingField.min ?? 0, max: editingField.max ?? 100 } : {}),
+            ...(editingField.type === 'zipCode' ? { allowedZips: editingField.allowedZips || [] } : {})
           }
         : f
     ));
@@ -134,6 +152,19 @@ export default function FormBuilderDragDrop() {
                   placeholder="Field placeholder (optional)"
                   disabled={editingField.type === 'checkbox' || editingField.type === 'divider'}
                 />
+                {/* ZIP Code allowedZips editing */}
+                {editingField.type === 'zipCode' && (
+                  <div>
+                    <TextInput
+                      name="allowedZips"
+                      label="Allowed ZIP Codes (comma-separated)"
+                      value={(editingField.allowedZips || []).join(', ')}
+                      onChange={e => setEditingField(prev => ({ ...prev, allowedZips: e.target.value.split(',').map(z => z.trim()).filter(Boolean) }))}
+                      placeholder="e.g. 41107, 41121, 41254"
+                    />
+                    <div className="text-xs text-gray-500 mt-1">Leave empty to allow all ZIP codes.</div>
+                  </div>
+                )}
                 {/* Slider min/max editing */}
                 {editingField.type === 'slider' && (
                   <div className="flex gap-4">
@@ -228,6 +259,17 @@ export default function FormBuilderDragDrop() {
               )}
               {field.type === 'slider' && (
                 <input type="range" className="w-full" min={field.min || 0} max={field.max || 100} disabled />
+              )}
+              {field.type === 'zipCode' && (
+                <input type="text" className="w-full border p-2 rounded" placeholder={field.placeholder || 'Enter ZIP code'} disabled />
+              )}
+              {field.type === 'serviceSelector' && (
+                <select className="w-full border p-2 rounded" disabled>
+                  <option>{field.placeholder || 'Select service'}</option>
+                  {mockServices.map(s => (
+                    <option key={s.id}>{s.name}</option>
+                  ))}
+                </select>
               )}
               {field.type === 'divider' && <hr className="my-4" />}
               {field.type === 'group' && (

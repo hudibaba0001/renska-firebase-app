@@ -9,11 +9,13 @@ import CreateCalculatorStep from '../components/formbuilder/CreateCalculatorStep
 import DefineServicesStep from '../components/formbuilder/DefineServicesStep';
 import CustomFormStep from '../components/formbuilder/CustomFormStep';
 import FormBuilderDragDrop from '../components/formbuilder/FormBuilderDragDrop';
+import ServiceSelectionStep from '../components/formbuilder/ServiceSelectionStep';
 
 const STEPS = [
   { id: 1, title: 'Create Calculator', component: CreateCalculatorStep },
-  { id: 2, title: 'Define Services', component: DefineServicesStep },
-  { id: 3, title: 'Custom Form', component: FormBuilderDragDrop }
+  { id: 2, title: 'ZIP Code Validation', component: ZipCodeValidationStep },
+  { id: 3, title: 'Service Selection', component: ServiceSelectionStep },
+  { id: 4, title: 'Custom Questions', component: FormBuilderDragDrop }
 ];
 
 export default function FormBuilderPage() {
