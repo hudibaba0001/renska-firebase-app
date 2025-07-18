@@ -23,31 +23,31 @@ import {
 import { collection, getDocs, query, where, orderBy, limit, getFirestore } from 'firebase/firestore';
 
 // Import chart components
-import { Line, Bar, Pie } from 'react-chartjs-2';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  ArcElement,
-  Title,
-  Tooltip,
-  Legend,
-} from 'chart.js';
+// import { Line, Bar, Pie } from 'react-chartjs-2';
+// import {
+//   Chart as ChartJS,
+//   CategoryScale,
+//   LinearScale,
+//   PointElement,
+//   LineElement,
+//   BarElement,
+//   ArcElement,
+//   Title,
+//   Tooltip,
+//   Legend,
+// } from 'chart.js';
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  ArcElement,
-  Title,
-  Tooltip,
-  Legend
-);
+// ChartJS.register(
+//   CategoryScale,
+//   LinearScale,
+//   PointElement,
+//   LineElement,
+//   BarElement,
+//   ArcElement,
+//   Title,
+//   Tooltip,
+//   Legend
+// );
 
 export default function CompanyMetrics({ companyId }) {
   const [loading, setLoading] = useState(true);
@@ -64,43 +64,6 @@ export default function CompanyMetrics({ companyId }) {
   });
   
   const [topServices, setTopServices] = useState([]);
-  const [salesTrends, setSalesTrends] = useState({
-    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
-    datasets: [
-      {
-        label: 'Revenue (SEK)',
-        data: [0, 0, 0, 0, 0, 0, 0],
-        borderColor: 'rgb(75, 192, 192)',
-        backgroundColor: 'rgba(75, 192, 192, 0.2)',
-        tension: 0.1
-      },
-      {
-        label: 'Bookings',
-        data: [0, 0, 0, 0, 0, 0, 0],
-        borderColor: 'rgb(255, 99, 132)',
-        backgroundColor: 'rgba(255, 99, 132, 0.2)',
-        tension: 0.1
-      }
-    ]
-  });
-  
-  const [customerActivity, setCustomerActivity] = useState({
-    labels: ['Active', 'Inactive'],
-    datasets: [
-      {
-        data: [0, 0],
-        backgroundColor: [
-          'rgba(75, 192, 192, 0.6)',
-          'rgba(255, 99, 132, 0.6)'
-        ],
-        borderColor: [
-          'rgb(75, 192, 192)',
-          'rgb(255, 99, 132)'
-        ],
-        borderWidth: 1
-      }
-    ]
-  });
 
   useEffect(() => {
     async function fetchCompanyMetrics() {
@@ -217,43 +180,43 @@ export default function CompanyMetrics({ companyId }) {
         
         setTopServices(topServicesData);
         
-        setSalesTrends({
-          labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
-          datasets: [
-            {
-              label: 'Revenue (SEK)',
-              data: monthlyData.map(d => d.revenue),
-              borderColor: 'rgb(75, 192, 192)',
-              backgroundColor: 'rgba(75, 192, 192, 0.2)',
-              tension: 0.1
-            },
-            {
-              label: 'Bookings',
-              data: monthlyData.map(d => d.bookings),
-              borderColor: 'rgb(255, 99, 132)',
-              backgroundColor: 'rgba(255, 99, 132, 0.2)',
-              tension: 0.1
-            }
-          ]
-        });
+        // setSalesTrends({
+        //   labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
+        //   datasets: [
+        //     {
+        //       label: 'Revenue (SEK)',
+        //       data: monthlyData.map(d => d.revenue),
+        //       borderColor: 'rgb(75, 192, 192)',
+        //       backgroundColor: 'rgba(75, 192, 192, 0.2)',
+        //       tension: 0.1
+        //     },
+        //     {
+        //       label: 'Bookings',
+        //       data: monthlyData.map(d => d.bookings),
+        //       borderColor: 'rgb(255, 99, 132)',
+        //       backgroundColor: 'rgba(255, 99, 132, 0.2)',
+        //       tension: 0.1
+        //     }
+        //   ]
+        // });
         
-        setCustomerActivity({
-          labels: ['Active', 'Inactive'],
-          datasets: [
-            {
-              data: [activeCustomers, inactiveCustomers],
-              backgroundColor: [
-                'rgba(75, 192, 192, 0.6)',
-                'rgba(255, 99, 132, 0.6)'
-              ],
-              borderColor: [
-                'rgb(75, 192, 192)',
-                'rgb(255, 99, 132)'
-              ],
-              borderWidth: 1
-            }
-          ]
-        });
+        // setCustomerActivity({
+        //   labels: ['Active', 'Inactive'],
+        //   datasets: [
+        //     {
+        //       data: [activeCustomers, inactiveCustomers],
+        //       backgroundColor: [
+        //         'rgba(75, 192, 192, 0.6)',
+        //         'rgba(255, 99, 132, 0.6)'
+        //       ],
+        //       borderColor: [
+        //         'rgb(75, 192, 192)',
+        //         'rgb(255, 99, 132)'
+        //       ],
+        //       borderWidth: 1
+        //     }
+        //   ]
+        // });
         
       } catch (error) {
         console.error("Error fetching company metrics:", error);
@@ -273,15 +236,15 @@ export default function CompanyMetrics({ companyId }) {
     return `${value.toFixed(1)}%`;
   };
 
-  const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'top',
-      },
-    },
-  };
+  // const chartOptions = {
+  //   responsive: true,
+  //   maintainAspectRatio: false,
+  //   plugins: {
+  //     legend: {
+  //       position: 'top',
+  //     },
+  //   },
+  // };
 
   if (loading) {
     return (
@@ -410,8 +373,8 @@ export default function CompanyMetrics({ companyId }) {
         ))}
       </div>
 
-      {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Charts Row - Temporarily Disabled */}
+      {/* <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="w-full h-96">
           <h5 className="text-lg font-bold mb-4">Monthly Sales Trends</h5>
           <div className="h-80">
@@ -427,7 +390,7 @@ export default function CompanyMetrics({ companyId }) {
             </div>
           </div>
         </Card>
-      </div>
+      </div> */}
 
       {/* Top Services Table */}
       <Card>
