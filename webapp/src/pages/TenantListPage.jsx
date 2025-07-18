@@ -6,9 +6,9 @@ import {
   // Import the full suite of tenant service functions.
   // This replaces all direct 'firebase/firestore' imports.
   getAllTenants,
-  updateTenant,
   deleteTenant,
-  createTenant // Used for creating test data.
+  updateTenant,
+  createTenant
 } from '../services/firestore';
 import {
   Button,
@@ -68,31 +68,33 @@ export default function TenantListPage() {
     fetchTenants();
   }, []);
 
-  useEffect(() => {
-    filterAndSortTenants();
-  }, [filterAndSortTenants]);
-
   /**
    * Fetches all tenant data by calling the centralized `getAllTenants` service function.
    * This simplifies the component's responsibility to just handling the state.
    */
-  async function fetchTenants() {
+  const fetchTenants = useCallback(async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      // Replaced direct Firestore call with the service function.
-      const tenantsData = await getAllTenants();
-      setTenants(tenantsData);
+      // Then fetch tenants as normal
+      console.log('DEBUG: Fetching tenants for display:');
+      const fetchedTenants = await getAllTenants();
+      console.log(`DEBUG: Fetched ${fetchedTenants.length} tenants for display`);
       
-      if (tenantsData.length > 0) {
-        console.log(`✅ Loaded ${tenantsData.length} tenants via service layer`);
-      }
+      // Log each tenant's subscription status
+      fetchedTenants.forEach(tenant => {
+        console.log(`DEBUG: Tenant ${tenant.id} (${tenant.companyName || tenant.name || 'Unnamed'})`);
+        console.log(`DEBUG: Subscription:`, tenant.subscription || 'No subscription');
+        console.log(`DEBUG: Will be displayed as: ${tenant.subscription?.active !== false ? 'ACTIVE' : 'INACTIVE'}`);
+      });
+      
+      setTenants(fetchedTenants);
     } catch (error) {
       console.error('Error fetching tenants:', error);
-      toast.error(error.message || 'Failed to load tenants');
+      toast.error('Failed to load tenants');
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
   // The filterAndSortTenants function remains the same as it operates on local state.
   // Use useCallback to memoize the filterAndSortTenants function
@@ -113,17 +115,22 @@ export default function TenantListPage() {
       filtered = filtered.filter(tenant => {
         // Default to treating companies without subscription info as active
         if (!tenant.subscription) {
-          console.log(`Tenant ${tenant.id} missing subscription, treating as ${statusFilter === 'active' ? 'active' : 'not active'}`);
+          console.log(`Tenant ${tenant.id} missing subscription, treating as ACTIVE by default`);
+          // Always treat missing subscription as active
           return statusFilter === 'active';
         }
         
-        // If subscription exists but active is undefined, default to active
-        if (tenant.subscription.active === undefined) {
-          console.log(`Tenant ${tenant.id} has subscription but active is undefined, treating as ${statusFilter === 'active' ? 'active' : 'not active'}`);
+        // If subscription exists but active is undefined or null, default to active
+        if (tenant.subscription.active === undefined || tenant.subscription.active === null) {
+          console.log(`Tenant ${tenant.id} has subscription but active is undefined/null, treating as ACTIVE by default`);
+          // Always treat undefined/null active status as active
           return statusFilter === 'active';
         }
         
-        return statusFilter === 'active' ? tenant.subscription.active : !tenant.subscription.active;
+        // For explicit boolean values, use the actual value
+        const isActive = tenant.subscription.active !== false;
+        console.log(`Tenant ${tenant.id} has explicit active status: ${isActive ? 'ACTIVE' : 'INACTIVE'}`);
+        return statusFilter === 'active' ? isActive : !isActive;
       });
       console.log('After status filter:', filtered.length);
     }
@@ -143,13 +150,17 @@ export default function TenantListPage() {
       return aValue < bValue ? 1 : -1;
     });
     setFilteredTenants(filtered);
-  }
+  }, [tenants, searchTerm, statusFilter, planFilter, sortBy, sortOrder]);
+
+  useEffect(() => {
+    filterAndSortTenants();
+  }, [filterAndSortTenants]);
 
   /**
    * Creates test tenant data using the `createTenant` service function.
    * This ensures that even test data is created through our standardized process.
    */
-  async function createTestData() {
+  const createTestData = useCallback(async () => {
     setCreatingTestData(true);
     try {
       // Test data is now created using the same `createTenant` function as the real form.
@@ -170,7 +181,7 @@ export default function TenantListPage() {
     } finally {
       setCreatingTestData(false);
     }
-  }
+  }, [fetchTenants]);
 
   /**
    * Toggles a tenant's active status using the `updateTenant` service function.
@@ -251,9 +262,51 @@ export default function TenantListPage() {
         <Card><div className="flex items-center justify-between"><div><p>Active Tenants</p><p className="text-2xl font-bold text-text-heading dark:text-white">{activeTenants}</p></div><ChartBarIcon className="w-6 h-6 text-white p-3 rounded-lg bg-green-500" /></div></Card>
       </div>
       <Card>
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <TextInput icon={MagnifyingGlassIcon} placeholder="Search tenants..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-          <Button onClick={() => navigate('/super-admin/tenants/new')}><PlusIcon className="w-4 h-4 mr-2" />Add Tenant</Button>
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 p-4">
+          <div className="flex flex-col md:flex-row gap-4 flex-grow">
+            <TextInput 
+              icon={MagnifyingGlassIcon} 
+              placeholder="Search tenants..." 
+              value={searchTerm} 
+              onChange={(e) => setSearchTerm(e.target.value)} 
+              className="flex-grow"
+            />
+            <div className="flex gap-2">
+              <Select 
+                value={statusFilter} 
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="w-40"
+              >
+                <option value="all">All Status</option>
+                <option value="active">Active</option>
+                <option value="inactive">Suspended</option>
+              </Select>
+              <Select 
+                value={planFilter} 
+                onChange={(e) => setPlanFilter(e.target.value)}
+                className="w-40"
+              >
+                <option value="all">All Plans</option>
+                <option value="premium">Premium</option>
+                <option value="standard">Standard</option>
+                <option value="basic">Basic</option>
+              </Select>
+            </div>
+          </div>
+          <div className="flex gap-2 items-center">
+            <div className="flex gap-2">
+              <Button color="light" size="sm" onClick={() => setSortBy('companyName')}>
+                Name {sortBy === 'companyName' && (sortOrder === 'asc' ? <ArrowUpIcon className="w-3 h-3 inline" /> : <ArrowDownIcon className="w-3 h-3 inline" />)}
+              </Button>
+              <Button color="light" size="sm" onClick={() => setSortBy('createdAt')}>
+                Date {sortBy === 'createdAt' && (sortOrder === 'asc' ? <ArrowUpIcon className="w-3 h-3 inline" /> : <ArrowDownIcon className="w-3 h-3 inline" />)}
+              </Button>
+              <Button color="light" size="sm" onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}>
+                {sortOrder === 'asc' ? <ArrowUpIcon className="w-4 h-4" /> : <ArrowDownIcon className="w-4 h-4" />}
+              </Button>
+            </div>
+            <Button onClick={() => navigate('/super-admin/tenants/new')}><PlusIcon className="w-4 h-4 mr-2" />Add Tenant</Button>
+          </div>
         </div>
       </Card>
 
@@ -292,7 +345,7 @@ export default function TenantListPage() {
                       <td onClick={() => navigate(`/super-admin/tenants/${tenant.id}`)}><Badge color={getStatusColor(tenant.subscription?.active !== false)}>{tenant.subscription?.active !== false ? 'Active' : 'Suspended'}</Badge></td>
                       <td onClick={() => navigate(`/super-admin/tenants/${tenant.id}`)}>{tenant.createdAt?.seconds ? new Date(tenant.createdAt.seconds * 1000).toLocaleDateString() : '—'}</td>
                       <td>
-                        <div style={{background: 'red', color: 'white', padding: '2px 8px', borderRadius: '4px', marginBottom: '4px'}}>DEBUG: Actions Cell Rendered</div>
+                        {/* Debug message removed */}
                         <div className="flex items-center space-x-2" onClick={(e) => e.stopPropagation()}>
                           <Button size="xs" onClick={() => navigate(`/super-admin/tenants/${tenant.id}`)}><EyeIcon className="w-4 h-4" /></Button>
                           {/* Always show impersonate button */}

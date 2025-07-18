@@ -4,33 +4,38 @@ import { collection, query, getDocs, orderBy, addDoc, deleteDoc, doc, where, upd
 import { db } from "../firebase/init";
 import { serverTimestamp } from "firebase/firestore";
 
+// Get all tenants (companies) from the 'companies' collection
 export const getAllTenants = async () => {
   try {
-    const tenantsRef = collection(db, 'companies');
-    const q = query(tenantsRef, orderBy('createdAt', 'desc'));
+    const companiesRef = collection(db, 'companies');
+    const q = query(companiesRef, orderBy('createdAt', 'desc'));
     const snapshot = await getDocs(q);
     const tenants = [];
+    
+    // Add detailed logging for debugging
+    console.log(`Fetched ${snapshot.size} tenants from Firestore`);
+    
     snapshot.forEach(doc => {
-      // Add the document to our array
       const tenantData = { id: doc.id, ...doc.data() };
-      tenants.push(tenantData);
       
-      // Log each tenant for debugging
-      console.log(`Tenant found: ${doc.id}`, tenantData);
-      
-      // Check if subscription is properly structured
+      // Log warnings for missing subscription data
       if (!tenantData.subscription) {
-        console.warn(`Tenant ${doc.id} is missing subscription object`);
+        console.warn(`Tenant ${doc.id} is missing subscription data`);
+        // Ensure all tenants have a subscription object with active=true by default
+        tenantData.subscription = { active: true, plan: 'basic' };
       } else if (tenantData.subscription.active === undefined) {
-        console.warn(`Tenant ${doc.id} has subscription but missing active status`);
+        console.warn(`Tenant ${doc.id} has subscription but active status is undefined`);
+        // Set undefined active status to true by default
+        tenantData.subscription.active = true;
       }
+      
+      tenants.push(tenantData);
     });
     
-    console.log(`Total tenants found: ${tenants.length}`);
     return tenants;
   } catch (error) {
     console.error('Error fetching tenants:', error);
-    return []; // Always return an array, even on error
+    throw error;
   }
 };
 
@@ -190,5 +195,33 @@ export const deleteTenant = async (tenantId) => {
   } catch (error) {
     console.error('Error deleting tenant:', error);
     throw error;
+  }
+};
+
+// Debug function to list all companies in the database
+export const debugListAllCompanies = async () => {
+  try {
+    const companiesRef = collection(db, 'companies');
+    const snapshot = await getDocs(companiesRef);
+    const companies = [];
+    
+    console.log(`Found ${snapshot.size} companies in the database:`);
+    
+    snapshot.forEach(doc => {
+      const companyData = { id: doc.id, ...doc.data() };
+      companies.push(companyData);
+      
+      // Log detailed company information
+      console.log(`Company ID: ${doc.id}`);
+      console.log(`Name: ${companyData.name || companyData.companyName || 'No name'}`);
+      console.log(`Subscription:`, companyData.subscription || 'No subscription data');
+      console.log(`Active status: ${companyData.subscription?.active !== false ? 'Active' : 'Inactive'}`);
+      console.log('-----------------------------------');
+    });
+    
+    return companies;
+  } catch (error) {
+    console.error('Error in debug listing companies:', error);
+    return [];
   }
 };

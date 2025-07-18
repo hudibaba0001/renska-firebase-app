@@ -35,32 +35,32 @@ import ReportExporter from '../components/ReportExporter';
 import ErrorBoundary from '../components/ErrorBoundary';
 
 // Import a chart library - We'll use Chart.js via react-chartjs-2
-import { Line, Bar, Pie } from 'react-chartjs-2';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  ArcElement,
-  Title,
-  Tooltip,
-  Legend,
-} from 'chart.js';
+// import { Line, Bar, Pie } from 'react-chartjs-2';
+// import {
+//   Chart as ChartJS,
+//   CategoryScale,
+//   LinearScale,
+//   PointElement,
+//   LineElement,
+//   BarElement,
+//   ArcElement,
+//   Title,
+//   Tooltip,
+//   Legend,
+// } from 'chart.js';
 
 // Register Chart.js components
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  ArcElement,
-  Title,
-  Tooltip,
-  Legend
-);
+// ChartJS.register(
+//   CategoryScale,
+//   LinearScale,
+//   PointElement,
+//   LineElement,
+//   BarElement,
+//   ArcElement,
+//   Title,
+//   Tooltip,
+//   Legend
+// );
 
 export default function SuperAdminDashboardPage() {
   // Simplified version for debugging
