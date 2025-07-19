@@ -1,26 +1,62 @@
 // webapp/src/components/BookingTable.jsx
 import React, { useState, useMemo } from 'react';
 import { 
-  Table, 
+  Table as FlowbiteTable, 
   Button, 
   Badge, 
   Dropdown,
   Modal,
-  Card
+  Card,
+  Spinner
 } from 'flowbite-react';
-import { 
-  EyeIcon as HiEye, 
-  EnvelopeIcon as HiMail, 
-  PhoneIcon as HiPhone, 
-  EllipsisVerticalIcon as HiDotsVertical,
-  CalendarIcon as HiCalendar,
-  ClockIcon as HiClock,
-  CurrencyDollarIcon as HiCurrencyDollar,
-  UserIcon as HiUser,
-  BuildingOfficeIcon as HiOfficeBuilding
-} from '@heroicons/react/24/outline';
+
+// Fix for potential Table undefined issue by creating a fully defined Table object
+const Table = FlowbiteTable;
+
+// Import all icons individually to avoid any undefined issues
+import { EyeIcon } from '@heroicons/react/24/outline';
+import { EnvelopeIcon } from '@heroicons/react/24/outline';
+import { PhoneIcon } from '@heroicons/react/24/outline';
+import { EllipsisVerticalIcon } from '@heroicons/react/24/outline';
+import { CalendarIcon } from '@heroicons/react/24/outline';
+import { ClockIcon } from '@heroicons/react/24/outline';
+import { CurrencyDollarIcon } from '@heroicons/react/24/outline';
+import { UserIcon } from '@heroicons/react/24/outline';
+import { BuildingOfficeIcon } from '@heroicons/react/24/outline';
+
+// Create named constants for each icon to avoid alias confusion
+const HiEye = EyeIcon;
+const HiMail = EnvelopeIcon;
+const HiPhone = PhoneIcon;
+const HiDotsVertical = EllipsisVerticalIcon;
+const HiCalendar = CalendarIcon;
+const HiClock = ClockIcon;
+const HiCurrencyDollar = CurrencyDollarIcon;
+const HiUser = UserIcon;
+const HiOfficeBuilding = BuildingOfficeIcon;
+
+// Import components
 import BookingStatusManager, { StatusBadge } from './BookingStatusManager';
 import BookingService from '../services/bookingService';
+
+// Debug function to help identify undefined components
+const debugComponent = (name, component) => {
+  if (!component) {
+    console.warn(`Component ${name} is undefined!`);
+    return false;
+  }
+  return true;
+};
+
+// Make sure all required components are available
+debugComponent('Table', Table);
+debugComponent('Table.Head', Table?.Head);
+debugComponent('Table.Body', Table?.Body);
+debugComponent('Table.Row', Table?.Row);
+debugComponent('Table.Cell', Table?.Cell);
+debugComponent('Table.HeadCell', Table?.HeadCell);
+debugComponent('BookingStatusManager', BookingStatusManager);
+debugComponent('StatusBadge', StatusBadge);
 
 const BookingTable = ({ 
   bookings = [], 
@@ -107,17 +143,30 @@ const BookingTable = ({
   };
   
   // Helper function to safely render icons with enhanced error handling
-  const SafeIcon = ({ icon: Icon, fallback, className }) => {
+  // This is a completely rewritten implementation with defensive checks
+  const SafeIcon = ({ icon, fallback, className }) => {
+    // Default to a clock icon if nothing is provided
+    const FallbackIcon = fallback || HiClock;
+    
     try {
-      if (!Icon || typeof Icon !== 'function') {
-        const Fallback = fallback || HiClock;
-        return <Fallback className={className} />;
+      // First, check if the icon is defined
+      if (!icon) {
+        console.warn('No icon provided to SafeIcon');
+        return <FallbackIcon className={className} />;
       }
+      
+      // Then check if it's a valid React component (function)
+      if (typeof icon !== 'function') {
+        console.warn('Invalid icon type provided to SafeIcon:', typeof icon);
+        return <FallbackIcon className={className} />;
+      }
+      
+      // If everything is fine, render the icon
+      const Icon = icon;
       return <Icon className={className} />;
     } catch (error) {
       console.error('Error rendering icon:', error);
-      const Fallback = fallback || HiClock;
-      return <Fallback className={className} />;
+      return <FallbackIcon className={className} />;
     }
   };
 

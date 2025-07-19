@@ -31,6 +31,7 @@ import AdminDashboardLayout from './components/AdminDashboardLayout';
 import SuperAdminLayout from './components/SuperAdminLayout';
 import RequireAuth from './components/RequireAuth';
 import RequireSuperAdmin from './components/RequireSuperAdmin';
+import RequireCompanyAccess from './components/RequireCompanyAccess';
 
 export default function App() {
   return (
@@ -66,7 +67,9 @@ export default function App() {
           path="/admin/:companyId"
           element={
             <RequireAuth>
-              <AdminDashboardLayout />
+              <RequireCompanyAccess>
+                <AdminDashboardLayout />
+              </RequireCompanyAccess>
             </RequireAuth>
           }
         >
