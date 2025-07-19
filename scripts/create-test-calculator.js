@@ -1,57 +1,59 @@
 // scripts/create-test-calculator.js
-const { initializeApp } = require('firebase/app');
-const { getFirestore, doc, setDoc, collection, addDoc } = require('firebase/firestore');
+const admin = require('firebase-admin');
 
-// Firebase configuration
-const firebaseConfig = {
-  apiKey: process.env.VITE_FIREBASE_API_KEY,
-  authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.VITE_FIREBASE_APP_ID
-};
+// Initialize Firebase Admin SDK
+const serviceAccount = require('./serviceAccountKey.json');
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
+});
+
+const db = admin.firestore();
 
 async function createTestCalculator(companyId) {
   try {
-    console.log(`🔧 Creating test calculator for company: ${companyId}`);
+    console.log(`Creating test calculator for company: ${companyId}`);
     
+    // Check if company exists
+    const companyDoc = await db.collection('companies').doc(companyId).get();
+    if (!companyDoc.exists) {
+      console.log(`❌ Company ${companyId} does not exist!`);
+      return;
+    }
+    
+    const companyData = companyDoc.data();
+    console.log(`✅ Company found: ${companyData.companyName || companyData.name || 'Unnamed'}`);
+    
+    // Create test calculator
     const calculatorData = {
-      name: 'Test Booking Calculator',
-      slug: 'test-calculator',
-      description: 'A test calculator for the admin dashboard',
+      name: 'Test Window Cleaning Calculator',
+      description: 'A test calculator for window cleaning services',
       status: 'published',
-      views: 150,
-      conversions: 12,
-      revenue: '2400 kr',
-      trend: '+15%',
-      publishedAt: new Date(),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      // Form configuration
-      services: [],
-      zipAreas: ['41107', '41121', '41254'],
-      rutSettings: {
-        enabled: true,
-        discountPercent: 30,
-        annualCap: 50000
-      },
-      fieldOrder: ['name', 'email', 'phone', 'address', 'date', 'time'],
-      fieldLabels: {},
-      fieldHelp: {}
+      slug: 'test-window-cleaning',
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      publishedAt: admin.firestore.FieldValue.serverTimestamp(),
+      views: 0,
+      conversions: 0,
+      revenue: '0 kr',
+      trend: '+0%',
+      config: {
+        services: ['window-cleaning'],
+        zipCodeEnabled: true,
+        customerInfoFields: ['name', 'email', 'phone'],
+        pricingModel: 'per-window',
+        minimumPrice: 299
+      }
     };
     
-    // Add to calculators subcollection
-    const calculatorsRef = collection(db, 'companies', companyId, 'calculators');
-    const docRef = await addDoc(calculatorsRef, calculatorData);
+    const calculatorRef = await db.collection('companies').doc(companyId).collection('calculators').add(calculatorData);
     
-    console.log(`✅ Test calculator created with ID: ${docRef.id}`);
-    console.log(`🌐 Calculator URL: http://localhost:5173/booking/${companyId}/${calculatorData.slug}`);
-    console.log(`📊 Admin Dashboard: http://localhost:5173/admin/${companyId}`);
+    console.log(`✅ Test calculator created successfully!`);
+    console.log(`🆔 Calculator ID: ${calculatorRef.id}`);
+    console.log(`📊 Name: ${calculatorData.name}`);
+    console.log(`🔗 Slug: ${calculatorData.slug}`);
+    console.log(`🌐 Live URL: http://localhost:5184/booking/${companyId}/${calculatorData.slug}`);
+    console.log(`⚙️ Admin URL: http://localhost:5184/admin/${companyId}/forms/${calculatorRef.id}`);
     
   } catch (error) {
     console.error('❌ Error creating test calculator:', error);
@@ -63,15 +65,14 @@ async function createTestCalculator(companyId) {
 const companyId = process.argv[2];
 
 if (!companyId) {
-  console.error('❌ Please provide a company ID as an argument');
   console.log('Usage: node scripts/create-test-calculator.js <companyId>');
-  console.log('Example: node scripts/create-test-calculator.js r7kAsnh-r1');
+  console.log('Example: node scripts/create-test-calculator.js c3');
   process.exit(1);
 }
 
 createTestCalculator(companyId)
   .then(() => {
-    console.log('🎉 Test calculator created successfully!');
+    console.log('🎉 Test calculator creation completed!');
     process.exit(0);
   })
   .catch((error) => {

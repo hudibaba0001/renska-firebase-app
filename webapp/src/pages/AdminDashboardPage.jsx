@@ -96,21 +96,28 @@ export default function AdminDashboardPage() {
       if (!companyId) return;
       setLoading(true);
       try {
+        console.log('Fetching dashboard data for company:', companyId);
+        
         // Get company data from Firestore directly
         const db = getFirestore();
         const companyDoc = await getDoc(doc(db, 'companies', companyId));
         const companyData = companyDoc.exists() ? companyDoc.data() : null;
+        console.log('Company data:', companyData);
         
         // Get services
         const fetchedServices = await getAllServicesForCompany(companyId);
+        console.log('Fetched services:', fetchedServices);
         
         // Get calculators from subcollection
         const calculatorsRef = collection(db, 'companies', companyId, 'calculators');
+        console.log('Fetching calculators from:', `companies/${companyId}/calculators`);
         const calculatorsSnapshot = await getDocs(calculatorsRef);
         const calculatorsData = calculatorsSnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
         }));
+        console.log('Fetched calculators:', calculatorsData);
+        console.log('Calculator count:', calculatorsData.length);
         
         // Get bookings and metrics
         const [
@@ -133,6 +140,8 @@ export default function AdminDashboardPage() {
         setRecentBookings(bookingsData);
 
         const publishedCalculators = calculatorsData.filter(calc => calc.status === 'published');
+        console.log('Published calculators:', publishedCalculators);
+        
         setRealStats({
           totalRevenue: metricsData.totalRevenue,
           activeBookings: metricsData.totalBookings,

@@ -1,386 +1,307 @@
 // webapp/src/components/BookingTable.jsx
+// Complete rewrite using HTML native table elements to eliminate component errors
 import React, { useState, useMemo } from 'react';
-import { 
-  Table as FlowbiteTable, 
-  Button, 
-  Badge, 
-  Dropdown,
-  Modal,
-  Card,
-  Spinner
-} from 'flowbite-react';
+import { Badge, Button, Spinner } from 'flowbite-react';
 
-// Import all icons individually to avoid any undefined issues
+// Import icons explicitly
 import { EyeIcon } from '@heroicons/react/24/outline';
-import { EnvelopeIcon } from '@heroicons/react/24/outline';
-import { PhoneIcon } from '@heroicons/react/24/outline';
-import { EllipsisVerticalIcon } from '@heroicons/react/24/outline';
 import { CalendarIcon } from '@heroicons/react/24/outline';
 import { ClockIcon } from '@heroicons/react/24/outline';
-import { CurrencyDollarIcon } from '@heroicons/react/24/outline';
 import { UserIcon } from '@heroicons/react/24/outline';
 import { BuildingOfficeIcon } from '@heroicons/react/24/outline';
+import { CurrencyDollarIcon } from '@heroicons/react/24/outline';
+import { EnvelopeIcon } from '@heroicons/react/24/outline';
+import { PhoneIcon } from '@heroicons/react/24/outline';
 
-// Create named constants for each icon to avoid alias confusion
-const HiEye = EyeIcon;
-const HiMail = EnvelopeIcon;
-const HiPhone = PhoneIcon;
-const HiDotsVertical = EllipsisVerticalIcon;
-const HiCalendar = CalendarIcon;
-const HiClock = ClockIcon;
-const HiCurrencyDollar = CurrencyDollarIcon;
-const HiUser = UserIcon;
-const HiOfficeBuilding = BuildingOfficeIcon;
+// StatusBadge component inline implementation to avoid import issues
+const StatusBadge = ({ status }) => {
+  let color = 'gray';
+  let label = status || 'Unknown';
+  
+  // Map status to appropriate color
+  switch(status?.toLowerCase()) {
+    case 'pending':
+      color = 'yellow';
+      break;
+    case 'confirmed':
+      color = 'blue';
+      break;
+    case 'completed':
+      color = 'green';
+      break;
+    case 'cancelled':
+      color = 'red';
+      break;
+    case 'rescheduled':
+      color = 'purple';
+      break;
+    default:
+      color = 'gray';
+  }
+  
+  return (
+    <Badge color={color}>
+      {label}
+    </Badge>
+  );
+};
 
-// Import components
-import BookingStatusManager, { StatusBadge } from './BookingStatusManager';
-import BookingService from '../services/bookingService';
-
-// Fix for potential Table undefined issue by creating a fully defined Table object
-const Table = FlowbiteTable || {};
-
-// Helper function to safely render icons with enhanced error handling
-const SafeIcon = ({ icon, fallback, className }) => {
-  // Default to a clock icon if nothing is provided
-  const FallbackIcon = fallback || HiClock;
+// Simple icon component with error handling
+const SimpleIcon = ({ icon: Icon, className = 'w-4 h-4' }) => {
+  if (!Icon) return null;
   
   try {
-    // First, check if the icon is defined
-    if (!icon) {
-      console.warn('No icon provided to SafeIcon');
-      return <FallbackIcon className={className} />;
-    }
-    
-    // Then check if it's a valid React component (function)
-    if (typeof icon !== 'function') {
-      console.warn('Invalid icon type provided to SafeIcon:', typeof icon);
-      return <FallbackIcon className={className} />;
-    }
-    
-    // If everything is fine, render the icon
-    const Icon = icon;
     return <Icon className={className} />;
   } catch (error) {
     console.error('Error rendering icon:', error);
-    return <FallbackIcon className={className} />;
+    return null;
   }
 };
-
-// Debug function to help identify undefined components
-const debugComponent = (name, component) => {
-  if (!component) {
-    console.warn(`Component ${name} is undefined!`);
-    return false;
-  }
-  return true;
-};
-
-// Make sure all required components are available
-debugComponent('Table', Table);
-debugComponent('Table.Head', Table?.Head);
-debugComponent('Table.Body', Table?.Body);
-debugComponent('Table.Row', Table?.Row);
-debugComponent('Table.Cell', Table?.Cell);
-debugComponent('Table.HeadCell', Table?.HeadCell);
-debugComponent('BookingStatusManager', BookingStatusManager);
-debugComponent('StatusBadge', StatusBadge);
 
 const BookingTable = ({ 
   bookings = [], 
-  loading = false, 
-  companyId,
+  loading = false,
   onBookingUpdate,
   onContactCustomer,
-  className = ''
+  companyId,
+  className
 }) => {
-  const [selectedBooking, setSelectedBooking] = useState(null);
-  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  const [sortConfig, setSortConfig] = useState({ key: 'createdAt', direction: 'desc' });
-
-  // The handleSort function is defined below
-
-  // Sort bookings
-  const sortedBookings = useMemo(() => {
-    if (!sortConfig.key) return bookings;
-
-    return [...bookings].sort((a, b) => {
-      let aValue = a[sortConfig.key];
-      let bValue = b[sortConfig.key];
-
-      // Handle dates
-      if (aValue instanceof Date) aValue = aValue.getTime();
-      if (bValue instanceof Date) bValue = bValue.getTime();
-
-      // Handle strings
-      if (typeof aValue === 'string') aValue = aValue.toLowerCase();
-      if (typeof bValue === 'string') bValue = bValue.toLowerCase();
-
-      if (aValue < bValue) {
-        return sortConfig.direction === 'asc' ? -1 : 1;
-      }
-      if (aValue > bValue) {
-        return sortConfig.direction === 'asc' ? 1 : -1;
-      }
-      return 0;
-    });
-  }, [bookings, sortConfig]);
-
-  const handleSort = (key) => {
-    setSortConfig(prevConfig => ({
-      key,
-      direction: prevConfig.key === key && prevConfig.direction === 'asc' ? 'desc' : 'asc'
-    }));
-  };
-
-  const handleViewDetails = (booking) => {
-    setSelectedBooking(booking);
-    setIsDetailModalOpen(true);
-  };
-
-  const handleContactCustomer = (booking, method) => {
-    if (method === 'email' && booking.customerEmail) {
-      window.location.href = `mailto:${booking.customerEmail}?subject=Angående din bokning ${booking.id}`;
-    } else if (method === 'phone' && booking.customerPhone) {
-      window.location.href = `tel:${booking.customerPhone}`;
+  const [sortBy, setSortBy] = useState('bookingDate');
+  const [sortDirection, setSortDirection] = useState('desc');
+  const [viewBooking, setViewBooking] = useState(null);
+  
+  // Helper functions for sorting
+  const handleSort = (field) => {
+    if (sortBy === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(field);
+      setSortDirection('asc');
     }
-    onContactCustomer && onContactCustomer(booking, method);
   };
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('sv-SE', {
-      style: 'currency',
-      currency: 'SEK',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(amount || 0);
-  };
-
+  // Helper function for date/time formatting
   const formatDate = (date) => {
-    if (!date) return 'Ej angivet';
-    return new Date(date).toLocaleDateString('sv-SE', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+    if (!date) return 'N/A';
+    try {
+      // Check if it's a Firebase Timestamp
+      if (date.toDate) {
+        date = date.toDate();
+      }
+      // Check if it's a valid Date object
+      if (date instanceof Date) {
+        return date.toLocaleDateString('sv-SE', { 
+          year: 'numeric', 
+          month: '2-digit', 
+          day: '2-digit' 
+        });
+      }
+      return String(date);
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Invalid Date';
+    }
   };
 
   const formatTime = (time) => {
-    if (!time) return 'Ej angivet';
-    return typeof time === 'string' ? time : time.toLocaleTimeString('sv-SE', { 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    });
-  };
-  
-  // Helper function to safely render icons with enhanced error handling
-  const SafeIcon = ({ icon, fallback, className }) => {
-    // Default to a clock icon if nothing is provided
-    const FallbackIcon = fallback || HiClock;
-    
+    if (!time) return 'N/A';
     try {
-      // First, check if the icon is defined
-      if (!icon) {
-        console.warn('No icon provided to SafeIcon');
-        return <FallbackIcon className={className} />;
+      // Check if it's a Firebase Timestamp
+      if (time.toDate) {
+        time = time.toDate();
       }
-      
-      // Then check if it's a valid React component (function)
-      if (typeof icon !== 'function') {
-        console.warn('Invalid icon type provided to SafeIcon:', typeof icon);
-        return <FallbackIcon className={className} />;
+      // Check if it's a valid Date object
+      if (time instanceof Date) {
+        return time.toLocaleTimeString('sv-SE', { 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        });
       }
-      
-      // If everything is fine, render the icon
-      const Icon = icon;
-      return <Icon className={className} />;
+      return String(time);
     } catch (error) {
-      console.error('Error rendering icon:', error);
-      return <FallbackIcon className={className} />;
+      console.error('Error formatting time:', error);
+      return 'Invalid Time';
     }
   };
 
-  const SortableHeader = ({ children, sortKey, className = '' }) => {
-    // Safety check for Table.HeadCell
-    if (!Table?.HeadCell) {
-      console.error('Table.HeadCell is undefined!');
-      return <th className={`cursor-pointer hover:bg-gray-100 ${className}`}>{children}</th>;
+  const formatCurrency = (amount) => {
+    if (amount === undefined || amount === null) return 'N/A';
+    try {
+      return new Intl.NumberFormat('sv-SE', {
+        style: 'currency',
+        currency: 'SEK',
+      }).format(Number(amount));
+    } catch (error) {
+      console.error('Error formatting currency:', error);
+      return 'Invalid Amount';
     }
-    
+  };
+
+  // Helper component for sortable headers
+  const SortableHeader = ({ field, children }) => {
+    const isSorted = sortBy === field;
     return (
-      <Table.HeadCell 
-        className={`cursor-pointer hover:bg-gray-100 ${className}`}
-        onClick={() => handleSort(sortKey)}
+      <th 
+        className="px-4 py-2 cursor-pointer hover:bg-gray-50" 
+        onClick={() => handleSort(field)}
       >
-        <div className="flex items-center gap-1">
-          {children}
-          {sortConfig?.key === sortKey && (
-            <span className="text-xs">
-              {sortConfig.direction === 'asc' ? '↑' : '↓'}
+        <div className="flex items-center">
+          <span>{children}</span>
+          {isSorted && (
+            <span className="ml-1">
+              {sortDirection === 'asc' ? '↑' : '↓'}
             </span>
           )}
         </div>
-      </Table.HeadCell>
+      </th>
     );
   };
 
+  // Sort the bookings
+  const sortedBookings = useMemo(() => {
+    if (!bookings || !bookings.length) return [];
+    
+    try {
+      return [...bookings].sort((a, b) => {
+        if (!a || !b) return 0;
+        
+        const aValue = a[sortBy];
+        const bValue = b[sortBy];
+        
+        // Handle sorting for different data types
+        if (aValue === undefined || aValue === null) return 1;
+        if (bValue === undefined || bValue === null) return -1;
+        
+        // For dates
+        if (aValue instanceof Date || (aValue && aValue.toDate) || 
+            bValue instanceof Date || (bValue && bValue.toDate)) {
+          const aDate = aValue && aValue.toDate ? aValue.toDate() : aValue;
+          const bDate = bValue && bValue.toDate ? bValue.toDate() : bValue;
+          
+          return sortDirection === 'asc' 
+            ? new Date(aDate) - new Date(bDate) 
+            : new Date(bDate) - new Date(aDate);
+        }
+        
+        // For strings
+        if (typeof aValue === 'string' && typeof bValue === 'string') {
+          return sortDirection === 'asc' 
+            ? aValue.localeCompare(bValue) 
+            : bValue.localeCompare(aValue);
+        }
+        
+        // For numbers
+        return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+      });
+    } catch (error) {
+      console.error('Error sorting bookings:', error);
+      return [...bookings];
+    }
+  }, [bookings, sortBy, sortDirection]);
+
+  // Loading state
   if (loading) {
     return (
-      <div className={`animate-pulse ${className}`}>
-        <div className="bg-white rounded-lg shadow">
-          <div className="h-12 bg-gray-200 rounded-t-lg"></div>
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-16 bg-gray-100 border-b border-gray-200"></div>
-          ))}
-        </div>
+      <div className="flex justify-center items-center p-8">
+        <Spinner size="xl" />
+        <span className="ml-2">Loading bookings...</span>
       </div>
     );
   }
 
-  if (bookings.length === 0) {
+  // No bookings state
+  if (!bookings || bookings.length === 0) {
     return (
-      <div className={`bg-white rounded-lg shadow p-8 text-center ${className}`}>
-        <SafeIcon icon={HiCalendar} fallback={HiClock} className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-gray-900 mb-2">Inga bokningar hittades</h3>
-        <p className="text-gray-500">Det finns inga bokningar som matchar dina filterkriterier.</p>
+      <div className="text-center p-8 bg-white rounded-lg shadow">
+        <p className="text-gray-500">No bookings available</p>
       </div>
     );
   }
 
   return (
-    <div className={className}>
-      {/* Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <Table hoverable>
-          <Table.Head>
-            {Table && Table.HeadCell ? (
-              <>
-                <SortableHeader sortKey="customerName">Kund</SortableHeader>
-                <SortableHeader sortKey="serviceName">Tjänst</SortableHeader>
-                <SortableHeader sortKey="bookingDate">Datum & Tid</SortableHeader>
-                <SortableHeader sortKey="status">Status</SortableHeader>
-                <SortableHeader sortKey="totalAmount">Belopp</SortableHeader>
-                <SortableHeader sortKey="createdAt">Skapad</SortableHeader>
-                <Table.HeadCell>Åtgärder</Table.HeadCell>
-              </>
-            ) : (
-              <tr>
-                <th>Kund</th>
-                <th>Tjänst</th>
-                <th>Datum & Tid</th>
-                <th>Status</th>
-                <th>Belopp</th>
-                <th>Skapad</th>
-                <th>Åtgärder</th>
-              </tr>
-            )}
-          </Table.Head>
-          <Table.Body className="divide-y">
-            {sortedBookings.map((booking) => (
-              <Table.Row key={booking.id} className="bg-white hover:bg-gray-50">
-                {/* Customer */}
-                <Table.Cell className="font-medium text-gray-900">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <SafeIcon icon={HiUser} className="w-4 h-4 text-gray-400" />
-                      <span>{booking.customerName || 'Okänd kund'}</span>
-                    </div>
-                    <div className="text-sm text-gray-500 mt-1">
-                      {booking.customerEmail}
-                    </div>
-                    {booking.customerPhone && (
-                      <div className="text-sm text-gray-500">
-                        {booking.customerPhone}
-                      </div>
-                    )}
+    <div className={`overflow-x-auto ${className || ''}`}>
+      {/* Native HTML table instead of Flowbite Table */}
+      <table className="w-full text-sm text-left text-gray-500 border border-gray-200 rounded-lg">
+        <thead className="text-xs text-gray-700 uppercase bg-gray-50">
+          <tr>
+            <SortableHeader field="customerName">Customer</SortableHeader>
+            <SortableHeader field="serviceType">Service</SortableHeader>
+            <SortableHeader field="bookingDate">Booking Date</SortableHeader>
+            <SortableHeader field="bookingTime">Time</SortableHeader>
+            <SortableHeader field="status">Status</SortableHeader>
+            <SortableHeader field="totalAmount">Amount</SortableHeader>
+            <th className="px-4 py-2">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {sortedBookings.map((booking) => {
+            if (!booking) return null; // Safety check
+            
+            return (
+              <tr 
+                key={booking.id || Math.random().toString(36).substring(7)} 
+                className="bg-white border-b hover:bg-gray-50"
+              >
+                {/* Customer Name */}
+                <td className="px-4 py-2">
+                  <div className="flex items-center">
+                    <SimpleIcon icon={UserIcon} className="w-4 h-4 mr-2" />
+                    <span>{booking.customerName || 'Unknown'}</span>
                   </div>
-                </Table.Cell>
-
-                {/* Service */}
-                <Table.Cell>
-                  <div className="flex items-center gap-2">
-                    <SafeIcon icon={HiOfficeBuilding} className="w-4 h-4 text-gray-400" />
-                    <span className="font-medium">{booking.serviceName || 'Okänd tjänst'}</span>
+                </td>
+                
+                {/* Service Type */}
+                <td className="px-4 py-2">
+                  <div className="flex items-center">
+                    <SimpleIcon icon={BuildingOfficeIcon} className="w-4 h-4 mr-2" />
+                    <span>{booking.serviceType || 'Standard'}</span>
                   </div>
-                  {booking.serviceDescription && (
-                    <div className="text-sm text-gray-500 mt-1 truncate max-w-xs">
-                      {booking.serviceDescription}
-                    </div>
-                  )}
-                </Table.Cell>
-
-                {/* Date & Time */}
-                <Table.Cell>
-                  <div className="flex items-center gap-2 mb-1">
-                    <SafeIcon icon={HiCalendar} className="w-4 h-4 text-gray-400" />
-                    <span className="font-medium">{formatDate(booking.bookingDate)}</span>
+                </td>
+                
+                {/* Booking Date */}
+                <td className="px-4 py-2">
+                  <div className="flex items-center">
+                    <SimpleIcon icon={CalendarIcon} className="w-4 h-4 mr-2" />
+                    <span>{formatDate(booking.bookingDate)}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <SafeIcon icon={HiClock} className="w-4 h-4 text-gray-400" />
-                    <span className="text-sm text-gray-600">{formatTime(booking.bookingTime)}</span>
+                </td>
+                
+                {/* Booking Time */}
+                <td className="px-4 py-2">
+                  <div className="flex items-center">
+                    <SimpleIcon icon={ClockIcon} className="w-4 h-4 mr-2" />
+                    <span>{formatTime(booking.bookingDate)}</span>
                   </div>
-                </Table.Cell>
-
+                </td>
+                
                 {/* Status */}
-                <Table.Cell>
-                  <BookingStatusManager 
-                    booking={booking}
-                    companyId={companyId}
-                    onStatusUpdate={onBookingUpdate}
-                  />
-                </Table.Cell>
-
-                {/* Amount */}
-                <Table.Cell>
-                  <div className="flex items-center gap-2">
-                    <SafeIcon icon={HiCurrencyDollar} className="w-4 h-4 text-gray-400" />
-                    <span className="font-medium text-gray-900">
-                      {formatCurrency(booking.totalAmount)}
-                    </span>
+                <td className="px-4 py-2">
+                  {booking.status && (
+                    <StatusBadge status={booking.status} />
+                  )}
+                </td>
+                
+                {/* Total Amount */}
+                <td className="px-4 py-2">
+                  <div className="flex items-center">
+                    <SimpleIcon icon={CurrencyDollarIcon} className="w-4 h-4 mr-2" />
+                    <span>{formatCurrency(booking.totalAmount)}</span>
                   </div>
-                </Table.Cell>
-
-                {/* Created */}
-                <Table.Cell className="text-sm text-gray-500">
-                  {formatDate(booking.createdAt)}
-                </Table.Cell>
-
+                </td>
+                
                 {/* Actions */}
-                <Table.Cell>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      size="xs"
-                      color="gray"
-                      onClick={() => handleViewDetails(booking)}
+                <td className="px-4 py-2">
+                  <div className="flex space-x-2">
+                    <Button 
+                      size="xs" 
+                      color="light"  
+                      onClick={() => setViewBooking(booking)}
                     >
-                      <SafeIcon icon={HiEye} className="w-3 h-3 mr-1" />
-                      Visa
+                      <SimpleIcon icon={EyeIcon} className="w-4 h-4" />
+                      <span className="ml-1">View</span>
                     </Button>
-                    
-                    <Dropdown
-                      label=""
-                      dismissOnClick={false}
-                      renderTrigger={() => (
-                        <Button size="xs" color="gray">
-                          <SafeIcon icon={HiDotsVertical} className="w-3 h-3" />
-                        </Button>
-                      )}
-                    >
-                      <Dropdown.Item
-                        onClick={() => handleContactCustomer(booking, 'email')}
-                        disabled={!booking.customerEmail}
-                      >
-                        <SafeIcon icon={HiMail} className="w-4 h-4 mr-2" />
-                        Skicka e-post
-                      </Dropdown.Item>
-                      <Dropdown.Item
-                        onClick={() => handleContactCustomer(booking, 'phone')}
-                        disabled={!booking.customerPhone}
-                      >
-                        <SafeIcon icon={HiPhone} className="w-4 h-4 mr-2" />
-                        Ring kund
-                      </Dropdown.Item>
-                    </Dropdown>
                   </div>
+                </td>
                 </Table.Cell>
               </Table.Row>
             ))}

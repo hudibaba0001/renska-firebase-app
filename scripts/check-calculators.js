@@ -3,56 +3,57 @@
  * Quick script to check if calculators exist for a specific company
  */
 
-const admin = require('firebase-admin');
+const { initializeApp } = require('firebase/app');
+const { getFirestore, collection, getDocs, doc, getDoc } = require('firebase/firestore');
 
-// Initialize Firebase Admin SDK
-const serviceAccount = require('./serviceAccountKey.json');
+// Initialize Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyBxJjAo_dTMXZjJ8b9Db3qrcn2mCzZtjjY",
+  authDomain: "swedprime-saas.firebaseapp.com",
+  projectId: "swedprime-saas",
+  storageBucket: "swedprime-saas.appspot.com",
+  messagingSenderId: "1098765432109",
+  appId: "1:1098765432109:web:abcdef1234567890"
+};
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
-});
-
-const db = admin.firestore();
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
 async function checkCalculators(companyId) {
   try {
-    console.log(`🔍 Checking calculators for company: ${companyId}`);
+    console.log(`Checking calculators for company: ${companyId}`);
     
     // Check if company exists
-    const companyDoc = await db.collection('companies').doc(companyId).get();
-    if (!companyDoc.exists) {
-      console.log(`❌ Company ${companyId} does not exist!`);
+    const companyDoc = await getDoc(doc(db, 'companies', companyId));
+    if (!companyDoc.exists()) {
+      console.log('❌ Company not found');
       return;
     }
     
-    const companyData = companyDoc.data();
-    console.log(`✅ Company found: ${companyData.companyName || companyData.name || 'Unnamed'}`);
+    console.log('✅ Company found:', companyDoc.data().name);
     
     // Check calculators subcollection
-    const calculatorsSnapshot = await db.collection('companies').doc(companyId).collection('calculators').get();
+    const calculatorsRef = collection(db, 'companies', companyId, 'calculators');
+    const calculatorsSnapshot = await getDocs(calculatorsRef);
     
-    if (calculatorsSnapshot.empty) {
-      console.log(`❌ No calculators found for company ${companyId}`);
-      return;
+    console.log(`📊 Found ${calculatorsSnapshot.docs.length} calculators:`);
+    
+    if (calculatorsSnapshot.docs.length === 0) {
+      console.log('❌ No calculators found');
+      console.log('💡 To create a test calculator, run: node scripts/create-test-calculator.js');
+    } else {
+      calculatorsSnapshot.docs.forEach((doc, index) => {
+        const data = doc.data();
+        console.log(`  ${index + 1}. ${data.name || 'Unnamed'} (${doc.id})`);
+        console.log(`     Status: ${data.status || 'draft'}`);
+        console.log(`     Created: ${data.createdAt?.toDate?.() || 'Unknown'}`);
+        console.log(`     Slug: ${data.slug || 'None'}`);
+        console.log('');
+      });
     }
     
-    console.log(`✅ Found ${calculatorsSnapshot.size} calculator(s):\n`);
-    
-    calculatorsSnapshot.forEach(doc => {
-      const data = doc.data();
-      console.log(`📊 Calculator: ${data.name || 'Unnamed'}`);
-      console.log(`🆔 ID: ${doc.id}`);
-      console.log(`🔗 Slug: ${data.slug || 'N/A'}`);
-      console.log(`📈 Status: ${data.status || 'draft'}`);
-      console.log(`👁️ Views: ${data.views || 0}`);
-      console.log(`💰 Revenue: ${data.revenue || '0 kr'}`);
-      console.log(`🌐 Live URL: http://localhost:5178/booking/${companyId}/${data.slug}`);
-      console.log('---');
-    });
-    
   } catch (error) {
-    console.error('❌ Error checking calculators:', error);
-    throw error;
+    console.error('Error checking calculators:', error);
   }
 }
 
@@ -60,18 +61,15 @@ async function checkCalculators(companyId) {
 const companyId = process.argv[2];
 
 if (!companyId) {
-  console.error('❌ Please provide a company ID as an argument');
   console.log('Usage: node scripts/check-calculators.js <companyId>');
-  console.log('Example: node scripts/check-calculators.js c3');
+  console.log('Example: node scripts/check-calculators.js company123');
   process.exit(1);
 }
 
-checkCalculators(companyId)
-  .then(() => {
-    console.log('🎉 Calculator check completed!');
-    process.exit(0);
-  })
-  .catch((error) => {
-    console.error('💥 Script failed:', error);
-    process.exit(1);
-  }); 
+checkCalculators(companyId).then(() => {
+  console.log('✅ Check complete');
+  process.exit(0);
+}).catch((error) => {
+  console.error('❌ Error:', error);
+  process.exit(1);
+}); 
