@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { db } from '../firebase/init';
 import { doc, getDoc, setDoc, collection, getDocs } from 'firebase/firestore';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { getTenant, getAllServicesForCompany } from '../services/firestore';
 
 // Step Components

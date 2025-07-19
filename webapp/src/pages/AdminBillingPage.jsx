@@ -6,7 +6,7 @@ import { useParams } from 'react-router-dom';
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../firebase/init';
 import { STRIPE_CONFIG, formatPrice } from '../stripe/config';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { httpsCallable, getFunctions } from 'firebase/functions';
 
 export default function AdminBillingPage() {

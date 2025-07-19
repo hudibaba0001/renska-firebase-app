@@ -171,6 +171,33 @@ const BookingTable = ({
       minute: '2-digit' 
     });
   };
+  
+  // Helper function to safely render icons with enhanced error handling
+  const SafeIcon = ({ icon, fallback, className }) => {
+    // Default to a clock icon if nothing is provided
+    const FallbackIcon = fallback || HiClock;
+    
+    try {
+      // First, check if the icon is defined
+      if (!icon) {
+        console.warn('No icon provided to SafeIcon');
+        return <FallbackIcon className={className} />;
+      }
+      
+      // Then check if it's a valid React component (function)
+      if (typeof icon !== 'function') {
+        console.warn('Invalid icon type provided to SafeIcon:', typeof icon);
+        return <FallbackIcon className={className} />;
+      }
+      
+      // If everything is fine, render the icon
+      const Icon = icon;
+      return <Icon className={className} />;
+    } catch (error) {
+      console.error('Error rendering icon:', error);
+      return <FallbackIcon className={className} />;
+    }
+  };
 
   const SortableHeader = ({ children, sortKey, className = '' }) => {
     // Safety check for Table.HeadCell
