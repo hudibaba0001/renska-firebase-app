@@ -273,7 +273,6 @@ const BookingTable = ({
               </tr>
             )}
           </Table.Head>
-          </Table.Head>
           <Table.Body className="divide-y">
             {sortedBookings.map((booking) => (
               <Table.Row key={booking.id} className="bg-white hover:bg-gray-50">
