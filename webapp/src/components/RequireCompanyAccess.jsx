@@ -87,16 +87,28 @@ export default function RequireCompanyAccess({ children }) {
     validateCompanyAccess();
   }, [user, companyId]);
 
-  // Log security incidents
+  // Log security incidents securely
   const logSecurityIncident = async (incident) => {
     try {
-      await fetch('/api/security/log-incident', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(incident)
+      // Use Firebase Functions for secure server-side logging
+      const { httpsCallable } = await import('firebase/functions');
+      const { getFunctions } = await import('firebase/firestore');
+      const functions = getFunctions();
+      
+      const logSecurityEvent = httpsCallable(functions, 'logSecurityEvent');
+      await logSecurityEvent({
+        type: incident.type,
+        userId: incident.userId,
+        userEmail: incident.userEmail,
+        userCompanyId: incident.userCompanyId,
+        requestedCompanyId: incident.requestedCompanyId,
+        timestamp: incident.timestamp,
+        userAgent: navigator.userAgent,
+        ipAddress: 'client-side' // Will be resolved server-side
       });
     } catch (error) {
-      console.error('Failed to log security incident:', error);
+      // Fallback to console for development, but don't expose sensitive data
+      console.error('Security incident logging failed:', error.message);
     }
   };
 

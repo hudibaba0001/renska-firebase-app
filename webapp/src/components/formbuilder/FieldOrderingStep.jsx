@@ -754,6 +754,48 @@ function FieldEditor({ fieldKey, field, config, timeSlots, updateConfig, onUpdat
   );
 }
 
+// Safe GDPR text rendering function to prevent XSS
+const renderSafeGdprText = (text, privacyUrl, termsUrl) => {
+  if (!text) return 'Jag godkänner integritetspolicy och villkor';
+  
+  // Safely replace placeholders with safe links
+  const parts = text.split('[privacy]');
+  if (parts.length > 1) {
+    return (
+      <>
+        {parts[0]}
+        <a 
+          href={privacyUrl} 
+          className="text-blue-600 underline"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          integritetspolicy
+        </a>
+        {parts[1].split('[terms]').map((part, index) => (
+          index === 0 ? (
+            <span key={index}>
+              {part}
+              <a 
+                href={termsUrl} 
+                className="text-blue-600 underline"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                villkor
+              </a>
+            </span>
+          ) : (
+            <span key={index}>{part}</span>
+          )
+        ))}
+      </>
+    );
+  }
+  
+  return text;
+};
+
 // Form Preview Component
 function FormPreview({ 
   fieldOrder, 
@@ -856,14 +898,13 @@ function FormPreview({
                 <div className="space-y-2">
                   <label className="flex items-center gap-2">
                     <input type="checkbox" className="text-blue-600" />
-                    <span 
-                      className="text-sm"
-                      dangerouslySetInnerHTML={{
-                        __html: (config.fieldGdprText?.[fieldKey] || 'Jag godkänner integritetspolicy och villkor')
-                          .replace('[privacy]', `<a href="${config.fieldPrivacyPolicyUrl?.[fieldKey] || '#'}" class="text-blue-600 underline">integritetspolicy</a>`)
-                          .replace('[terms]', `<a href="${config.fieldTermsUrl?.[fieldKey] || '#'}" class="text-blue-600 underline">villkor</a>`)
-                      }}
-                    />
+                    <span className="text-sm">
+                      {renderSafeGdprText(
+                        config.fieldGdprText?.[fieldKey] || 'Jag godkänner integritetspolicy och villkor',
+                        config.fieldPrivacyPolicyUrl?.[fieldKey] || '#',
+                        config.fieldTermsUrl?.[fieldKey] || '#'
+                      )}
+                    </span>
                   </label>
                 </div>
               ) : fieldKey === 'rutToggle' ? (
