@@ -5,7 +5,6 @@ import {
   where, 
   orderBy, 
   limit,
-  startAfter,
   getFirestore,
   Timestamp 
 } from 'firebase/firestore';
@@ -271,6 +270,30 @@ export async function getSalesTrends(companyId, months = 12) {
     return trends;
   } catch (error) {
     console.error('Error fetching sales trends:', error);
+    throw error;
+  }
+}
+
+export async function getRecentBookings(companyId, options = { limit: 3 }) {
+  try {
+    const bookingsRef = collection(db, 'companies', companyId, 'bookings');
+    const bookingsQuery = query(
+      bookingsRef,
+      orderBy('createdAt', 'desc'),
+      limit(options.limit)
+    );
+
+    const bookingsSnapshot = await getDocs(bookingsQuery);
+    const bookings = bookingsSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      // Ensure date is a JS Date object for consistent handling
+      date: doc.data().createdAt?.toDate ? doc.data().createdAt.toDate().toLocaleDateString('sv-SE') : new Date().toLocaleDateString('sv-SE'),
+      time: doc.data().createdAt?.toDate ? doc.data().createdAt.toDate().toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }) : 'N/A',
+    }));
+    return bookings;
+  } catch (error) {
+    console.error('Error fetching recent bookings:', error);
     throw error;
   }
 }

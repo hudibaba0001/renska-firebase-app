@@ -19,7 +19,7 @@ import {
   UserIcon as HiUser,
   BuildingOfficeIcon as HiOfficeBuilding
 } from '@heroicons/react/24/outline';
-import BookingStatusManager from './BookingStatusManager';
+import BookingStatusManager, { StatusBadge } from './BookingStatusManager';
 import BookingService from '../services/bookingService';
 
 const BookingTable = ({ 
@@ -103,6 +103,15 @@ const BookingTable = ({
     if (!time) return 'Ej angivet';
     return time;
   };
+  
+  // Helper function to safely render icons
+  const SafeIcon = ({ icon: Icon, fallback, className }) => {
+    if (!Icon || typeof Icon !== 'function') {
+      const Fallback = fallback || HiClock;
+      return <Fallback className={className} />;
+    }
+    return <Icon className={className} />;
+  };
 
   const SortableHeader = ({ children, sortKey, className = '' }) => (
     <Table.HeadCell 
@@ -136,7 +145,7 @@ const BookingTable = ({
   if (bookings.length === 0) {
     return (
       <div className={`bg-white rounded-lg shadow p-8 text-center ${className}`}>
-        <HiCalendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+        <SafeIcon icon={HiCalendar} fallback={HiClock} className="w-12 h-12 text-gray-400 mx-auto mb-4" />
         <h3 className="text-lg font-medium text-gray-900 mb-2">Inga bokningar hittades</h3>
         <p className="text-gray-500">Det finns inga bokningar som matchar dina filterkriterier.</p>
       </div>
@@ -164,7 +173,7 @@ const BookingTable = ({
                 <Table.Cell className="font-medium text-gray-900">
                   <div>
                     <div className="flex items-center gap-2">
-                      <HiUser className="w-4 h-4 text-gray-400" />
+                      <SafeIcon icon={HiUser} className="w-4 h-4 text-gray-400" />
                       <span>{booking.customerName || 'Okänd kund'}</span>
                     </div>
                     <div className="text-sm text-gray-500 mt-1">
@@ -181,7 +190,7 @@ const BookingTable = ({
                 {/* Service */}
                 <Table.Cell>
                   <div className="flex items-center gap-2">
-                    <HiOfficeBuilding className="w-4 h-4 text-gray-400" />
+                    <SafeIcon icon={HiOfficeBuilding} className="w-4 h-4 text-gray-400" />
                     <span className="font-medium">{booking.serviceName || 'Okänd tjänst'}</span>
                   </div>
                   {booking.serviceDescription && (
@@ -194,11 +203,11 @@ const BookingTable = ({
                 {/* Date & Time */}
                 <Table.Cell>
                   <div className="flex items-center gap-2 mb-1">
-                    <HiCalendar className="w-4 h-4 text-gray-400" />
+                    <SafeIcon icon={HiCalendar} className="w-4 h-4 text-gray-400" />
                     <span className="font-medium">{formatDate(booking.bookingDate)}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <HiClock className="w-4 h-4 text-gray-400" />
+                    <SafeIcon icon={HiClock} className="w-4 h-4 text-gray-400" />
                     <span className="text-sm text-gray-600">{formatTime(booking.bookingTime)}</span>
                   </div>
                 </Table.Cell>
@@ -215,7 +224,7 @@ const BookingTable = ({
                 {/* Amount */}
                 <Table.Cell>
                   <div className="flex items-center gap-2">
-                    <HiCurrencyDollar className="w-4 h-4 text-gray-400" />
+                    <SafeIcon icon={HiCurrencyDollar} className="w-4 h-4 text-gray-400" />
                     <span className="font-medium text-gray-900">
                       {formatCurrency(booking.totalAmount)}
                     </span>
@@ -235,7 +244,7 @@ const BookingTable = ({
                       color="gray"
                       onClick={() => handleViewDetails(booking)}
                     >
-                      <HiEye className="w-3 h-3 mr-1" />
+                      <SafeIcon icon={HiEye} className="w-3 h-3 mr-1" />
                       Visa
                     </Button>
                     
@@ -244,7 +253,7 @@ const BookingTable = ({
                       dismissOnClick={false}
                       renderTrigger={() => (
                         <Button size="xs" color="gray">
-                          <HiDotsVertical className="w-3 h-3" />
+                          <SafeIcon icon={HiDotsVertical} className="w-3 h-3" />
                         </Button>
                       )}
                     >
@@ -252,14 +261,14 @@ const BookingTable = ({
                         onClick={() => handleContactCustomer(booking, 'email')}
                         disabled={!booking.customerEmail}
                       >
-                        <HiMail className="w-4 h-4 mr-2" />
+                        <SafeIcon icon={HiMail} className="w-4 h-4 mr-2" />
                         Skicka e-post
                       </Dropdown.Item>
                       <Dropdown.Item
                         onClick={() => handleContactCustomer(booking, 'phone')}
                         disabled={!booking.customerPhone}
                       >
-                        <HiPhone className="w-4 h-4 mr-2" />
+                        <SafeIcon icon={HiPhone} className="w-4 h-4 mr-2" />
                         Ring kund
                       </Dropdown.Item>
                     </Dropdown>

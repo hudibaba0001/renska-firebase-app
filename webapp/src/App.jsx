@@ -35,33 +35,33 @@ import RequireSuperAdmin from './components/RequireSuperAdmin';
 export default function App() {
   return (
     <div className="min-h-screen bg-background font-mono">
-      <Routes>
-        {/* Public Routes */}
-        <Route path="/" element={<PublicLayout />}>
-          <Route index element={<HomePage />} />
-          <Route path="login" element={<LoginPage />} />
-          <Route path="signup" element={<SignupPage />} />
-          <Route path="pricing" element={<PricingPage />} />
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/" element={<PublicLayout />}>
+            <Route index element={<HomePage />} />
+            <Route path="login" element={<LoginPage />} />
+            <Route path="signup" element={<SignupPage />} />
+            <Route path="pricing" element={<PricingPage />} />
           <Route path="payment" element={<PaymentPage />} />
-          <Route path="setup" element={<SetupPage />} />
-          <Route path="setup-super-admin" element={<SetupSuperAdminPage />} />
-        </Route>
+            <Route path="setup" element={<SetupPage />} />
+            <Route path="setup-super-admin" element={<SetupSuperAdminPage />} />
+          </Route>
 
-        {/* Booking Routes (Public) */}
-        <Route path="/booking/:companyId/:formSlug" element={<BookingPage />} />
+          {/* Booking Routes (Public) */}
+          <Route path="/booking/:companyId/:formSlug" element={<BookingPage />} />
         <Route path="/booking/:companyId" element={<BookingPage />} />
 
-        {/* Super-Admin Routes */}
-        <Route
-          path="/super-admin/*"
-          element={
-            <RequireSuperAdmin>
-              <SuperAdminRoutes />
-            </RequireSuperAdmin>
-          }
-        />
+          {/* Super-Admin Routes */}
+          <Route 
+            path="/super-admin/*" 
+            element={
+              <RequireSuperAdmin>
+                <SuperAdminRoutes />
+              </RequireSuperAdmin>
+            } 
+          />
 
-        {/* Admin Routes with Modern Layout */}
+          {/* Admin Routes with Modern Layout */}
         <Route
           path="/admin/:companyId"
           element={
@@ -70,18 +70,18 @@ export default function App() {
             </RequireAuth>
           }
         >
-          <Route index element={<AdminDashboardPage />} />
-          <Route path="forms" element={<FormBuilderRedirect />} />
-          <Route path="forms/:formId" element={<FormBuilderPage />} />
-          <Route path="config" element={<CompanyConfigPage />} />
-          <Route path="billing" element={<AdminBillingPage />} />
+            <Route index element={<AdminDashboardPage />} />
+            <Route path="forms" element={<FormBuilderRedirect />} />
+            <Route path="forms/:formId" element={<FormBuilderPage />} />
+            <Route path="config" element={<CompanyConfigPage />} />
+            <Route path="billing" element={<AdminBillingPage />} />
           <Route path="bookings" element={<BookingManagementPage />} />
-          <Route path="analytics" element={<AdminAnalyticsPage />} />
-          <Route path="customers" element={<AdminCustomersPage />} />
+            <Route path="analytics" element={<AdminAnalyticsPage />} />
+            <Route path="customers" element={<AdminCustomersPage />} />
           <Route path="payment-settings" element={<AdminPaymentSettings />} /> {/* CORRECTED ROUTE */}
-        </Route>
+          </Route>
 
-        {/* Legacy Admin Routes */}
+          {/* Legacy Admin Routes */}
         <Route
           path="/admin/companies"
           element={
@@ -98,18 +98,18 @@ export default function App() {
             </RequireAuth>
           }
         />
-      </Routes>
-
-      {/* Toast notifications */}
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          duration: 4000,
-          style: {
-            fontFamily: 'Ubuntu Mono, monospace',
-          },
-        }}
-      />
+        </Routes>
+        
+        {/* Toast notifications */}
+        <Toaster 
+          position="top-right"
+          toastOptions={{
+            duration: 4000,
+            style: {
+              fontFamily: 'Ubuntu Mono, monospace',
+            },
+          }}
+        />
     </div>
   );
 }

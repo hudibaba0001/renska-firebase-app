@@ -512,39 +512,39 @@ export default function SuperAdminDashboardPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {companies.slice(0, 5).map((company) => {
-                    // Defensive programming - ensure company has required properties
-                    if (!company || !company.id) {
-                      return null;
-                    }
-                    
-                    return (
+                {companies.slice(0, 5).map((company) => {
+                  // Defensive programming - ensure company has required properties
+                  if (!company || !company.id) {
+                    return null;
+                  }
+                  
+                  return (
                       <tr key={company.id} className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
                         <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">
-                          {company.companyName || "Unnamed Company"}
+                        {company.companyName || "Unnamed Company"}
                         </td>
                         <td className="px-6 py-4">
-                          <Badge color={company.subscriptionStatus === 'active' ? 'success' : 'warning'}>
-                            {company.subscriptionStatus || "Unknown"}
-                          </Badge>
+                        <Badge color={company.subscriptionStatus === 'active' ? 'success' : 'warning'}>
+                          {company.subscriptionStatus || "Unknown"}
+                        </Badge>
                         </td>
                         <td className="px-6 py-4">
-                          {company.subscriptionPlan || "No Plan"}
+                        {company.subscriptionPlan || "No Plan"}
                         </td>
                         <td className="px-6 py-4">
-                          {formatCurrency(company.subscriptionAmount || 0)}
+                        {formatCurrency(company.subscriptionAmount || 0)}
                         </td>
                         <td className="px-6 py-4">
-                          {company.userCount || 0}
+                        {company.userCount || 0}
                         </td>
                         <td className="px-6 py-4">
-                          <Button size="xs" as={Link} to={`/superadmin/companies/${company.id}`}>
-                            View
-                          </Button>
+                        <Button size="xs" as={Link} to={`/superadmin/companies/${company.id}`}>
+                          View
+                        </Button>
                         </td>
                       </tr>
-                    );
-                  })}
+                  );
+                })}
                 </tbody>
               </table>
             </div>

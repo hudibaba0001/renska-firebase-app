@@ -104,7 +104,7 @@ export default function AdminBillingPage() {
       setError('Failed to open customer portal');
     }
   };
-  
+
   if (loading) {
     return (
       <AdminLayout>
@@ -129,7 +129,7 @@ export default function AdminBillingPage() {
   const isActive = subscription?.status === 'active';
   const renewalDate = subscription?.current_period_end?.toDate();
   const trialEndDate = subscription?.trial_end?.toDate();
-  
+
   return (
     <AdminLayout>
       <div className="container mx-auto px-4 py-8">
@@ -144,23 +144,23 @@ export default function AdminBillingPage() {
               {currentPlan && (
                 <div className="mb-6">
                   <div className="flex justify-between items-center mb-4">
-                    <div>
+        <div>
                       <div className="text-2xl font-bold">{currentPlan.name}</div>
                       <div className="text-gray-500">{formatPrice(currentPlan.price, currentPlan.currency)}/month</div>
-                    </div>
-                    
+      </div>
+
                     {isTrialing && (
                       <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
                         Free Trial
-                      </div>
+                </div>
                     )}
                     
                     {isActive && (
                       <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
                         Active
-                      </div>
+                </div>
                     )}
-                  </div>
+              </div>
                   
                   <div className="space-y-2 mb-6">
                     <h3 className="font-medium">Features:</h3>
@@ -172,8 +172,8 @@ export default function AdminBillingPage() {
                         </li>
                       ))}
                     </ul>
-                  </div>
-                  
+            </div>
+
                   {isTrialing && trialEndDate && (
                     <div className="flex items-center text-blue-600 mb-6">
                       <ClockIcon className="h-5 w-5 mr-2" />
@@ -189,7 +189,7 @@ export default function AdminBillingPage() {
                       <span>
                         Next billing date: {renewalDate.toLocaleDateString()}
                       </span>
-                    </div>
+                </div>
                   )}
                   
                   <Button color="blue" onClick={handleManageSubscription}>
@@ -197,32 +197,32 @@ export default function AdminBillingPage() {
                   </Button>
                 </div>
               )}
-            </div>
-          </Card>
+          </div>
+        </Card>
           
           {/* Payment Method */}
           <Card>
-            <div className="p-6">
+          <div className="p-6">
               <h2 className="text-xl font-bold mb-4">Payment Method</h2>
               
               {paymentMethod ? (
-                <div>
+              <div>
                   <div className="flex items-center mb-4">
                     <CreditCardIcon className="h-8 w-8 mr-3 text-blue-600" />
-                    <div>
+              <div>
                       <div className="font-medium">
                         {paymentMethod.card.brand.charAt(0).toUpperCase() + paymentMethod.card.brand.slice(1)}
-                      </div>
+              </div>
                       <div className="text-gray-500">
                         •••• {paymentMethod.card.last4} • Expires {paymentMethod.card.exp_month}/{paymentMethod.card.exp_year}
-                      </div>
-                    </div>
+            </div>
+          </div>
                   </div>
                   
                   <Button color="light" onClick={handleManageSubscription}>
                     Update Payment Method
                   </Button>
-                </div>
+                      </div>
               ) : isTrialing ? (
                 <div>
                   <div className="text-gray-500 mb-4">
@@ -238,10 +238,10 @@ export default function AdminBillingPage() {
                   No payment method on file.
                 </div>
               )}
-            </div>
-          </Card>
-        </div>
-      </div>
+                </div>
+              </Card>
+          </div>
+    </div>
     </AdminLayout>
   );
 } 

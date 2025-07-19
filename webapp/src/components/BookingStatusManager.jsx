@@ -4,18 +4,51 @@ import { Badge, Button, Select, TextInput, Modal } from 'flowbite-react';
 import { CheckIcon as HiCheck, XMarkIcon as HiX, ClockIcon as HiClock, ExclamationTriangleIcon as HiExclamation } from '@heroicons/react/24/outline';
 import BookingService from '../services/bookingService';
 
+// Status options used by both components
+const statusOptions = [
+  { value: 'pending', label: 'Väntande', icon: HiClock, color: 'yellow' },
+  { value: 'confirmed', label: 'Bekräftad', icon: HiCheck, color: 'blue' },
+  { value: 'completed', label: 'Slutförd', icon: HiCheck, color: 'green' },
+  { value: 'cancelled', label: 'Avbokad', icon: HiX, color: 'red' }
+];
+
+// StatusBadge component exported separately
+export const StatusBadge = ({ status, size = 'sm' }) => {
+  const statusConfig = statusOptions.find(option => option.value === status);
+  const Icon = statusConfig?.icon || HiClock;
+  
+  // Defensive check to ensure Icon is a valid component
+  if (!Icon || typeof Icon !== 'function') {
+    console.warn('Invalid icon for status:', status);
+    return (
+      <Badge 
+        color={statusConfig?.color || 'gray'} 
+        size={size}
+        className="flex items-center gap-1"
+      >
+        <HiClock className="w-3 h-3" />
+        {statusConfig?.label || status}
+      </Badge>
+    );
+  }
+  
+  return (
+    <Badge 
+      color={statusConfig?.color || 'gray'} 
+      size={size}
+      className="flex items-center gap-1"
+    >
+      <Icon className="w-3 h-3" />
+      {statusConfig?.label || status}
+    </Badge>
+  );
+};
+
 const BookingStatusManager = ({ booking, companyId, onStatusUpdate, className = '' }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState(booking.status);
   const [adminNote, setAdminNote] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
-
-  const statusOptions = [
-    { value: 'pending', label: 'Väntande', icon: HiClock, color: 'yellow' },
-    { value: 'confirmed', label: 'Bekräftad', icon: HiCheck, color: 'blue' },
-    { value: 'completed', label: 'Slutförd', icon: HiCheck, color: 'green' },
-    { value: 'cancelled', label: 'Avbokad', icon: HiX, color: 'red' }
-  ];
 
 
 
@@ -46,36 +79,7 @@ const BookingStatusManager = ({ booking, companyId, onStatusUpdate, className = 
     }
   };
 
-  const StatusBadge = ({ status, size = 'sm' }) => {
-    const statusConfig = statusOptions.find(option => option.value === status);
-    const Icon = statusConfig?.icon || HiClock;
-    
-    // Defensive check to ensure Icon is a valid component
-    if (!Icon || typeof Icon !== 'function') {
-      console.warn('Invalid icon for status:', status);
-      return (
-        <Badge 
-          color={statusConfig?.color || 'gray'} 
-          size={size}
-          className="flex items-center gap-1"
-        >
-          <HiClock className="w-3 h-3" />
-          {statusConfig?.label || status}
-        </Badge>
-      );
-    }
-    
-    return (
-      <Badge 
-        color={statusConfig?.color || 'gray'} 
-        size={size}
-        className="flex items-center gap-1"
-      >
-        <Icon className="w-3 h-3" />
-        {statusConfig?.label || status}
-      </Badge>
-    );
-  };
+  // StatusBadge is now imported from the exported component
 
   return (
     <div className={`flex items-center gap-2 ${className}`}>
@@ -198,4 +202,5 @@ const BookingStatusManager = ({ booking, companyId, onStatusUpdate, className = 
   );
 };
 
+// Export both the main component and the StatusBadge
 export default BookingStatusManager;

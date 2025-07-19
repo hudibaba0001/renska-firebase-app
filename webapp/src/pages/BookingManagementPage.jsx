@@ -10,6 +10,7 @@ import {
   Spinner,
   Alert
 } from 'flowbite-react';
+import ErrorBoundary from '../components/ErrorBoundary';
 import { 
   MagnifyingGlassIcon as HiSearch, 
   ArrowDownTrayIcon as HiDownload, 
@@ -342,15 +343,17 @@ const BookingManagementPage = () => {
       </Card>
 
       {/* Bookings Table */}
-      <BookingTable
-        bookings={filteredBookings}
-        loading={loading}
-        companyId={companyId}
-        onBookingUpdate={handleBookingUpdate}
-        onContactCustomer={(booking, method) => {
-          console.log('Contact customer:', booking.customerName, 'via', method);
-        }}
-      />
+      <ErrorBoundary fallbackMessage="There was an error loading the booking table. Please try refreshing the page.">
+        <BookingTable
+          bookings={filteredBookings}
+          loading={loading}
+          companyId={companyId}
+          onBookingUpdate={handleBookingUpdate}
+          onContactCustomer={(booking, method) => {
+            console.log('Contact customer:', booking.customerName, 'via', method);
+          }}
+        />
+      </ErrorBoundary>
 
       {/* Loading Overlay */}
       {loading && (

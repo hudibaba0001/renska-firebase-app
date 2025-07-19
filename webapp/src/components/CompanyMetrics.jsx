@@ -41,8 +41,8 @@ export default function CompanyMetrics({ companyId }) {
       name: 'House Cleaning',
       revenue: 15000,
       bookings: 25
-    },
-    {
+      },
+      {
       name: 'Window Cleaning',
       revenue: 8000,
       bookings: 12
@@ -51,12 +51,12 @@ export default function CompanyMetrics({ companyId }) {
       name: 'Garden Maintenance',
       revenue: 5000,
       bookings: 8
-    }
+      }
   ]);
 
   useEffect(() => {
     // Simplified version - just set loading to false
-    setLoading(false);
+        setLoading(false);
   }, [companyId]);
 
   const formatCurrency = (value) => {
@@ -212,37 +212,37 @@ export default function CompanyMetrics({ companyId }) {
               </tr>
             </thead>
             <tbody>
-              {topServices.map((service, index) => (
+            {topServices.map((service, index) => (
                 <tr key={service.name} className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
                   <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">
-                    <div className="flex items-center">
-                      <Badge color="info" className="mr-2">#{index + 1}</Badge>
-                      {service.name}
-                    </div>
+                  <div className="flex items-center">
+                    <Badge color="info" className="mr-2">#{index + 1}</Badge>
+                    {service.name}
+                  </div>
                   </td>
                   <td className="px-6 py-4">
-                    {formatCurrency(service.revenue)}
+                  {formatCurrency(service.revenue)}
                   </td>
                   <td className="px-6 py-4">
-                    {service.bookings}
+                  {service.bookings}
                   </td>
                   <td className="px-6 py-4">
-                    {formatCurrency(service.revenue / service.bookings)}
+                  {formatCurrency(service.revenue / service.bookings)}
                   </td>
                   <td className="px-6 py-4">
-                    <div className="flex items-center">
-                      <Progress 
-                        progress={Math.min((service.revenue / Math.max(...topServices.map(s => s.revenue))) * 100, 100)} 
-                        size="sm" 
-                        className="w-20 mr-2"
-                      />
-                      <span className="text-sm text-gray-500">
+                  <div className="flex items-center">
+                    <Progress 
+                      progress={Math.min((service.revenue / Math.max(...topServices.map(s => s.revenue))) * 100, 100)} 
+                      size="sm" 
+                      className="w-20 mr-2"
+                    />
+                    <span className="text-sm text-gray-500">
                         {((service.revenue / (topServices.reduce((sum, s) => sum + s.revenue, 0))) * 100).toFixed(1)}%
-                      </span>
-                    </div>
+                    </span>
+                  </div>
                   </td>
                 </tr>
-              ))}
+            ))}
             </tbody>
           </table>
         </div>

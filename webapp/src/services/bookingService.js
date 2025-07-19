@@ -18,7 +18,7 @@ import toast from 'react-hot-toast';
 /**
  * Booking Service - Handles all booking-related operations
  */
-export class BookingService {
+class BookingService {
   
   /**
    * Get all bookings for a company with optional filtering

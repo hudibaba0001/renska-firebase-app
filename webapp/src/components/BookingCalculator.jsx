@@ -62,40 +62,40 @@ const ZipCodeStep = ({ onNext, formData, setFormData, allowedZipCodes, error, se
   console.log('🔍 ZipCodeStep - current zip:', formData.zip);
   
   return (
-    <div>
-      <h2 className="text-xl font-bold mb-4">Steg 1: Ange postnummer</h2>
-      <input
-        type="text"
-        className="border p-2 rounded w-full mb-2"
-        placeholder="Postnummer"
-        maxLength={5}
-        value={formData.zip || ''}
-        onChange={e => {
-          setFormData(f => ({ ...f, zip: e.target.value.replace(/\D/g, '').substring(0, 5) }));
-          setError('');
-        }}
-      />
-      {error && <div className="text-red-600 mb-2">{error}</div>}
+  <div>
+    <h2 className="text-xl font-bold mb-4">Steg 1: Ange postnummer</h2>
+    <input
+      type="text"
+      className="border p-2 rounded w-full mb-2"
+      placeholder="Postnummer"
+      maxLength={5}
+      value={formData.zip || ''}
+      onChange={e => {
+        setFormData(f => ({ ...f, zip: e.target.value.replace(/\D/g, '').substring(0, 5) }));
+        setError('');
+      }}
+    />
+    {error && <div className="text-red-600 mb-2">{error}</div>}
       <div className="text-xs text-gray-500 mb-2">
         Tillåtna postnummer: {validZipCodes.join(', ') || 'Inga konfigurerade'}
       </div>
-      <button
-        className="bg-pink-400 text-white px-4 py-2 rounded"
-        disabled={!formData.zip || formData.zip.length !== 5}
-        onClick={() => {
+    <button
+      className="bg-pink-400 text-white px-4 py-2 rounded"
+      disabled={!formData.zip || formData.zip.length !== 5}
+      onClick={() => {
           console.log('🔍 Checking zip code:', formData.zip, 'against:', validZipCodes);
           if (validZipCodes.includes(formData.zip)) {
-            setError('');
-            onNext();
-          } else {
-            setError('Vi levererar tyvärr inte till detta postnummer.');
-          }
-        }}
-      >
-        Nästa
-      </button>
-    </div>
-  );
+          setError('');
+          onNext();
+        } else {
+          setError('Vi levererar tyvärr inte till detta postnummer.');
+        }
+      }}
+    >
+      Nästa
+    </button>
+  </div>
+);
 };
 
 const ServiceSelectStep = ({ onNext, onBack, formData, setFormData, config }) => {
@@ -260,29 +260,29 @@ const ServiceDetailsStep = ({ onNext, onBack, formData, setFormData, config }) =
         </div>
       ) : (
         // Regular service with area input
-        <div className="mb-4">
-          <label className="block font-semibold mb-1">Yta (m²)</label>
-          <input
-            type="number"
-            className="border p-2 rounded w-full"
-            min={1}
-            value={formData.area || ''}
-            onChange={e => setFormData(f => ({ ...f, area: e.target.value }))}
-            placeholder="Ange yta i m²"
-          />
-        </div>
+          <div className="mb-4">
+            <label className="block font-semibold mb-1">Yta (m²)</label>
+            <input
+              type="number"
+              className="border p-2 rounded w-full"
+              min={1}
+              value={formData.area || ''}
+              onChange={e => setFormData(f => ({ ...f, area: e.target.value }))}
+              placeholder="Ange yta i m²"
+            />
+          </div>
       )}
       
-      <div className="mb-4">
-        <label className="block font-semibold mb-1">Tillägg</label>
-        {addOns.length === 0 ? (
-          <div className="text-gray-500">Inga tillval tillgängliga för denna tjänst.</div>
-        ) : (
-          <div className="flex flex-col gap-2">
+          <div className="mb-4">
+            <label className="block font-semibold mb-1">Tillägg</label>
+            {addOns.length === 0 ? (
+              <div className="text-gray-500">Inga tillval tillgängliga för denna tjänst.</div>
+            ) : (
+              <div className="flex flex-col gap-2">
             {addOns.map((addOn, index) => (
               <label key={index} className="flex items-center gap-2">
-                <input
-                  type="checkbox"
+                    <input
+                      type="checkbox"
                   checked={!!formData[`addon_${addOn.name || addOn}`]}
                   onChange={e => setFormData(f => ({ 
                     ...f, 
@@ -293,11 +293,11 @@ const ServiceDetailsStep = ({ onNext, onBack, formData, setFormData, config }) =
                 {addOn.price && (
                   <span className="text-sm text-gray-600">(+{addOn.price} kr)</span>
                 )}
-              </label>
-            ))}
+                  </label>
+                ))}
+              </div>
+            )}
           </div>
-        )}
-      </div>
       <div className="flex gap-2">
         <button className="bg-gray-300 px-4 py-2 rounded" onClick={onBack}>Tillbaka</button>
         <button className="bg-pink-400 text-white px-4 py-2 rounded" onClick={onNext} disabled={!isFormValid()}>Nästa</button>
@@ -647,8 +647,8 @@ const PriceCard = ({ originalPrice, finalPrice, rutApplied, selectedService, for
           </button>
         </div>
       </div>
-    </div>
-  );
+  </div>
+);
 };
 
 export default function BookingCalculator({ config: propConfig, companyId: propCompanyId }) {
@@ -823,11 +823,11 @@ export default function BookingCalculator({ config: propConfig, companyId: propC
       if (selectedService.rutEligible && config.rutEnabled) {
         const rutDiscount = totalPrice * (config.rutPercentage || 0.3);
         setFinalPrice(totalPrice - rutDiscount);
-        setRutApplied(true);
-      } else {
+          setRutApplied(true);
+        } else {
         setFinalPrice(totalPrice);
-        setRutApplied(false);
-      }
+          setRutApplied(false);
+        }
     } else {
       setOriginalPrice(0);
       setFinalPrice(0);
@@ -895,7 +895,7 @@ export default function BookingCalculator({ config: propConfig, companyId: propC
             />
           </>
         )}
-        {step === 4 && (
+            {step === 4 && (
           <CustomerInfoStep
             onBack={() => setStep(3)}
             formData={formData}
@@ -910,7 +910,7 @@ export default function BookingCalculator({ config: propConfig, companyId: propC
       
       {/* Price Card - Show only when there's pricing information (steps 3 and 4) */}
       {step >= 3 && step <= 4 && (
-        <div className="w-80">
+      <div className="w-80">
           <PriceCard
             originalPrice={originalPrice}
             finalPrice={finalPrice}
@@ -919,7 +919,7 @@ export default function BookingCalculator({ config: propConfig, companyId: propC
             formData={formData}
             step={step}
           />
-        </div>
+      </div>
       )}
     </div>
   );

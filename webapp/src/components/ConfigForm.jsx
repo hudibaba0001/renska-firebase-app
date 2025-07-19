@@ -269,7 +269,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange, refreshSer
       {/* Global Settings */}
       <div className="rounded-lg bg-gray-50 p-6 mb-8 border border-gray-200">
         <h2 className="text-2xl font-bold mb-4 text-gray-900">Global Settings</h2>
-        
+
         <>
           {/* RUT Discount Settings */}
           <div className="mb-6 border rounded-lg bg-white shadow-sm">
@@ -291,37 +291,37 @@ export default function ConfigForm({ initialConfig, onSave, onChange, refreshSer
             <div className={`overflow-hidden transition-all duration-300 ease-in-out ${expandedSections.rut ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0'}`}>
               {expandedSections.rut && (
                 <div className="p-4 space-y-4">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="rut-enabled"
-                      checked={config.rutEnabled}
-                      onChange={(e) => setConfig(prev => ({ ...prev, rutEnabled: e.target.checked }))}
-                    />
-                    <Label htmlFor="rut-enabled">Enable RUT Discount</Label>
-                  </div>
-                  
-                  {config.rutEnabled && (
-                    <>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <div className="mb-2 block">
-                            <Label htmlFor="rut-percentage" value={`RUT Discount (${Math.round(config.rutPercentage * 100)}%)`} />
-                          </div>
-                          <TextInput
-                            id="rut-percentage"
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            max="1"
-                            value={config.rutPercentage}
-                            onChange={(e) => setConfig(prev => ({ ...prev, rutPercentage: parseFloat(e.target.value) || 0 }))}
-                            className="text-gray-900"
-                          />
-                        </div>
-                      </div>
-                    </>
-                  )}
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="rut-enabled"
+                    checked={config.rutEnabled}
+                    onChange={(e) => setConfig(prev => ({ ...prev, rutEnabled: e.target.checked }))}
+                  />
+                  <Label htmlFor="rut-enabled">Enable RUT Discount</Label>
                 </div>
+                
+                {config.rutEnabled && (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <div className="mb-2 block">
+                          <Label htmlFor="rut-percentage" value={`RUT Discount (${Math.round(config.rutPercentage * 100)}%)`} />
+                        </div>
+                        <TextInput
+                          id="rut-percentage"
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          max="1"
+                          value={config.rutPercentage}
+                          onChange={(e) => setConfig(prev => ({ ...prev, rutPercentage: parseFloat(e.target.value) || 0 }))}
+                          className="text-gray-900"
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
               )}
             </div>
           </div>
@@ -346,20 +346,20 @@ export default function ConfigForm({ initialConfig, onSave, onChange, refreshSer
             <div className={`overflow-hidden transition-all duration-300 ease-in-out ${expandedSections.zip ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0'}`}>
               {expandedSections.zip && (
                 <div className="p-4">
-                  <div className="rounded-lg bg-gray-50 p-4 mb-4 border border-gray-200">
-                    <div className="mb-2 block">
-                      <Label htmlFor="zip-areas" value="Eligible ZIP Codes" />
-                    </div>
-                    <TextInput
-                      id="zip-areas"
-                      value={config.zipAreas.join(', ')}
-                      onChange={(e) => updateZipAreas(e.target.value)}
-                      placeholder="41107, 41121, 41254"
-                      icon={MapIcon}
-                      className="text-gray-900"
-                    />
-                  </div>
+              <div className="rounded-lg bg-gray-50 p-4 mb-4 border border-gray-200">
+                <div className="mb-2 block">
+                  <Label htmlFor="zip-areas" value="Eligible ZIP Codes" />
                 </div>
+                <TextInput
+                  id="zip-areas"
+                  value={config.zipAreas.join(', ')}
+                  onChange={(e) => updateZipAreas(e.target.value)}
+                  placeholder="41107, 41121, 41254"
+                  icon={MapIcon}
+                  className="text-gray-900"
+                />
+              </div>
+            </div>
               )}
             </div>
           </div>
@@ -384,22 +384,22 @@ export default function ConfigForm({ initialConfig, onSave, onChange, refreshSer
             <div className={`overflow-hidden transition-all duration-300 ease-in-out ${expandedSections.vat ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0'}`}>
               {expandedSections.vat && (
                 <div className="p-4">
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700">VAT Rate (%)</label>
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      step="0.1"
-                      value={config.vatRate || ''}
-                      onChange={e => setConfig(c => ({ ...c, vatRate: Number(e.target.value) }))}
-                      className="mt-1 block w-32 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                    />
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700">VAT Rate (%)</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.1"
+                  value={config.vatRate || ''}
+                  onChange={e => setConfig(c => ({ ...c, vatRate: Number(e.target.value) }))}
+                  className="mt-1 block w-32 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                />
                     <div className="flex items-center mt-1 text-xs text-gray-500">
                       <InformationCircleIcon className="h-4 w-4 mr-1" /> 
                       VAT will apply to service, add-ons, and custom fees.
-                    </div>
-                  </div>
+              </div>
+          </div>
                 </div>
               )}
             </div>
@@ -447,7 +447,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange, refreshSer
                           <ChevronDownIcon
                             className={`h-5 w-5 text-gray-600 transform transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
                           />
-                        </div>
+                </div>
                         <div className="flex items-center space-x-3">
                           <span className="font-bold text-xl text-gray-900">{service.name || 'Unnamed Service'}</span>
                           {service.status === 'draft' && (
@@ -488,7 +488,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange, refreshSer
                           </p>
                         </div>
                         <div>
-                      {/* Pricing Model */}
+                {/* Pricing Model */}
                 <div className="mb-2">
                   <label className="block text-sm font-medium">Pricing Model</label>
                   <select
@@ -523,7 +523,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange, refreshSer
                     </div>
                     
                     <div className="space-y-3">
-                      {service.tiers.map((tier, tIdx) => (
+                        {service.tiers.map((tier, tIdx) => (
                         <div key={tIdx} className="bg-white rounded-lg p-4 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
                           <div className="flex items-center justify-between">
                             <div className="flex-grow grid grid-cols-3 gap-4">
@@ -635,7 +635,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange, refreshSer
                       <div className="flex items-center">
                         <div className="bg-blue-100 p-2 rounded-full mr-3">
                           <CurrencyDollarIcon className="h-5 w-5 text-blue-600" />
-                        </div>
+                    </div>
                         <h3 className="text-lg font-semibold text-gray-900">Hourly Pricing</h3>
                       </div>
                       <button 
@@ -815,39 +815,39 @@ export default function ConfigForm({ initialConfig, onSave, onChange, refreshSer
                   </div>
                   
                   <div className="space-y-3">
-                    {service.addOns && service.addOns.map((addOn, aIdx) => (
+                  {service.addOns && service.addOns.map((addOn, aIdx) => (
                       <div key={aIdx} className="bg-white rounded-lg p-4 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
                         <div className="flex items-center justify-between">
                           <div className="flex-grow grid grid-cols-3 gap-4">
                             <div>
                               <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                              <input
+                      <input
                                 className="w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-green-300 text-gray-900"
-                                value={addOn.name}
-                                onChange={e => updateAddOn(service.id, aIdx, { name: e.target.value })}
-                                placeholder="Add-on name"
-                              />
+                        value={addOn.name}
+                        onChange={e => updateAddOn(service.id, aIdx, { name: e.target.value })}
+                        placeholder="Add-on name"
+                      />
                             </div>
                             <div>
                               <label className="block text-sm font-medium text-gray-700 mb-1">Price (kr)</label>
-                              <input
-                                type="number"
+                      <input
+                        type="number"
                                 className="w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-green-300 text-gray-900"
-                                value={addOn.price}
-                                onChange={e => updateAddOn(service.id, aIdx, { price: Number(e.target.value) })}
-                                placeholder="Price"
-                              />
+                        value={addOn.price}
+                        onChange={e => updateAddOn(service.id, aIdx, { price: Number(e.target.value) })}
+                        placeholder="Price"
+                      />
                             </div>
-                            {config.rutEnabled ? (
+                      {config.rutEnabled ? (
                               <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">RUT Eligible</label>
                                 <div className="flex items-center h-[38px]">
                                   <label className="flex items-center gap-2 cursor-pointer">
                                     <div className="relative">
-                                      <input
-                                        type="checkbox"
-                                        checked={addOn.rutEligible}
-                                        onChange={e => updateAddOn(service.id, aIdx, { rutEligible: e.target.checked })}
+                          <input
+                            type="checkbox"
+                            checked={addOn.rutEligible}
+                            onChange={e => updateAddOn(service.id, aIdx, { rutEligible: e.target.checked })}
                                         className="sr-only"
                                       />
                                       <div className={`block w-10 h-6 rounded-full transition ${addOn.rutEligible ? 'bg-green-500' : 'bg-gray-300'}`}></div>
@@ -856,7 +856,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange, refreshSer
                                     <span className="text-sm text-gray-700">
                                       {addOn.rutEligible ? 'Yes' : 'No'}
                                     </span>
-                                  </label>
+                        </label>
                                 </div>
                               </div>
                             ) : (
@@ -875,8 +875,8 @@ export default function ConfigForm({ initialConfig, onSave, onChange, refreshSer
                             </button>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                    </div>
+                  ))}
                     
                     {(!service.addOns || service.addOns.length === 0) && (
                       <div className="bg-white rounded-lg p-6 border border-dashed border-gray-300 text-center">
@@ -928,8 +928,8 @@ export default function ConfigForm({ initialConfig, onSave, onChange, refreshSer
                         </span>
                       </label>
                       
-                      <button 
-                        type="button" 
+                      <button
+                        type="button"
                         onClick={() => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, frequencyMultipliers: [...(s.frequencyMultipliers || []), { label: '', multiplier: 1 }] } : s) }))} 
                         className="flex items-center px-4 py-2 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium shadow-sm transition"
                         disabled={service.frequencyEnabled === false}
@@ -941,7 +941,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange, refreshSer
                   
                   {service.frequencyEnabled !== false ? (
                     <div className="space-y-3">
-                      {service.frequencyMultipliers && service.frequencyMultipliers.length > 0 ? (
+                    {service.frequencyMultipliers && service.frequencyMultipliers.length > 0 ? (
                         service.frequencyMultipliers.map((freq, fIdx) => (
                           <div key={fIdx} className="bg-white rounded-lg p-4 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
                             <div className="flex items-center justify-between">
@@ -1011,27 +1011,27 @@ export default function ConfigForm({ initialConfig, onSave, onChange, refreshSer
                         <ExclamationTriangleIcon className="h-5 w-5 mr-2 text-gray-400" />
                         <span>Frequency options are disabled for this service. Enable them using the toggle above.</span>
                       </div>
-                    </div>
-                  )}
+                  </div>
+                )}
                 </div>
                 {/* RUT Eligible Toggle */}
                 <div className="rounded-lg bg-gradient-to-r from-sky-50 to-cyan-50 p-6 mb-6 border border-sky-100 shadow-sm">
                   <div className="flex items-center mb-4">
                     <div className="bg-sky-100 p-2 rounded-full mr-3">
                       <CheckCircleIcon className="h-5 w-5 text-sky-600" />
-                    </div>
+                  </div>
                     <h3 className="text-lg font-semibold text-gray-900">RUT Eligibility</h3>
                   </div>
                   
                   {config.rutEnabled ? (
                     <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
                       <label className="block text-sm font-medium text-gray-700 mb-2">Is this service RUT eligible?</label>
-                      <div className="flex items-center">
+                    <div className="flex items-center">
                         <label className="flex items-center gap-3 cursor-pointer">
                           <div className="relative">
-                            <input
-                              type="checkbox"
-                              checked={service.rutEligible}
+                      <input
+                        type="checkbox"
+                        checked={service.rutEligible}
                               onChange={e => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, rutEligible: e.target.checked } : s) }))}
                               className="sr-only"
                             />
@@ -1082,39 +1082,39 @@ export default function ConfigForm({ initialConfig, onSave, onChange, refreshSer
                   </div>
                   
                   <div className="space-y-3">
-                    {service.customFees && service.customFees.map((fee, fIdx) => (
+                  {service.customFees && service.customFees.map((fee, fIdx) => (
                       <div key={fIdx} className="bg-white rounded-lg p-4 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
                         <div className="flex items-center justify-between">
                           <div className="flex-grow grid grid-cols-3 gap-4">
                             <div>
                               <label className="block text-sm font-medium text-gray-700 mb-1">Label</label>
-                              <input
+                      <input
                                 className="w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-purple-300 text-gray-900"
-                                value={fee.label}
-                                onChange={e => updateCustomFee(service.id, fIdx, { label: e.target.value })}
-                                placeholder="Fee label"
-                              />
+                        value={fee.label}
+                        onChange={e => updateCustomFee(service.id, fIdx, { label: e.target.value })}
+                        placeholder="Fee label"
+                      />
                             </div>
                             <div>
                               <label className="block text-sm font-medium text-gray-700 mb-1">Amount (kr)</label>
-                              <input
-                                type="number"
+                      <input
+                        type="number"
                                 className="w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-purple-300 text-gray-900"
-                                value={fee.amount}
-                                onChange={e => updateCustomFee(service.id, fIdx, { amount: Number(e.target.value) })}
-                                placeholder="Amount"
-                              />
+                        value={fee.amount}
+                        onChange={e => updateCustomFee(service.id, fIdx, { amount: Number(e.target.value) })}
+                        placeholder="Amount"
+                      />
                             </div>
-                            {config.rutEnabled ? (
+                      {config.rutEnabled ? (
                               <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">RUT Eligible</label>
                                 <div className="flex items-center h-[38px]">
                                   <label className="flex items-center gap-2 cursor-pointer">
                                     <div className="relative">
-                                      <input
-                                        type="checkbox"
-                                        checked={fee.rutEligible}
-                                        onChange={e => updateCustomFee(service.id, fIdx, { rutEligible: e.target.checked })}
+                          <input
+                            type="checkbox"
+                            checked={fee.rutEligible}
+                            onChange={e => updateCustomFee(service.id, fIdx, { rutEligible: e.target.checked })}
                                         className="sr-only"
                                       />
                                       <div className={`block w-10 h-6 rounded-full transition ${fee.rutEligible ? 'bg-purple-500' : 'bg-gray-300'}`}></div>
@@ -1123,7 +1123,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange, refreshSer
                                     <span className="text-sm text-gray-700">
                                       {fee.rutEligible ? 'Yes' : 'No'}
                                     </span>
-                                  </label>
+                        </label>
                                 </div>
                               </div>
                             ) : (
@@ -1142,8 +1142,8 @@ export default function ConfigForm({ initialConfig, onSave, onChange, refreshSer
                             </button>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                    </div>
+                  ))}
                     
                     {(!service.customFees || service.customFees.length === 0) && (
                       <div className="bg-white rounded-lg p-6 border border-dashed border-gray-300 text-center">
