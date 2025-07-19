@@ -34,6 +34,8 @@ const BookingTable = ({
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [sortConfig, setSortConfig] = useState({ key: 'createdAt', direction: 'desc' });
 
+  // The handleSort function is defined below
+
   // Sort bookings
   const sortedBookings = useMemo(() => {
     if (!sortConfig.key) return bookings;
