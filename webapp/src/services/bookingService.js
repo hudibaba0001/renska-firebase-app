@@ -81,19 +81,6 @@ class BookingService {
   }
 
   /**
-   * Get status label from status value
-   */
-  static getStatusLabel(status) {
-    const statusMap = {
-      'pending': 'Väntande',
-      'confirmed': 'Bekräftad',
-      'completed': 'Slutförd',
-      'cancelled': 'Avbokad'
-    };
-    return statusMap[status] || status;
-  }
-
-  /**
    * Update booking status
    */
   static async updateBookingStatus(companyId, bookingId, newStatus, adminNote = '') {
