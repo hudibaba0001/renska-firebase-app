@@ -797,7 +797,7 @@ export default function BookingCalculator({ config: propConfig, companyId: propC
       </div>
       
       {/* Price Card - Show on all steps except the last one */}
-      {step < 4 && (
+      {step <= 4 && (
         <div className="w-80">
           <PriceCard
             originalPrice={originalPrice}
