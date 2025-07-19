@@ -112,10 +112,6 @@ export default function AdminDashboardPage() {
           ...doc.data()
         }));
         
-        console.log('🔍 AdminDashboard - calculatorsData:', calculatorsData);
-        console.log('🔍 AdminDashboard - calculatorsData.length:', calculatorsData.length);
-        console.log('🔍 AdminDashboard - companyId:', companyId);
-        
         // Get bookings and metrics
         const [
           bookingsData,

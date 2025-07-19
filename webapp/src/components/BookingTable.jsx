@@ -106,13 +106,19 @@ const BookingTable = ({
     return time;
   };
   
-  // Helper function to safely render icons
+  // Helper function to safely render icons with enhanced error handling
   const SafeIcon = ({ icon: Icon, fallback, className }) => {
-    if (!Icon || typeof Icon !== 'function') {
+    try {
+      if (!Icon || typeof Icon !== 'function') {
+        const Fallback = fallback || HiClock;
+        return <Fallback className={className} />;
+      }
+      return <Icon className={className} />;
+    } catch (error) {
+      console.error('Error rendering icon:', error);
       const Fallback = fallback || HiClock;
       return <Fallback className={className} />;
     }
-    return <Icon className={className} />;
   };
 
   const SortableHeader = ({ children, sortKey, className = '' }) => (
