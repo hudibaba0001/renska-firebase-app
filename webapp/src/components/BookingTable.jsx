@@ -10,9 +10,6 @@ import {
   Spinner
 } from 'flowbite-react';
 
-// Fix for potential Table undefined issue by creating a fully defined Table object
-const Table = FlowbiteTable;
-
 // Import all icons individually to avoid any undefined issues
 import { EyeIcon } from '@heroicons/react/24/outline';
 import { EnvelopeIcon } from '@heroicons/react/24/outline';
@@ -38,6 +35,36 @@ const HiOfficeBuilding = BuildingOfficeIcon;
 // Import components
 import BookingStatusManager, { StatusBadge } from './BookingStatusManager';
 import BookingService from '../services/bookingService';
+
+// Fix for potential Table undefined issue by creating a fully defined Table object
+const Table = FlowbiteTable || {};
+
+// Helper function to safely render icons with enhanced error handling
+const SafeIcon = ({ icon, fallback, className }) => {
+  // Default to a clock icon if nothing is provided
+  const FallbackIcon = fallback || HiClock;
+  
+  try {
+    // First, check if the icon is defined
+    if (!icon) {
+      console.warn('No icon provided to SafeIcon');
+      return <FallbackIcon className={className} />;
+    }
+    
+    // Then check if it's a valid React component (function)
+    if (typeof icon !== 'function') {
+      console.warn('Invalid icon type provided to SafeIcon:', typeof icon);
+      return <FallbackIcon className={className} />;
+    }
+    
+    // If everything is fine, render the icon
+    const Icon = icon;
+    return <Icon className={className} />;
+  } catch (error) {
+    console.error('Error rendering icon:', error);
+    return <FallbackIcon className={className} />;
+  }
+};
 
 // Debug function to help identify undefined components
 const debugComponent = (name, component) => {
@@ -170,21 +197,30 @@ const BookingTable = ({
     }
   };
 
-  const SortableHeader = ({ children, sortKey, className = '' }) => (
-    <Table.HeadCell 
-      className={`cursor-pointer hover:bg-gray-100 ${className}`}
-      onClick={() => handleSort(sortKey)}
-    >
-      <div className="flex items-center gap-1">
-        {children}
-        {sortConfig.key === sortKey && (
-          <span className="text-xs">
-            {sortConfig.direction === 'asc' ? '↑' : '↓'}
-          </span>
-        )}
-      </div>
-    </Table.HeadCell>
-  );
+  // SortableHeader component defined within the BookingTable component to access its state
+  const SortableHeader = ({ children, sortKey, className = '' }) => {
+    // Safety check for Table.HeadCell
+    if (!Table?.HeadCell) {
+      console.error('Table.HeadCell is undefined!');
+      return <th className={`cursor-pointer hover:bg-gray-100 ${className}`}>{children}</th>;
+    }
+    
+    return (
+      <Table.HeadCell 
+        className={`cursor-pointer hover:bg-gray-100 ${className}`}
+        onClick={() => handleSort(sortKey)}
+      >
+        <div className="flex items-center gap-1">
+          {children}
+          {sortConfig?.key === sortKey && (
+            <span className="text-xs">
+              {sortConfig.direction === 'asc' ? '↑' : '↓'}
+            </span>
+          )}
+        </div>
+      </Table.HeadCell>
+    );
+  };
 
   if (loading) {
     return (
@@ -215,13 +251,27 @@ const BookingTable = ({
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <Table hoverable>
           <Table.Head>
-            <SortableHeader sortKey="customerName">Kund</SortableHeader>
-            <SortableHeader sortKey="serviceName">Tjänst</SortableHeader>
-            <SortableHeader sortKey="bookingDate">Datum & Tid</SortableHeader>
-            <SortableHeader sortKey="status">Status</SortableHeader>
-            <SortableHeader sortKey="totalAmount">Belopp</SortableHeader>
-            <SortableHeader sortKey="createdAt">Skapad</SortableHeader>
-            <Table.HeadCell>Åtgärder</Table.HeadCell>
+            {Table && Table.HeadCell ? (
+              <>
+                <SortableHeader sortKey="customerName">Kund</SortableHeader>
+                <SortableHeader sortKey="serviceName">Tjänst</SortableHeader>
+                <SortableHeader sortKey="bookingDate">Datum & Tid</SortableHeader>
+                <SortableHeader sortKey="status">Status</SortableHeader>
+                <SortableHeader sortKey="totalAmount">Belopp</SortableHeader>
+                <SortableHeader sortKey="createdAt">Skapad</SortableHeader>
+                <Table.HeadCell>Åtgärder</Table.HeadCell>
+              </>
+            ) : (
+              <tr>
+                <th>Kund</th>
+                <th>Tjänst</th>
+                <th>Datum & Tid</th>
+                <th>Status</th>
+                <th>Belopp</th>
+                <th>Skapad</th>
+                <th>Åtgärder</th>
+              </tr>
+            )
           </Table.Head>
           <Table.Body className="divide-y">
             {sortedBookings.map((booking) => (

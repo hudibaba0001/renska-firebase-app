@@ -24,6 +24,7 @@ import TenantOnboardPage from './pages/TenantOnboardPage';
 import TenantDetailPage from './pages/TenantDetailPage';
 import PaymentPage from './pages/PaymentPage';
 import SuperAdminDashboardPage from './pages/SuperAdminDashboardPage';
+import UnauthorizedPage from './pages/UnauthorizedPage';
 
 // Import Layout and Auth Components
 import AdminLayout from './components/AdminLayout';
@@ -46,6 +47,7 @@ export default function App() {
           <Route path="payment" element={<PaymentPage />} />
             <Route path="setup" element={<SetupPage />} />
             <Route path="setup-super-admin" element={<SetupSuperAdminPage />} />
+            <Route path="unauthorized" element={<UnauthorizedPage />} />
           </Route>
 
           {/* Booking Routes (Public) */}
