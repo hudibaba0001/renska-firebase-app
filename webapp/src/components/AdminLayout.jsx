@@ -263,21 +263,21 @@ export default function AdminLayout() {
         `}>
           <div className="h-full px-3 pb-4 overflow-y-auto bg-white dark:bg-gray-800">
             {/* Company Info Card */}
-            <div className="mb-6 p-4 bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg text-white">
+            <div className="mb-6 p-4 rounded-lg text-white custom-company-header" style={{backgroundColor: '#005659', background: '#005659 !important', backgroundImage: 'none !important'}}>
               <div className="flex items-center space-x-3 mb-3">
                 <div className="w-10 h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
                   <BuildingOfficeIcon className="w-6 h-6" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-sm truncate">{company?.companyName}</h3>
-                  <p className="text-xs text-blue-100 capitalize">{company?.serviceType || 'Cleaning Service'}</p>
+                  <h3 className="font-semibold text-sm truncate text-white">{company?.companyName}</h3>
+                  <p className="text-xs text-white capitalize">{company?.serviceType || 'Cleaning Service'}</p>
                 </div>
               </div>
               <div className="flex items-center justify-between">
                 <Badge color="success" size="sm">Pro Plan</Badge>
                 <Link
                   to={`/booking/${companyId}`}
-                  className="text-xs text-blue-100 hover:text-white underline"
+                  className="text-xs text-white hover:text-gray-200 underline"
                 >
                   View Live Form →
                 </Link>

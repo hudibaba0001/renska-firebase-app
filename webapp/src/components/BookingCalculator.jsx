@@ -99,12 +99,17 @@ const ZipCodeStep = ({ onNext, formData, setFormData, allowedZipCodes, error, se
 };
 
 const ServiceSelectStep = ({ onNext, onBack, formData, setFormData, config }) => {
+  // Use the services from the form config, not all company services
   const services = Array.isArray(config.services) ? config.services : [];
+  
+  console.log('🔍 ServiceSelectStep - config.services:', config.services);
+  console.log('🔍 ServiceSelectStep - filtered services:', services);
+  
   return (
     <div>
       <h2 className="text-xl font-bold mb-4">Steg 2: Välj tjänst</h2>
       {services.length === 0 ? (
-        <div className="text-red-600 mb-4">Inga tjänster är konfigurerade för detta företag.</div>
+        <div className="text-red-600 mb-4">Inga tjänster är konfigurerade för detta formulär.</div>
       ) : (
         <>
           <select
@@ -136,7 +141,7 @@ const ServiceSelectStep = ({ onNext, onBack, formData, setFormData, config }) =>
 const ServiceDetailsStep = ({ onNext, onBack, formData, setFormData, config }) => {
   const service = formData.service;
   
-  // Get the selected service object
+  // Get the selected service object from the form config services
   const selectedService = config.services?.find(s => s.id === service);
   
   // Get add-ons from the selected service
@@ -296,6 +301,96 @@ const CustomerInfoStep = ({ onBack, formData, setFormData, companyId, totalPrice
     <form onSubmit={handleSubmit}>
       <h2 className="text-xl font-bold mb-4">Steg 4: Kundinformation</h2>
       {error && <div className="text-red-600 mb-4">{error}</div>}
+      
+      {/* Customer Name */}
+      <div className="mb-4">
+        <label className="block font-semibold mb-1">Namn *</label>
+        <input
+          type="text"
+          className="border p-2 rounded w-full"
+          value={formData.customerName || ''}
+          onChange={e => setFormData(f => ({ ...f, customerName: e.target.value }))}
+          placeholder="Ditt fullständiga namn"
+          required
+        />
+      </div>
+      
+      {/* Customer Email */}
+      <div className="mb-4">
+        <label className="block font-semibold mb-1">E-post *</label>
+        <input
+          type="email"
+          className="border p-2 rounded w-full"
+          value={formData.customerEmail || ''}
+          onChange={e => setFormData(f => ({ ...f, customerEmail: e.target.value }))}
+          placeholder="din.email@example.com"
+          required
+        />
+      </div>
+      
+      {/* Customer Phone */}
+      <div className="mb-4">
+        <label className="block font-semibold mb-1">Telefon *</label>
+        <input
+          type="tel"
+          className="border p-2 rounded w-full"
+          value={formData.customerPhone || ''}
+          onChange={e => setFormData(f => ({ ...f, customerPhone: e.target.value }))}
+          placeholder="070-123 45 67"
+          required
+        />
+      </div>
+      
+      {/* Customer Address */}
+      <div className="mb-4">
+        <label className="block font-semibold mb-1">Adress *</label>
+        <input
+          type="text"
+          className="border p-2 rounded w-full"
+          value={formData.customerAddress || ''}
+          onChange={e => setFormData(f => ({ ...f, customerAddress: e.target.value }))}
+          placeholder="Gatuadress, postnummer och ort"
+          required
+        />
+      </div>
+      
+      {/* Preferred Date */}
+      <div className="mb-4">
+        <label className="block font-semibold mb-1">Önskat datum *</label>
+        <input
+          type="date"
+          className="border p-2 rounded w-full"
+          value={formData.customerDate || ''}
+          onChange={e => setFormData(f => ({ ...f, customerDate: e.target.value }))}
+          min={new Date().toISOString().split('T')[0]}
+          required
+        />
+      </div>
+      
+      {/* Preferred Time */}
+      <div className="mb-4">
+        <label className="block font-semibold mb-1">Önskad tid *</label>
+        <select
+          className="border p-2 rounded w-full"
+          value={formData.customerTime || ''}
+          onChange={e => setFormData(f => ({ ...f, customerTime: e.target.value }))}
+          required
+        >
+          <option value="">Välj tid</option>
+          <option value="08:00">08:00</option>
+          <option value="09:00">09:00</option>
+          <option value="10:00">10:00</option>
+          <option value="11:00">11:00</option>
+          <option value="12:00">12:00</option>
+          <option value="13:00">13:00</option>
+          <option value="14:00">14:00</option>
+          <option value="15:00">15:00</option>
+          <option value="16:00">16:00</option>
+          <option value="17:00">17:00</option>
+        </select>
+      </div>
+      
+      {/* Personal Number for RUT */}
       {rutApplied && (
         <div className="mb-4">
           <label className="block font-semibold mb-1">Personnummer (för RUT) *</label>
@@ -309,7 +404,23 @@ const CustomerInfoStep = ({ onBack, formData, setFormData, companyId, totalPrice
           />
         </div>
       )}
-      {/* ... other fields ... */}
+      
+      {/* GDPR Consent */}
+      <div className="mb-6">
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={formData.gdprConsent || false}
+            onChange={e => setFormData(f => ({ ...f, gdprConsent: e.target.checked }))}
+            required
+            className="rounded"
+          />
+          <span className="text-sm">
+            Jag godkänner att mina uppgifter behandlas enligt GDPR för att hantera min bokning. *
+          </span>
+        </label>
+      </div>
+      
       <div className="flex gap-2">
         <button type="button" className="bg-gray-300 px-4 py-2 rounded" onClick={onBack}>Tillbaka</button>
         <Button type="submit" color="pink" disabled={processing}>
@@ -473,6 +584,17 @@ export default function BookingCalculator({ config: propConfig, companyId: propC
   const [finalPrice, setFinalPrice] = useState(0);
   const [rutApplied, setRutApplied] = useState(false);
 
+  // Check if zip code validation is enabled
+  const isZipCodeEnabled = config?.zipAreas && Array.isArray(config.zipAreas) && config.zipAreas.length > 0;
+  
+  // Get the actual services for this form (filtered by form config)
+  const formServices = config?.services || services;
+  
+  console.log('🔍 BookingCalculator - isZipCodeEnabled:', isZipCodeEnabled);
+  console.log('🔍 BookingCalculator - zipAreas:', config?.zipAreas);
+  console.log('🔍 BookingCalculator - formServices:', formServices);
+  console.log('🔍 BookingCalculator - all services:', services);
+
   // Update config and services when propConfig changes
   useEffect(() => {
     if (propConfig) {
@@ -527,7 +649,7 @@ export default function BookingCalculator({ config: propConfig, companyId: propC
   }, [companyId, propConfig]);
 
   useEffect(() => {
-    const selectedService = services.find(s => s.id === formData.service);
+    const selectedService = formServices.find(s => s.id === formData.service);
     console.log('💰 Price calculation - selectedService:', selectedService);
     console.log('💰 Price calculation - formData:', formData);
     console.log('💰 Price calculation - custom fees:', selectedService?.customFees);
@@ -599,7 +721,7 @@ export default function BookingCalculator({ config: propConfig, companyId: propC
       setFinalPrice(0);
       setRutApplied(false);
     }
-  }, [formData, services, config]);
+  }, [formData, formServices, config]);
 
   if (loading) return <div>Laddar...</div>;
   if (error) return <div className="text-red-600">{error}</div>;
@@ -611,23 +733,33 @@ export default function BookingCalculator({ config: propConfig, companyId: propC
         {step === 1 && (
           <>
             {console.log('🔍 BookingCalculator - config.zipAreas:', config?.zipAreas)}
-            <ZipCodeStep
-              onNext={() => setStep(2)}
-              formData={formData}
-              setFormData={setFormData}
-              allowedZipCodes={config.zipAreas || []}
-              error={zipError}
-              setError={setZipError}
-            />
+            {isZipCodeEnabled ? (
+              <ZipCodeStep
+                onNext={() => setStep(2)}
+                formData={formData}
+                setFormData={setFormData}
+                allowedZipCodes={config.zipAreas || []}
+                error={zipError}
+                setError={setZipError}
+              />
+            ) : (
+              // Skip zip code step and go directly to service selection
+              <ServiceSelectStep
+                onNext={() => setStep(2)}
+                formData={formData}
+                setFormData={setFormData}
+                config={{ ...config, services: formServices }}
+              />
+            )}
           </>
         )}
         {step === 2 && (
           <ServiceSelectStep
             onNext={() => setStep(3)}
-            onBack={() => setStep(1)}
+            onBack={() => setStep(isZipCodeEnabled ? 1 : 1)}
             formData={formData}
             setFormData={setFormData}
-            config={config}
+            config={{ ...config, services: formServices }}
           />
         )}
         {step === 3 && (
@@ -635,7 +767,7 @@ export default function BookingCalculator({ config: propConfig, companyId: propC
             {console.log('🎯 Step 3 - ServiceDetailsStep active')}
             {console.log('🎯 Step 3 - formData:', formData)}
             {console.log('🎯 Step 3 - config:', config)}
-            {console.log('🎯 Step 3 - selectedService:', services.find(s => s.id === formData.service))}
+            {console.log('🎯 Step 3 - selectedService:', formServices.find(s => s.id === formData.service))}
             <ServiceDetailsStep
               onNext={() => {
                 console.log('🎯 Step 3 - Next button clicked, moving to step 4');
@@ -647,7 +779,7 @@ export default function BookingCalculator({ config: propConfig, companyId: propC
               }}
               formData={formData}
               setFormData={setFormData}
-              config={config}
+              config={{ ...config, services: formServices }}
             />
           </>
         )}
@@ -663,12 +795,18 @@ export default function BookingCalculator({ config: propConfig, companyId: propC
           />
         )}
       </div>
-      {step >= 3 && (
+      
+      {/* Price Card - Show on all steps except the last one */}
+      {step < 4 && (
         <div className="w-80">
-          {console.log('💰 PriceCard rendering - step:', step, 'originalPrice:', originalPrice)}
-          <div className={step === 3 ? 'ring-2 ring-blue-500 ring-opacity-50 rounded-lg' : ''}>
-            <PriceCard originalPrice={originalPrice} finalPrice={finalPrice} rutApplied={rutApplied} selectedService={services.find(s => s.id === formData.service)} formData={formData} config={config} step={step} />
-          </div>
+          <PriceCard
+            originalPrice={originalPrice}
+            finalPrice={finalPrice}
+            rutApplied={rutApplied}
+            selectedService={formServices.find(s => s.id === formData.service)}
+            formData={formData}
+            step={step}
+          />
         </div>
       )}
     </div>

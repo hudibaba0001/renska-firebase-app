@@ -5,13 +5,20 @@ export default function ZipCodeValidationStep({ config, updateConfig, onNext, on
   const [enabled, setEnabled] = useState(!!(config.zipAreas && config.zipAreas.length > 0));
 
   useEffect(() => {
+    console.log('🔧 ZipCodeValidationStep - enabled changed to:', enabled);
+    console.log('🔧 ZipCodeValidationStep - current config.zipAreas:', config.zipAreas);
+    
     if (!enabled) {
+      console.log('🔧 ZipCodeValidationStep - Disabling zip code validation, setting zipAreas to []');
       updateConfig({ zipAreas: [] });
     } else if (!config.zipAreas) {
+      console.log('🔧 ZipCodeValidationStep - Enabling zip code validation, initializing zipAreas');
       updateConfig({ zipAreas: [] });
     }
     // eslint-disable-next-line
   }, [enabled]);
+
+  console.log('🔧 ZipCodeValidationStep - render - enabled:', enabled, 'config.zipAreas:', config.zipAreas);
 
   return (
     <div className="max-w-xl mx-auto bg-white p-8 rounded shadow">
@@ -19,7 +26,10 @@ export default function ZipCodeValidationStep({ config, updateConfig, onNext, on
       <div className="mb-6 flex items-center gap-3">
         <Checkbox
           checked={enabled}
-          onChange={e => setEnabled(e.target.checked)}
+          onChange={e => {
+            console.log('🔧 ZipCodeValidationStep - checkbox changed to:', e.target.checked);
+            setEnabled(e.target.checked);
+          }}
           id="enable-zip-validation"
         />
         <label htmlFor="enable-zip-validation" className="text-lg font-semibold">Enable ZIP code validation</label>

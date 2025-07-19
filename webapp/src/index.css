@@ -15,6 +15,13 @@
   --flowbite-sidebar-text: #ffffff;
 }
 
+/* Custom company header styling */
+.custom-company-header {
+  background: #005659 !important;
+  background-color: #005659 !important;
+  background-image: none !important;
+}
+
 /* Base font family override */
 @layer base {
   body, html, #root {

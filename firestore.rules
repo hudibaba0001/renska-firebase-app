@@ -88,7 +88,8 @@ service cloud.firestore {
       // --- NESTED: BOOKINGS SUBCOLLECTION ---
       match /bookings/{bookingId} {
         allow read, update, delete: if isSuperAdmin() || isCompanyAdmin(companyId);
-        allow create: if request.resource.data.customerInfo.email is string &&
+        allow create: if request.resource.data.customerEmail is string &&
+                         request.resource.data.customerName is string &&
                          request.resource.data.totalPrice is number &&
                          request.resource.data.totalPrice >= 0 &&
                          request.resource.data.status == 'pending';

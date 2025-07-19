@@ -6,17 +6,26 @@ export default function ServiceSelectionStep({ config, updateConfig, onNext, onP
   const availableServices = config.services || [];
   const [selected, setSelected] = useState(config.selectedServiceIds || []);
 
+  console.log('🔧 ServiceSelectionStep - availableServices:', availableServices);
+  console.log('🔧 ServiceSelectionStep - config.selectedServiceIds:', config.selectedServiceIds);
+  console.log('🔧 ServiceSelectionStep - current selected:', selected);
+
   useEffect(() => {
+    console.log('🔧 ServiceSelectionStep - selected changed to:', selected);
+    console.log('🔧 ServiceSelectionStep - updating config with selectedServiceIds:', selected);
     updateConfig({ selectedServiceIds: selected });
     // eslint-disable-next-line
   }, [selected]);
 
   const handleToggle = (serviceId) => {
-    setSelected(prev =>
-      prev.includes(serviceId)
+    console.log('🔧 ServiceSelectionStep - toggling service:', serviceId);
+    setSelected(prev => {
+      const newSelected = prev.includes(serviceId)
         ? prev.filter(id => id !== serviceId)
-        : [...prev, serviceId]
-    );
+        : [...prev, serviceId];
+      console.log('🔧 ServiceSelectionStep - new selected:', newSelected);
+      return newSelected;
+    });
   };
 
   return (

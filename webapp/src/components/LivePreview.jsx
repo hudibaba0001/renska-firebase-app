@@ -1,5 +1,5 @@
 import React from 'react'
-import BookingForm from './BookingForm'
+import BookingCalculator from './BookingCalculator'
 
 export default function LivePreview({ config }) {
   // Debug logging to see what config is being passed
@@ -7,6 +7,7 @@ export default function LivePreview({ config }) {
   console.log('LivePreview config.services:', config?.services);
   console.log('LivePreview config.name:', config?.name);
   console.log('LivePreview config.companyName:', config?.companyName);
+  console.log('LivePreview config.zipAreas:', config?.zipAreas);
   
   // Check if config exists and has services
   const hasValidConfig = config && config.services && Array.isArray(config.services) && config.services.length > 0;
@@ -53,7 +54,7 @@ export default function LivePreview({ config }) {
           <div className="text-xs text-gray-600">Preview Mode</div>
         </div>
         <div className="transform scale-75 origin-top-left" style={{ width: '133.33%' }}>
-          <BookingForm config={config} />
+          <BookingCalculator config={config} />
         </div>
       </div>
       

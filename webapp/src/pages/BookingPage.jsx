@@ -6,6 +6,8 @@ import { auth } from '../firebase/init';
 // Import the necessary service functions.
 import { getTenant, getAllServicesForCompany, getAllBookingsForCompany } from '../services/firestore';
 import { Spinner, Alert, Table, Modal, Button } from 'flowbite-react';
+import { db } from '../firebase/init';
+import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 
 /**
  * Public-facing page for a customer to make a booking.
@@ -27,7 +29,7 @@ export default function BookingPage() {
           return;
         }
 
-        console.log('🔍 Loading config for company:', companyId);
+        console.log('🔍 Loading config for company:', companyId, 'formSlug:', formSlug);
 
         // Fetch the main company configuration using the service layer.
         const companyData = await getTenant(companyId);
@@ -42,22 +44,62 @@ export default function BookingPage() {
         const allServices = await getAllServicesForCompany(companyId);
         console.log('🔧 Fetched services:', allServices);
 
-        // If a specific formSlug is provided, filter services based on the form's configuration.
-        // NOTE: This assumes the form configuration is stored within the company document.
-        // If forms are in a subcollection, this would need another service function.
-        if (formSlug && companyData.forms && companyData.forms[formSlug]) {
-            const formConfig = companyData.forms[formSlug];
-            const selectedServiceIds = new Set(formConfig.selectedServices || []);
-            const availableServices = allServices.filter(service => selectedServiceIds.has(service.id));
+        // If a specific formSlug is provided, load the form configuration from calculators collection
+        if (formSlug) {
+          console.log('🔍 Loading form configuration for slug:', formSlug);
+          
+          // First try to find the calculator by slug
+          const calculatorsRef = collection(db, 'companies', companyId, 'calculators');
+          const slugQuery = query(calculatorsRef, where('slug', '==', formSlug));
+          const slugSnapshot = await getDocs(slugQuery);
+          
+          let formConfig = null;
+          if (!slugSnapshot.empty) {
+            // Found by slug
+            const formDoc = slugSnapshot.docs[0];
+            formConfig = { id: formDoc.id, ...formDoc.data() };
+            console.log('🔍 Found form by slug:', formConfig);
+          } else {
+            // Try to find by ID (in case formSlug is actually an ID)
+            try {
+              const formDoc = await getDoc(doc(db, 'companies', companyId, 'calculators', formSlug));
+              if (formDoc.exists()) {
+                formConfig = { id: formDoc.id, ...formDoc.data() };
+                console.log('🔍 Found form by ID:', formConfig);
+              }
+            } catch {
+              console.log('🔍 Form not found by ID either');
+            }
+          }
+          
+          if (formConfig) {
+            // Filter services based on the form's selectedServiceIds
+            let filteredServices = allServices;
+            if (formConfig.selectedServiceIds && Array.isArray(formConfig.selectedServiceIds)) {
+              filteredServices = allServices.filter(service => 
+                formConfig.selectedServiceIds.includes(service.id)
+              );
+              console.log('🔍 Filtered services based on selectedServiceIds:', filteredServices);
+            }
             
-            const mergedConfig = { ...companyData, ...formConfig, services: availableServices, formMode: true };
+            // Merge company config with form config
+            const mergedConfig = { 
+              ...companyData, 
+              ...formConfig, 
+              services: filteredServices,
+              formMode: true 
+            };
             console.log('📋 Merged config with form:', mergedConfig);
             setConfig(mergedConfig);
+          } else {
+            setError(`Form "${formSlug}" not found.`);
+            return;
+          }
         } else {
-            // If no formSlug or form not found, use all company services.
-            const fullConfig = { ...companyData, services: allServices, formMode: false };
-            console.log('📋 Full config without form:', fullConfig);
-            setConfig(fullConfig);
+          // If no formSlug, use all company services.
+          const fullConfig = { ...companyData, services: allServices, formMode: false };
+          console.log('📋 Full config without form:', fullConfig);
+          setConfig(fullConfig);
         }
 
       } catch (e) {

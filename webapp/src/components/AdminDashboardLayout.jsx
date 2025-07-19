@@ -253,7 +253,7 @@ export default function AdminDashboardLayout() {
       <aside className={`sticky top-0 h-screen w-64 flex-shrink-0 bg-white border-r border-gray-200 dark:bg-gray-800 dark:border-gray-700 ${isImpersonating ? 'pt-20' : 'pt-16'}`}>
           <div className="h-full px-3 pb-4 overflow-y-auto bg-white dark:bg-gray-800">
             {/* Company Info Card */}
-            <div className="mb-6 p-4 bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg text-white">
+            <div className="mb-6 p-4 rounded-lg text-white custom-company-header" style={{backgroundColor: '#005659', background: '#005659 !important', backgroundImage: 'none !important'}}>
               <div className="flex items-center space-x-3 mb-3">
                 <div className="w-10 h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
                   <BuildingOfficeIcon className="w-6 h-6" />

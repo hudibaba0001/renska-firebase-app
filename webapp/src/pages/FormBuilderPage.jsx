@@ -14,14 +14,13 @@ import ServiceSelectionStep from '../components/formbuilder/ServiceSelectionStep
 import ZipCodeValidationStep from '../components/formbuilder/ZipCodeValidationStep';
 
 // Dynamically build steps based on config
-function getSteps(config) {
+function getSteps() {
   const steps = [
     { id: 1, title: 'Form Details', component: CreateCalculatorStep }
   ];
   
-  if (config.zipAreas && config.zipAreas.length > 0) {
-    steps.push({ id: 2, title: 'ZIP Code Validation', component: ZipCodeValidationStep });
-  }
+  // Always show ZIP Code Validation step - it will handle enabling/disabling internally
+  steps.push({ id: 2, title: 'ZIP Code Validation', component: ZipCodeValidationStep });
   
   steps.push({ id: 3, title: 'Service Selection', component: ServiceSelectionStep });
   steps.push({ id: 4, title: 'Custom Form Builder', component: FieldOrderingStep });
@@ -131,13 +130,21 @@ export default function FormBuilderPage() {
         const formData = docSnap.data();
         console.log('🔧 Loaded existing form data:', formData);
         
+        // Get all available services for this company
+        const allServices = await getAllServicesForCompany(companyId);
+        console.log('🔧 All available services:', allServices);
+        
+        // For the form builder, we want to show ALL services in the ServiceSelectionStep
+        // The selectedServiceIds will be used to determine which services are pre-selected
+        console.log('🔧 Using all services for form builder, selectedServiceIds for pre-selection');
+        
         // Merge with default config, preserving existing data
         setConfig(prevConfig => {
           const mergedConfig = {
             ...prevConfig,
             ...formData,
-            // Ensure these arrays are properly initialized
-            services: formData.services || prevConfig.services || [],
+            // Use ALL services for the form builder (ServiceSelectionStep will handle selection)
+            services: allServices,
             fieldOrder: formData.fieldOrder || prevConfig.fieldOrder || ['name', 'email', 'phone'],
             fieldLabels: formData.fieldLabels || prevConfig.fieldLabels || {},
             fieldHelp: formData.fieldHelp || prevConfig.fieldHelp || {},
@@ -176,9 +183,18 @@ export default function FormBuilderPage() {
     setSaving(true);
     try {
       console.log('💾 Saving draft for:', { companyId, formId, config });
+      console.log('💾 Config being saved:', config);
+      console.log('💾 Services in config:', config.services);
+      console.log('💾 Zip areas in config:', config.zipAreas);
       
-      // Use the existing formId if editing, or generate a new one for new forms
-      const targetFormId = formId === 'new' ? config.slug : formId;
+      // For new forms, we need to create a document ID first
+      let targetFormId = formId;
+      if (formId === 'new') {
+        // Generate a unique ID for new forms
+        targetFormId = `calc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        console.log('🆕 Generated new form ID:', targetFormId);
+      }
+      
       const docRef = doc(db, 'companies', companyId, 'calculators', targetFormId);
       const now = new Date();
       
@@ -191,13 +207,14 @@ export default function FormBuilderPage() {
         })
       };
       
+      console.log('💾 Final config being saved:', updatedConfig);
       console.log('💾 Saving config to:', targetFormId);
       await setDoc(docRef, updatedConfig, { merge: true });
       setConfig(updatedConfig);
       
       // Update URL if this is a new form
       if (formId === 'new') {
-        const newUrl = `/admin/${companyId}/forms/${config.slug}`;
+        const newUrl = `/admin/${companyId}/forms/${targetFormId}`;
         console.log('🔄 Updating URL to:', newUrl);
         navigate(newUrl, { replace: true });
       }
@@ -215,8 +232,14 @@ export default function FormBuilderPage() {
     try {
       console.log('🚀 Publishing form for:', { companyId, formId, config });
       
-      // Use the existing formId if editing, or generate a new one for new forms
-      const targetFormId = formId === 'new' ? config.slug : formId;
+      // For new forms, we need to create a document ID first
+      let targetFormId = formId;
+      if (formId === 'new') {
+        // Generate a unique ID for new forms
+        targetFormId = `calc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        console.log('🆕 Generated new form ID:', targetFormId);
+      }
+      
       const docRef = doc(db, 'companies', companyId, 'calculators', targetFormId);
       const now = new Date();
       
@@ -237,7 +260,7 @@ export default function FormBuilderPage() {
       
       // Update URL if this is a new form
       if (formId === 'new') {
-        const newUrl = `/admin/${companyId}/forms/${config.slug}`;
+        const newUrl = `/admin/${companyId}/forms/${targetFormId}`;
         console.log('🔄 Updating URL to:', newUrl);
         navigate(newUrl, { replace: true });
       }
@@ -255,7 +278,7 @@ export default function FormBuilderPage() {
   };
 
   // Dynamically get steps based on config
-  const STEPS = getSteps(config);
+  const STEPS = getSteps();
 
   const nextStep = () => {
     if (currentStep < STEPS.length) {
