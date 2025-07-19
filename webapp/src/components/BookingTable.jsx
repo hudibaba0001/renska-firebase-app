@@ -166,38 +166,12 @@ const BookingTable = ({
 
   const formatTime = (time) => {
     if (!time) return 'Ej angivet';
-    return time;
-  };
-  
-  // Helper function to safely render icons with enhanced error handling
-  // This is a completely rewritten implementation with defensive checks
-  const SafeIcon = ({ icon, fallback, className }) => {
-    // Default to a clock icon if nothing is provided
-    const FallbackIcon = fallback || HiClock;
-    
-    try {
-      // First, check if the icon is defined
-      if (!icon) {
-        console.warn('No icon provided to SafeIcon');
-        return <FallbackIcon className={className} />;
-      }
-      
-      // Then check if it's a valid React component (function)
-      if (typeof icon !== 'function') {
-        console.warn('Invalid icon type provided to SafeIcon:', typeof icon);
-        return <FallbackIcon className={className} />;
-      }
-      
-      // If everything is fine, render the icon
-      const Icon = icon;
-      return <Icon className={className} />;
-    } catch (error) {
-      console.error('Error rendering icon:', error);
-      return <FallbackIcon className={className} />;
-    }
+    return typeof time === 'string' ? time : time.toLocaleTimeString('sv-SE', { 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
   };
 
-  // SortableHeader component defined within the BookingTable component to access its state
   const SortableHeader = ({ children, sortKey, className = '' }) => {
     // Safety check for Table.HeadCell
     if (!Table?.HeadCell) {

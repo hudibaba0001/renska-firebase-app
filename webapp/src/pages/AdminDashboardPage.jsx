@@ -112,10 +112,6 @@ export default function AdminDashboardPage() {
           ...doc.data()
         }));
         
-        console.log('🔍 AdminDashboard - companyId:', companyId);
-        console.log('🔍 AdminDashboard - calculatorsData:', calculatorsData);
-        console.log('🔍 AdminDashboard - calculatorsData.length:', calculatorsData.length);
-        
         // Get bookings and metrics
         const [
           bookingsData,
@@ -165,10 +161,6 @@ export default function AdminDashboardPage() {
     slug: calc.slug,
     publishedAt: calc.publishedAt
   }));
-
-  console.log('🔍 AdminDashboard - calculators state:', calculators);
-  console.log('🔍 AdminDashboard - calculatorStats:', calculatorStats);
-  console.log('🔍 AdminDashboard - calculatorStats.length:', calculatorStats.length);
 
   const quickActions = [
     {
