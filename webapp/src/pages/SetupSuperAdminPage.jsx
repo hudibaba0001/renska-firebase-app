@@ -8,6 +8,11 @@ export default function SetupSuperAdminPage() {
   const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [formData, setFormData] = useState({
+    email: import.meta.env.VITE_SUPER_ADMIN_EMAIL || 'admin@swedprime.com',
+    password: '',
+    displayName: 'Super Admin'
+  });
 
   const setupSuperAdmin = async () => {
     setLoading(true);
@@ -19,7 +24,7 @@ export default function SetupSuperAdminPage() {
       setStatus('Signing in...');
       const userCredential = await signInWithEmailAndPassword(
         auth, 
-        'admin@swedprime.com', 
+        formData.email, 
         'superadmin123'
       );
       
@@ -31,8 +36,8 @@ export default function SetupSuperAdminPage() {
       const db = getFirestore();
       
       await setDoc(doc(db, 'superAdminUsers', user.uid), {
-        email: 'admin@swedprime.com',
-        displayName: 'Super Administrator',
+        email: formData.email,
+        displayName: formData.displayName,
         createdAt: serverTimestamp(),
         isSuperAdmin: true,
         role: 'super-admin'
