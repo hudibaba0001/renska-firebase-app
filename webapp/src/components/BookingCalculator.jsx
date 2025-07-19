@@ -176,21 +176,103 @@ const ServiceDetailsStep = ({ onNext, onBack, formData, setFormData, config }) =
       </div>
     );
   }
+
+  // Check if this is a window cleaning service
+  const isWindowService = selectedService.pricingModel === 'window';
+  const windowTypes = selectedService.windowTypes || [];
+  
+  // Check if form is valid for next step
+  const isFormValid = () => {
+    if (isWindowService) {
+      // For window services, check if at least one window type has quantity > 0
+      return windowTypes.some((_, index) => (formData[`window_${index}`] || 0) > 0);
+    } else {
+      // For other services, check if area is filled
+      return formData.area && formData.area > 0;
+    }
+  };
   
   return (
     <div>
       <h2 className="text-xl font-bold mb-4">Steg 3: Tjänstedetaljer & tillval</h2>
-      <div className="mb-4">
-        <label className="block font-semibold mb-1">Yta (m²)</label>
-        <input
-          type="number"
-          className="border p-2 rounded w-full"
-          min={1}
-          value={formData.area || ''}
-          onChange={e => setFormData(f => ({ ...f, area: e.target.value }))}
-          placeholder="Ange yta i m²"
-        />
-      </div>
+      
+      {isWindowService ? (
+        // Window cleaning service
+        <div className="mb-4">
+          <label className="block font-semibold mb-1">Fönstertyper</label>
+          {windowTypes.length === 0 ? (
+            <div className="text-gray-500">Inga fönstertyper konfigurerade för denna tjänst.</div>
+          ) : (
+            <div className="space-y-3">
+              {windowTypes.map((windowType, index) => (
+                <div key={index} className="flex items-center justify-between p-3 border rounded">
+                  <div className="flex-1">
+                    <span className="font-medium">{windowType.name}</span>
+                    <span className="text-sm text-gray-600 ml-2">({windowType.price} kr/st)</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm">Antal:</label>
+                    <div className="flex items-center border rounded">
+                      <button
+                        type="button"
+                        className="px-3 py-1 bg-gray-100 hover:bg-gray-200 border-r text-gray-600 font-bold"
+                        onClick={() => {
+                          const currentValue = formData[`window_${index}`] || 0;
+                          if (currentValue > 0) {
+                            setFormData(f => ({ 
+                              ...f, 
+                              [`window_${index}`]: currentValue - 1 
+                            }));
+                          }
+                        }}
+                      >
+                        -
+                      </button>
+                      <input
+                        type="number"
+                        min="0"
+                        className="w-16 p-1 text-center border-none focus:ring-0"
+                        value={formData[`window_${index}`] || 0}
+                        onChange={e => setFormData(f => ({ 
+                          ...f, 
+                          [`window_${index}`]: parseInt(e.target.value) || 0 
+                        }))}
+                      />
+                      <button
+                        type="button"
+                        className="px-3 py-1 bg-gray-100 hover:bg-gray-200 border-l text-gray-600 font-bold"
+                        onClick={() => {
+                          const currentValue = formData[`window_${index}`] || 0;
+                          setFormData(f => ({ 
+                            ...f, 
+                            [`window_${index}`]: currentValue + 1 
+                          }));
+                        }}
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        // Regular service with area input
+        <div className="mb-4">
+          <label className="block font-semibold mb-1">Yta (m²)</label>
+          <input
+            type="number"
+            className="border p-2 rounded w-full"
+            min={1}
+            value={formData.area || ''}
+            onChange={e => setFormData(f => ({ ...f, area: e.target.value }))}
+            placeholder="Ange yta i m²"
+          />
+        </div>
+      )}
+      
       <div className="mb-4">
         <label className="block font-semibold mb-1">Tillägg</label>
         {addOns.length === 0 ? (
@@ -218,7 +300,7 @@ const ServiceDetailsStep = ({ onNext, onBack, formData, setFormData, config }) =
       </div>
       <div className="flex gap-2">
         <button className="bg-gray-300 px-4 py-2 rounded" onClick={onBack}>Tillbaka</button>
-        <button className="bg-pink-400 text-white px-4 py-2 rounded" onClick={onNext} disabled={!formData.area}>Nästa</button>
+        <button className="bg-pink-400 text-white px-4 py-2 rounded" onClick={onNext} disabled={!isFormValid()}>Nästa</button>
       </div>
     </div>
   );
@@ -654,29 +736,40 @@ export default function BookingCalculator({ config: propConfig, companyId: propC
     console.log('💰 Price calculation - formData:', formData);
     console.log('💰 Price calculation - custom fees:', selectedService?.customFees);
     
-    if (formData.area && selectedService) {
+    if (selectedService) {
       let calculatedPrice = 0;
       
       // Calculate base price based on service pricing model
-      if (selectedService.pricingModel === 'universal') {
+      if (selectedService.pricingModel === 'window') {
+        // Window cleaning pricing
+        const windowTypes = selectedService.windowTypes || [];
+        windowTypes.forEach((windowType, index) => {
+          const quantity = formData[`window_${index}`] || 0;
+          calculatedPrice += quantity * (windowType.price || 0);
+        });
+        
+        // Apply minimum price for window cleaning
+        const minPrice = selectedService.minPrice || 700;
+        calculatedPrice = Math.max(calculatedPrice, minPrice);
+      } else if (selectedService.pricingModel === 'universal') {
         // Universal rate per sqm
-        calculatedPrice = formData.area * (selectedService.universalRate || 50);
+        calculatedPrice = (formData.area || 0) * (selectedService.universalRate || 50);
       } else if (selectedService.pricingModel === 'fixed-tier') {
         // Fixed tier pricing
         const tier = selectedService.tiers?.find(t => 
-          formData.area >= t.min && formData.area <= t.max
+          (formData.area || 0) >= t.min && (formData.area || 0) <= t.max
         );
         calculatedPrice = tier?.price || selectedService.minPrice || 1000;
       } else if (selectedService.pricingModel === 'hourly') {
         // Hourly pricing
         const hourlyTier = selectedService.hourlyTiers?.find(t => 
-          formData.area >= t.min && formData.area <= t.max
+          (formData.area || 0) >= t.min && (formData.area || 0) <= t.max
         );
         const hours = hourlyTier?.hours || 3;
         calculatedPrice = hours * (selectedService.hourlyRate || 400);
       } else {
         // Default pricing
-        calculatedPrice = formData.area * (selectedService.pricePerSqm || 50);
+        calculatedPrice = (formData.area || 0) * (selectedService.pricePerSqm || 50);
       }
       
       // Add add-ons prices
@@ -796,8 +889,8 @@ export default function BookingCalculator({ config: propConfig, companyId: propC
         )}
       </div>
       
-      {/* Price Card - Show on all steps except the last one */}
-      {step <= 4 && (
+      {/* Price Card - Show only when there's pricing information (steps 3 and 4) */}
+      {step >= 3 && step <= 4 && (
         <div className="w-80">
           <PriceCard
             originalPrice={originalPrice}

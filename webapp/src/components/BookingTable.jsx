@@ -9,22 +9,23 @@ import {
   Card
 } from 'flowbite-react';
 import { 
-  HiEye, 
-  HiMail, 
-  HiPhone, 
-  HiDotsVertical,
-  HiCalendar,
-  HiClock,
-  HiCurrencyDollar,
-  HiUser,
-  HiOfficeBuilding
-} from 'react-icons/hi';
+  EyeIcon as HiEye, 
+  EnvelopeIcon as HiMail, 
+  PhoneIcon as HiPhone, 
+  EllipsisVerticalIcon as HiDotsVertical,
+  CalendarIcon as HiCalendar,
+  ClockIcon as HiClock,
+  CurrencyDollarIcon as HiCurrencyDollar,
+  UserIcon as HiUser,
+  BuildingOfficeIcon as HiOfficeBuilding
+} from '@heroicons/react/24/outline';
 import BookingStatusManager from './BookingStatusManager';
 import BookingService from '../services/bookingService';
 
 const BookingTable = ({ 
   bookings = [], 
   loading = false, 
+  companyId,
   onBookingUpdate,
   onContactCustomer,
   className = ''
@@ -206,6 +207,7 @@ const BookingTable = ({
                 <Table.Cell>
                   <BookingStatusManager 
                     booking={booking}
+                    companyId={companyId}
                     onStatusUpdate={onBookingUpdate}
                   />
                 </Table.Cell>
@@ -338,6 +340,7 @@ const BookingTable = ({
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Status</h3>
                 <BookingStatusManager 
                   booking={selectedBooking}
+                  companyId={companyId}
                   onStatusUpdate={onBookingUpdate}
                 />
               </Card>

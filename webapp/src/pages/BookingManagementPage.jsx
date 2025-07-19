@@ -11,15 +11,15 @@ import {
   Alert
 } from 'flowbite-react';
 import { 
-  HiSearch, 
-  HiDownload, 
-  HiRefresh,
-  HiCalendar,
-  HiClock,
-  HiCheckCircle,
-  HiXCircle,
-  HiExclamationCircle
-} from 'react-icons/hi';
+  MagnifyingGlassIcon as HiSearch, 
+  ArrowDownTrayIcon as HiDownload, 
+  ArrowPathIcon as HiRefresh,
+  CalendarIcon as HiCalendar,
+  ClockIcon as HiClock,
+  CheckCircleIcon as HiCheckCircle,
+  XCircleIcon as HiXCircle,
+  ExclamationCircleIcon as HiExclamationCircle
+} from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
 import BookingTable from '../components/BookingTable';
@@ -100,12 +100,14 @@ const BookingManagementPage = () => {
         switch (filters.dateRange) {
           case 'today':
             return bookingDate >= today && bookingDate < new Date(today.getTime() + 24 * 60 * 60 * 1000);
-          case 'week':
+          case 'week': {
             const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
             return bookingDate >= weekAgo;
-          case 'month':
+          }
+          case 'month': {
             const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
             return bookingDate >= monthAgo;
+          }
           default:
             return true;
         }
@@ -337,6 +339,7 @@ const BookingManagementPage = () => {
       <BookingTable
         bookings={filteredBookings}
         loading={loading}
+        companyId={companyId}
         onBookingUpdate={handleBookingUpdate}
         onContactCustomer={(booking, method) => {
           console.log('Contact customer:', booking.customerName, 'via', method);

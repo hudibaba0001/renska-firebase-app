@@ -12,7 +12,7 @@ import {
   limit,
   startAfter
 } from 'firebase/firestore';
-import { db } from '../config/firebase';
+import { db } from '../firebase/init';
 import toast from 'react-hot-toast';
 
 /**
@@ -25,10 +25,9 @@ export class BookingService {
    */
   static async getBookingsForCompany(companyId, filters = {}) {
     try {
-      const bookingsRef = collection(db, 'bookings');
+      const bookingsRef = collection(db, 'companies', companyId, 'bookings');
       let q = query(
         bookingsRef, 
-        where('companyId', '==', companyId),
         orderBy('createdAt', 'desc')
       );
 
@@ -84,9 +83,9 @@ export class BookingService {
   /**
    * Update booking status
    */
-  static async updateBookingStatus(bookingId, newStatus, adminNote = '') {
+  static async updateBookingStatus(companyId, bookingId, newStatus, adminNote = '') {
     try {
-      const bookingRef = doc(db, 'bookings', bookingId);
+      const bookingRef = doc(db, 'companies', companyId, 'bookings', bookingId);
       
       const updateData = {
         status: newStatus,
@@ -146,7 +145,7 @@ export class BookingService {
   /**
    * Get booking statistics for dashboard
    */
-  static async getBookingStats(companyId, dateRange = 'month') {
+  static async getBookingStats(companyId) {
     try {
       const bookings = await this.getBookingsForCompany(companyId);
       const allBookings = bookings.bookings;

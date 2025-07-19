@@ -13,6 +13,7 @@ import BookingPage from './pages/BookingPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 import AdminBillingPage from './pages/AdminBillingPage';
 import AdminPaymentSettings from './pages/AdminPaymentSettings'; // Import the new page
+import BookingManagementPage from './pages/BookingManagementPage'; // Import the real booking management page
 import SignupPage from './pages/SignupPage';
 import FormBuilderPage from './pages/FormBuilderPage';
 import SetupPage from './pages/SetupPage';
@@ -73,7 +74,7 @@ export default function App() {
           <Route path="forms/:formId" element={<FormBuilderPage />} />
           <Route path="config" element={<CompanyConfigPage />} />
           <Route path="billing" element={<AdminBillingPage />} />
-          <Route path="bookings" element={<AdminBookingsPage />} />
+          <Route path="bookings" element={<BookingManagementPage />} />
           <Route path="analytics" element={<AdminAnalyticsPage />} />
           <Route path="customers" element={<AdminCustomersPage />} />
           <Route path="payment-settings" element={<AdminPaymentSettings />} /> {/* CORRECTED ROUTE */}
@@ -183,6 +184,6 @@ function GlobalConfigPage() { return <div className="text-center p-8"><h2 classN
 function PlansManagementPage() { return <div className="text-center p-8"><h2 className="text-xl font-bold">Plans Management (Coming Soon)</h2></div>; }
 function AuditLogsPage() { return <div className="text-center p-8"><h2 className="text-xl font-bold">Audit Logs (Coming Soon)</h2></div>; }
 function UserManagementPage() { return <div className="text-center p-8"><h2 className="text-xl font-bold">User Management (Coming Soon)</h2></div>; }
-function AdminBookingsPage() { return <div className="text-center p-8"><h2 className="text-xl font-bold">Bookings Management (Placeholder)</h2></div>; }
+
 function AdminAnalyticsPage() { return <div className="text-center p-8"><h2 className="text-xl font-bold">Analytics (Placeholder)</h2></div>; }
 function AdminCustomersPage() { return <div className="text-center p-8"><h2 className="text-xl font-bold">Customers (Placeholder)</h2></div>; }

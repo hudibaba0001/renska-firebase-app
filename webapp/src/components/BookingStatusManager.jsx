@@ -1,10 +1,10 @@
 // webapp/src/components/BookingStatusManager.jsx
 import React, { useState } from 'react';
 import { Badge, Button, Select, TextInput, Modal } from 'flowbite-react';
-import { HiCheck, HiX, HiClock, HiExclamation } from 'react-icons/hi';
+import { CheckIcon as HiCheck, XMarkIcon as HiX, ClockIcon as HiClock, ExclamationTriangleIcon as HiExclamation } from '@heroicons/react/24/outline';
 import BookingService from '../services/bookingService';
 
-const BookingStatusManager = ({ booking, onStatusUpdate, className = '' }) => {
+const BookingStatusManager = ({ booking, companyId, onStatusUpdate, className = '' }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState(booking.status);
   const [adminNote, setAdminNote] = useState('');
@@ -17,13 +17,7 @@ const BookingStatusManager = ({ booking, onStatusUpdate, className = '' }) => {
     { value: 'cancelled', label: 'Avbokad', icon: HiX, color: 'red' }
   ];
 
-  const getCurrentStatus = () => {
-    return statusOptions.find(option => option.value === booking.status) || statusOptions[0];
-  };
 
-  const getSelectedStatus = () => {
-    return statusOptions.find(option => option.value === selectedStatus) || statusOptions[0];
-  };
 
   const handleStatusUpdate = async () => {
     if (selectedStatus === booking.status) {
@@ -34,6 +28,7 @@ const BookingStatusManager = ({ booking, onStatusUpdate, className = '' }) => {
     setIsUpdating(true);
     try {
       const success = await BookingService.updateBookingStatus(
+        companyId,
         booking.id, 
         selectedStatus, 
         adminNote
@@ -54,6 +49,21 @@ const BookingStatusManager = ({ booking, onStatusUpdate, className = '' }) => {
   const StatusBadge = ({ status, size = 'sm' }) => {
     const statusConfig = statusOptions.find(option => option.value === status);
     const Icon = statusConfig?.icon || HiClock;
+    
+    // Defensive check to ensure Icon is a valid component
+    if (!Icon || typeof Icon !== 'function') {
+      console.warn('Invalid icon for status:', status);
+      return (
+        <Badge 
+          color={statusConfig?.color || 'gray'} 
+          size={size}
+          className="flex items-center gap-1"
+        >
+          <HiClock className="w-3 h-3" />
+          {statusConfig?.label || status}
+        </Badge>
+      );
+    }
     
     return (
       <Badge 
