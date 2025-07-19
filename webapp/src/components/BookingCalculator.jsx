@@ -223,6 +223,16 @@ const CustomerInfoStep = ({ onBack, formData, setFormData, companyId, totalPrice
   const [error, setError] = useState('');
   const [processing, setProcessing] = useState(false);
 
+  // Add null checks and default values for paymentConfig
+  const safePaymentConfig = paymentConfig || { mode: 'manual', instructions: 'Vi kommer att kontakta dig för betalning.' };
+
+  // Debug logging
+  console.log('🔍 CustomerInfoStep - paymentConfig:', paymentConfig);
+  console.log('🔍 CustomerInfoStep - safePaymentConfig:', safePaymentConfig);
+  console.log('🔍 CustomerInfoStep - formData:', formData);
+  console.log('🔍 CustomerInfoStep - totalPrice:', totalPrice);
+  console.log('🔍 CustomerInfoStep - rutApplied:', rutApplied);
+
   const handleSubmit = async e => {
     e.preventDefault();
     setProcessing(true);
@@ -250,7 +260,7 @@ const CustomerInfoStep = ({ onBack, formData, setFormData, companyId, totalPrice
       companyId: companyId,
     };
 
-    if (paymentConfig.mode === 'manual') {
+    if (safePaymentConfig.mode === 'manual') {
       try {
         await addDoc(collection(db, `companies/${companyId}/bookings`), bookingData);
         toast.success('Bokning skickad! Företaget kommer att kontakta dig för betalning.');
@@ -303,13 +313,13 @@ const CustomerInfoStep = ({ onBack, formData, setFormData, companyId, totalPrice
       <div className="flex gap-2">
         <button type="button" className="bg-gray-300 px-4 py-2 rounded" onClick={onBack}>Tillbaka</button>
         <Button type="submit" color="pink" disabled={processing}>
-          {processing ? <Spinner/> : (paymentConfig.mode === 'manual' ? 'Skicka bokning' : 'Gå till betalning')}
+          {processing ? <Spinner/> : (safePaymentConfig.mode === 'manual' ? 'Skicka bokning' : 'Gå till betalning')}
         </Button>
       </div>
-      {paymentConfig.mode === 'manual' && paymentConfig.instructions && (
+      {safePaymentConfig.mode === 'manual' && safePaymentConfig.instructions && (
         <Alert color="info" className="mt-4">
           <p className="font-semibold">Betalningsinstruktioner:</p>
-          <p>{paymentConfig.instructions}</p>
+          <p>{safePaymentConfig.instructions}</p>
         </Alert>
       )}
     </form>
