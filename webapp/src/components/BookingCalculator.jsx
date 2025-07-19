@@ -142,52 +142,75 @@ const ServiceDetailsStep = ({ onNext, onBack, formData, setFormData, config }) =
   // Get add-ons from the selected service
   const addOns = selectedService?.addOns || [];
   
+  console.log('🔍 ServiceDetailsStep - service ID:', service);
+  console.log('🔍 ServiceDetailsStep - config:', config);
+  console.log('🔍 ServiceDetailsStep - config.services:', config.services);
   console.log('🔍 ServiceDetailsStep - selectedService:', selectedService);
   console.log('🔍 ServiceDetailsStep - addOns:', addOns);
+  console.log('🔍 ServiceDetailsStep - formData:', formData);
+  
+  // Add error handling
+  if (!service) {
+    console.error('❌ ServiceDetailsStep - No service selected');
+    return (
+      <div className="text-red-600">
+        <h2 className="text-xl font-bold mb-4">Steg 3: Tjänstedetaljer & tillval</h2>
+        <p>Ingen tjänst vald. Gå tillbaka och välj en tjänst.</p>
+        <button className="bg-gray-300 px-4 py-2 rounded mt-4" onClick={onBack}>Tillbaka</button>
+      </div>
+    );
+  }
+  
+  if (!selectedService) {
+    console.error('❌ ServiceDetailsStep - Selected service not found in config');
+    return (
+      <div className="text-red-600">
+        <h2 className="text-xl font-bold mb-4">Steg 3: Tjänstedetaljer & tillval</h2>
+        <p>Den valda tjänsten kunde inte hittas. Gå tillbaka och välj en tjänst igen.</p>
+        <button className="bg-gray-300 px-4 py-2 rounded mt-4" onClick={onBack}>Tillbaka</button>
+      </div>
+    );
+  }
   
   return (
     <div>
       <h2 className="text-xl font-bold mb-4">Steg 3: Tjänstedetaljer & tillval</h2>
-      {service && selectedService && (
-        <>
-          <div className="mb-4">
-            <label className="block font-semibold mb-1">Yta (m²)</label>
-            <input
-              type="number"
-              className="border p-2 rounded w-full"
-              min={1}
-              value={formData.area || ''}
-              onChange={e => setFormData(f => ({ ...f, area: e.target.value }))}
-              placeholder="Ange yta i m²"
-            />
+      <div className="mb-4">
+        <label className="block font-semibold mb-1">Yta (m²)</label>
+        <input
+          type="number"
+          className="border p-2 rounded w-full"
+          min={1}
+          value={formData.area || ''}
+          onChange={e => setFormData(f => ({ ...f, area: e.target.value }))}
+          placeholder="Ange yta i m²"
+        />
+      </div>
+      <div className="mb-4">
+        <label className="block font-semibold mb-1">Tillägg</label>
+        {addOns.length === 0 ? (
+          <div className="text-gray-500">Inga tillval tillgängliga för denna tjänst.</div>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {addOns.map((addOn, index) => (
+              <label key={index} className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={!!formData[`addon_${addOn.name || addOn}`]}
+                  onChange={e => setFormData(f => ({ 
+                    ...f, 
+                    [`addon_${addOn.name || addOn}`]: e.target.checked 
+                  }))}
+                />
+                <span>{addOn.name || addOn}</span>
+                {addOn.price && (
+                  <span className="text-sm text-gray-600">(+{addOn.price} kr)</span>
+                )}
+              </label>
+            ))}
           </div>
-          <div className="mb-4">
-            <label className="block font-semibold mb-1">Tillägg</label>
-            {addOns.length === 0 ? (
-              <div className="text-gray-500">Inga tillval tillgängliga för denna tjänst.</div>
-            ) : (
-              <div className="flex flex-col gap-2">
-                {addOns.map((addOn, index) => (
-                  <label key={index} className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={!!formData[`addon_${addOn.name || addOn}`]}
-                      onChange={e => setFormData(f => ({ 
-                        ...f, 
-                        [`addon_${addOn.name || addOn}`]: e.target.checked 
-                      }))}
-                    />
-                    <span>{addOn.name || addOn}</span>
-                    {addOn.price && (
-                      <span className="text-sm text-gray-600">(+{addOn.price} kr)</span>
-                    )}
-                  </label>
-                ))}
-              </div>
-            )}
-          </div>
-        </>
-      )}
+        )}
+      </div>
       <div className="flex gap-2">
         <button className="bg-gray-300 px-4 py-2 rounded" onClick={onBack}>Tillbaka</button>
         <button className="bg-pink-400 text-white px-4 py-2 rounded" onClick={onNext} disabled={!formData.area}>Nästa</button>
@@ -293,15 +316,22 @@ const CustomerInfoStep = ({ onBack, formData, setFormData, companyId, totalPrice
   );
 };
 
-const PriceCard = ({ originalPrice, finalPrice, rutApplied, selectedService, formData }) => {
+const PriceCard = ({ originalPrice, finalPrice, rutApplied, selectedService, formData, step }) => {
   // Calculate add-ons total
   const addOnsTotal = selectedService?.addOns?.reduce((total, addOn) => {
     const addOnKey = `addon_${addOn.name || addOn}`;
     return formData[addOnKey] ? total + (addOn.price || 0) : total;
   }, 0) || 0;
 
-  // Calculate base price (without add-ons)
+  // Calculate base price (without add-ons only, custom fees are part of the base service)
   const basePrice = originalPrice - addOnsTotal;
+
+  // Debug logging
+  console.log('💰 PriceCard - originalPrice:', originalPrice);
+  console.log('💰 PriceCard - addOnsTotal:', addOnsTotal);
+  console.log('💰 PriceCard - basePrice:', basePrice);
+  console.log('💰 PriceCard - custom fees:', selectedService?.customFees);
+  console.log('💰 PriceCard - step:', step);
 
   return (
     <div className="sticky top-4 bg-white shadow-lg rounded-lg p-6 min-w-[320px] border border-gray-200">
@@ -312,32 +342,55 @@ const PriceCard = ({ originalPrice, finalPrice, rutApplied, selectedService, for
       
       {/* Service Breakdown */}
       <div className="space-y-3 mb-4">
-        {selectedService && (
-          <div className="flex justify-between items-center">
-            <span className="text-gray-700">{selectedService.name}</span>
-            <span className="font-semibold text-gray-900">{basePrice.toLocaleString()} kr</span>
+        {selectedService ? (
+          <>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-700">{selectedService.name}</span>
+              <span className="font-semibold text-gray-900">{basePrice.toLocaleString()} kr</span>
+            </div>
+            
+            {/* Add-ons */}
+            {selectedService?.addOns?.map((addOn, index) => {
+              const addOnKey = `addon_${addOn.name || addOn}`;
+              if (formData[addOnKey]) {
+                return (
+                  <div key={index} className="flex justify-between items-center text-sm">
+                    <span className="text-gray-600">+ {addOn.name || addOn}</span>
+                    <span className="font-medium text-gray-700">{(addOn.price || 0).toLocaleString()} kr</span>
+                  </div>
+                );
+              }
+              return null;
+            })}
+            
+            {/* Custom Fees */}
+            {selectedService?.customFees && selectedService.customFees.length > 0 && (
+              <>
+                <div className="pt-2 border-t border-gray-100">
+                  {selectedService.customFees.map((fee, index) => (
+                    <div key={index} className="flex justify-between items-center text-sm">
+                      <span className="text-gray-600">{fee.label || 'Custom Fee'}</span>
+                      <span className="font-medium text-gray-700">{(fee.amount || 0).toLocaleString()} kr</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </>
+        ) : (
+          <div className="text-center py-8">
+            <div className="text-gray-400 mb-2">
+              <svg className="h-12 w-12 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              </svg>
+              <p className="text-gray-500 text-sm">
+                {step === 1 ? 'Ange ditt postnummer för att komma igång' : 
+                 step === 2 ? 'Välj en tjänst för att se priset' :
+                 'Konfigurera tjänsten för att se priset'}
+              </p>
+            </div>
           </div>
         )}
-        
-        {/* Add-ons */}
-        {selectedService?.addOns?.map((addOn, index) => {
-          const addOnKey = `addon_${addOn.name || addOn}`;
-          if (formData[addOnKey]) {
-            return (
-              <div key={index} className="flex justify-between items-center text-sm">
-                <span className="text-gray-600">+ {addOn.name || addOn}</span>
-                <span className="font-medium text-gray-700">{(addOn.price || 0).toLocaleString()} kr</span>
-              </div>
-            );
-          }
-          return null;
-        })}
-        
-        {/* Service Fee */}
-        <div className="flex justify-between items-center text-sm pt-2 border-t border-gray-100">
-          <span className="text-gray-600">Serviceavgift engångsbokning</span>
-          <span className="font-medium text-gray-700">70 kr</span>
-        </div>
       </div>
       
       {/* Date and Time Section */}
@@ -354,7 +407,7 @@ const PriceCard = ({ originalPrice, finalPrice, rutApplied, selectedService, for
         )}
         <div className="flex justify-between items-center">
           <span className="text-lg font-bold text-gray-900">
-            {rutApplied ? finalPrice : originalPrice} kr
+            {selectedService ? (rutApplied ? finalPrice : originalPrice) : 0} kr
             {rutApplied && <span className="text-xs text-gray-500 ml-1">*</span>}
           </span>
         </div>
@@ -366,7 +419,7 @@ const PriceCard = ({ originalPrice, finalPrice, rutApplied, selectedService, for
       </div>
       
       {/* RUT Breakdown (if applicable) */}
-      {rutApplied && (
+      {rutApplied && selectedService && (
         <div className="mb-4 p-3 bg-green-50 rounded-lg border border-green-200">
           <div className="flex justify-between items-center text-sm">
             <span className="text-green-700">RUT-avdrag</span>
@@ -467,6 +520,7 @@ export default function BookingCalculator({ config: propConfig, companyId: propC
     const selectedService = services.find(s => s.id === formData.service);
     console.log('💰 Price calculation - selectedService:', selectedService);
     console.log('💰 Price calculation - formData:', formData);
+    console.log('💰 Price calculation - custom fees:', selectedService?.customFees);
     
     if (formData.area && selectedService) {
       let calculatedPrice = 0;
@@ -504,10 +558,19 @@ export default function BookingCalculator({ config: propConfig, companyId: propC
         });
       }
       
-      const totalPrice = calculatedPrice + addOnsPrice;
+      // Add custom fees from the service
+      let customFeesPrice = 0;
+      if (selectedService.customFees && Array.isArray(selectedService.customFees)) {
+        selectedService.customFees.forEach(fee => {
+          customFeesPrice += fee.amount || 0;
+        });
+      }
+      
+      const totalPrice = calculatedPrice + addOnsPrice + customFeesPrice;
       
       console.log('💰 Price calculation - base price:', calculatedPrice);
       console.log('💰 Price calculation - add-ons price:', addOnsPrice);
+      console.log('💰 Price calculation - custom fees price:', customFeesPrice);
       console.log('💰 Price calculation - total price:', totalPrice);
       
       setOriginalPrice(totalPrice);
@@ -534,7 +597,7 @@ export default function BookingCalculator({ config: propConfig, companyId: propC
 
   return (
     <div className="flex gap-8">
-      <div className="flex-1">
+      <div className={step >= 3 ? "flex-1" : "w-full"}>
         {step === 1 && (
           <>
             {console.log('🔍 BookingCalculator - config.zipAreas:', config?.zipAreas)}
@@ -558,13 +621,25 @@ export default function BookingCalculator({ config: propConfig, companyId: propC
           />
         )}
         {step === 3 && (
-          <ServiceDetailsStep
-            onNext={() => setStep(4)}
-            onBack={() => setStep(2)}
-            formData={formData}
-            setFormData={setFormData}
-            config={config}
-          />
+          <>
+            {console.log('🎯 Step 3 - ServiceDetailsStep active')}
+            {console.log('🎯 Step 3 - formData:', formData)}
+            {console.log('🎯 Step 3 - config:', config)}
+            {console.log('🎯 Step 3 - selectedService:', services.find(s => s.id === formData.service))}
+            <ServiceDetailsStep
+              onNext={() => {
+                console.log('🎯 Step 3 - Next button clicked, moving to step 4');
+                setStep(4);
+              }}
+              onBack={() => {
+                console.log('🎯 Step 3 - Back button clicked, moving to step 2');
+                setStep(2);
+              }}
+              formData={formData}
+              setFormData={setFormData}
+              config={config}
+            />
+          </>
         )}
         {step === 4 && (
           <CustomerInfoStep
@@ -578,9 +653,14 @@ export default function BookingCalculator({ config: propConfig, companyId: propC
           />
         )}
       </div>
-      <div className="w-80">
-        <PriceCard originalPrice={originalPrice} finalPrice={finalPrice} rutApplied={rutApplied} selectedService={services.find(s => s.id === formData.service)} formData={formData} config={config} />
-      </div>
+      {step >= 3 && (
+        <div className="w-80">
+          {console.log('💰 PriceCard rendering - step:', step, 'originalPrice:', originalPrice)}
+          <div className={step === 3 ? 'ring-2 ring-blue-500 ring-opacity-50 rounded-lg' : ''}>
+            <PriceCard originalPrice={originalPrice} finalPrice={finalPrice} rutApplied={rutApplied} selectedService={services.find(s => s.id === formData.service)} formData={formData} config={config} step={step} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
