@@ -58,19 +58,19 @@ export default function ServiceConfigForm({ initialConfig }) {
         }
     };
 
-    const fetchServices = async () => {
+        const fetchServices = async () => {
         if (!companyId) return;
-        setLoading(true);
-        try {
-            const fetchedServices = await getAllServicesForCompany(companyId);
+            setLoading(true);
+            try {
+                const fetchedServices = await getAllServicesForCompany(companyId);
             console.log('Fetched services:', fetchedServices);
             setServices(fetchedServices);
-        } catch (error) {
-            toast.error(`Failed to load services: ${error.message}`);
-        } finally {
-            setLoading(false);
-        }
-    };
+            } catch (error) {
+                toast.error(`Failed to load services: ${error.message}`);
+            } finally {
+                setLoading(false);
+            }
+        };
 
     useEffect(() => {
         fetchServices();
@@ -145,9 +145,9 @@ export default function ServiceConfigForm({ initialConfig }) {
                     ) : (
                         services.map((service, idx) => {
                             const isExpanded = isServiceExpanded(service.id);
-                            const isSaving = savingServices.has(service.id);
+                        const isSaving = savingServices.has(service.id);
                             
-                            return (
+                        return (
                                 <div key={service.id || idx} className="border rounded-lg shadow-sm">
                                     {/* Service Header - Always Visible */}
                                     <div
@@ -169,8 +169,8 @@ export default function ServiceConfigForm({ initialConfig }) {
                                                     {(service.status || 'draft').charAt(0).toUpperCase() + (service.status || 'draft').slice(1)}
                                                 </Badge>
                                             </div>
-                                            <div className="flex items-center gap-2">
-                                                {isSaving && <Spinner size="sm" />}
+                                    <div className="flex items-center gap-2">
+                                        {isSaving && <Spinner size="sm" />}
                                                 <Button 
                                                     size="xs" 
                                                     color="failure" 
@@ -181,10 +181,10 @@ export default function ServiceConfigForm({ initialConfig }) {
                                                         }
                                                     }}
                                                 > 
-                                                    <TrashIcon className="h-4 w-4" /> 
-                                                </Button>
-                                            </div>
-                                        </div>
+                                            <TrashIcon className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                </div>
                                     </div>
 
                                     {/* Service Content - Only Visible When Expanded */}
@@ -225,10 +225,10 @@ export default function ServiceConfigForm({ initialConfig }) {
                                                     />
                                                 </div>
                                             </div>
-                                        </div>
-                                    )}
-                                </div>
-                            );
+                                    </div>
+                                )}
+                            </div>
+                        );
                         })
                     )}
                 </div>
