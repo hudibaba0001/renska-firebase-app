@@ -24,7 +24,7 @@ import {
   InformationCircleIcon,
   ChevronDownIcon
 } from '@heroicons/react/24/outline'
-import { motion } from 'framer-motion'
+
 import toast from 'react-hot-toast'
 import { createService, updateService, deleteService as deleteServiceFromFirestore } from '../services/firestore';
 
@@ -127,7 +127,9 @@ export default function ConfigForm({ initialConfig, onSave, onChange, refreshSer
 
   // Notify parent of config changes for live preview
   useEffect(() => {
+    console.log('🔄 ConfigForm config changed:', config);
     if (onChange) {
+      console.log('📤 Calling onChange with config:', config);
       onChange(config)
     }
   }, [config, onChange])
@@ -406,7 +408,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange, refreshSer
       </div>
 
       {/* Services Section */}
-      <motion.div
+      <div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
@@ -471,9 +473,9 @@ export default function ConfigForm({ initialConfig, onSave, onChange, refreshSer
                     </div>
                   </div>
                   {/* Service Content - Collapsible */}
-                  <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isExpanded ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0'}`}>
+                  <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isExpanded ? 'max-h-none opacity-100' : 'max-h-0 opacity-0'}`}>
                     {isExpanded && (
-                    <div className="p-6 border-t border-gray-200 bg-gradient-to-br from-white to-gray-50">
+                    <div className="p-6 border-t border-gray-200 bg-gradient-to-br from-white to-gray-50 max-h-[80vh] overflow-y-auto">
                       <div className="max-w-4xl mx-auto">
                         <div className="mb-6">
                           <h3 className="text-lg font-semibold text-gray-900 mb-2 flex items-center">
@@ -481,6 +483,9 @@ export default function ConfigForm({ initialConfig, onSave, onChange, refreshSer
                             Service Configuration
                           </h3>
                           <div className="h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
+                          <p className="text-sm text-gray-600 mt-2">
+                            Scroll down to see all configuration options. All changes are saved automatically.
+                          </p>
                         </div>
                         <div>
                       {/* Pricing Model */}
@@ -1300,7 +1305,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange, refreshSer
         </Modal>
 
         {/* Save Section */}
-        <motion.div
+        <div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.2 }}
@@ -1368,8 +1373,8 @@ export default function ConfigForm({ initialConfig, onSave, onChange, refreshSer
               </div>
             )}
           </Card>
-        </motion.div>
-      </motion.div>
+        </div>
+      </div>
     </div>
   )
 } 

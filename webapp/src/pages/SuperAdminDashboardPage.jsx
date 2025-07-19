@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Card, 
   Button, 
@@ -7,8 +7,7 @@ import {
   Avatar, 
   Dropdown,
   Alert,
-  Spinner,
-  Table
+  Spinner
 } from 'flowbite-react';
 import {
   ArrowUpIcon,
@@ -33,78 +32,88 @@ import { Link } from 'react-router-dom';
 import { SystemAlertsCenter } from '../components/NotificationCenter';
 import ReportExporter from '../components/ReportExporter';
 import ErrorBoundary from '../components/ErrorBoundary';
+import { getAllTenants } from '../services/firestore';
 
-// Import a chart library - We'll use Chart.js via react-chartjs-2
-// import { Line, Bar, Pie } from 'react-chartjs-2';
-// import {
-//   Chart as ChartJS,
-//   CategoryScale,
-//   LinearScale,
-//   PointElement,
-//   LineElement,
-//   BarElement,
-//   ArcElement,
-//   Title,
-//   Tooltip,
-//   Legend,
-// } from 'chart.js';
+// Import chart library - We'll use Chart.js via react-chartjs-2
+import { Line, Bar, Pie } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+} from 'chart.js';
 
 // Register Chart.js components
-// ChartJS.register(
-//   CategoryScale,
-//   LinearScale,
-//   PointElement,
-//   LineElement,
-//   BarElement,
-//   ArcElement,
-//   Title,
-//   Tooltip,
-//   Legend
-// );
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend
+);
+
+
 
 export default function SuperAdminDashboardPage() {
-  // Simplified version for debugging
-  const [loading, setLoading] = useState(false);
-  const error = null;
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [companies, setCompanies] = useState([]);
   const lastUpdated = new Date();
   
-  // Mock data for testing
-  const metrics = useMemo(() => ({
-    activeCompanies: 5,
-    suspendedCompanies: 1,
-    mrr: 25000,
-    arr: 300000,
-    churnRate: 2.5,
-    cac: 1200,
-    ltv: 15000,
-    totalUsers: 150
-  }), []);
+  // Fetch companies on component mount
+  useEffect(() => {
+    fetchCompanies();
+  }, []);
   
-  const companies = [
-    {
-      id: '1',
-      companyName: 'Test Company 1',
-      subscriptionStatus: 'active',
-      subscriptionPlan: 'Premium',
-      subscriptionAmount: 5000,
-      userCount: 25
-    },
-    {
-      id: '2',
-      companyName: 'Test Company 2',
-      subscriptionStatus: 'active',
-      subscriptionPlan: 'Basic',
-      subscriptionAmount: 2000,
-      userCount: 10
-    }
-  ];
-  
-  const refresh = () => {
+  const fetchCompanies = async () => {
     setLoading(true);
-    setTimeout(() => setLoading(false), 1000);
+    setError(null);
+    try {
+      console.log('SuperAdminDashboardPage: Fetching companies...');
+      const fetchedCompanies = await getAllTenants();
+      console.log('SuperAdminDashboardPage: Fetched companies:', fetchedCompanies);
+      setCompanies(fetchedCompanies);
+    } catch (err) {
+      console.error('Error fetching companies:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
   
-  // Historical MRR data for chart
+  // Calculate metrics from real data
+  const metrics = useMemo(() => {
+    const activeCompanies = companies.filter(c => c.subscription?.active !== false).length;
+    const suspendedCompanies = companies.filter(c => c.subscription?.active === false).length;
+    const totalRevenue = companies.reduce((sum, c) => sum + (c.subscription?.amount || 0), 0);
+    
+    return {
+      activeCompanies,
+      suspendedCompanies,
+      mrr: totalRevenue,
+      arr: totalRevenue * 12,
+      churnRate: 2.5, // Mock for now
+      cac: 1200, // Mock for now
+      ltv: 15000, // Mock for now
+      totalUsers: companies.length * 10 // Mock calculation
+    };
+  }, [companies]);
+  
+  const refresh = () => {
+    fetchCompanies();
+  };
+  
+  // Chart data and options
   const [mrrData, setMrrData] = useState({
     labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
     datasets: [
@@ -117,7 +126,6 @@ export default function SuperAdminDashboardPage() {
     ],
   });
   
-  // Churn rate data for chart
   const [churnData, setChurnData] = useState({
     labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
     datasets: [
@@ -130,7 +138,6 @@ export default function SuperAdminDashboardPage() {
     ],
   });
   
-  // Company status distribution data for pie chart
   const [companyStatusData, setCompanyStatusData] = useState({
     labels: ['Active', 'Suspended', 'Trial', 'Churned'],
     datasets: [
@@ -153,7 +160,6 @@ export default function SuperAdminDashboardPage() {
     ],
   });
   
-  // LTV:CAC ratio data for bar chart
   const [ltvCacData, setLtvCacData] = useState({
     labels: ['2024', '2025'],
     datasets: [
@@ -170,9 +176,19 @@ export default function SuperAdminDashboardPage() {
     ],
   });
 
-  // Update chart data when metrics change
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'top',
+      },
+    },
+  };
+
+  // Update chart data when companies change
   useEffect(() => {
-    if (metrics) {
+    if (companies.length > 0) {
       const { mrr, activeCompanies, suspendedCompanies, churnRate, ltv, cac } = metrics;
       
       // Update MRR chart with mock historical data
@@ -241,17 +257,7 @@ export default function SuperAdminDashboardPage() {
         ],
       });
     }
-  }, [metrics]);
-
-  const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'top',
-      },
-    },
-  };
+    }, [companies, metrics]);
 
   if (loading) {
     return (
@@ -493,51 +499,55 @@ export default function SuperAdminDashboardPage() {
         </div>
         <ErrorBoundary fallbackMessage="Unable to load recent companies table">
           {companies && companies.length > 0 ? (
-            <Table hoverable>
-              <Table.Head>
-                <Table.HeadCell>Company Name</Table.HeadCell>
-                <Table.HeadCell>Status</Table.HeadCell>
-                <Table.HeadCell>Subscription</Table.HeadCell>
-                <Table.HeadCell>MRR</Table.HeadCell>
-                <Table.HeadCell>Users</Table.HeadCell>
-                <Table.HeadCell>Actions</Table.HeadCell>
-              </Table.Head>
-              <Table.Body className="divide-y">
-                {companies.slice(0, 5).map((company) => {
-                  // Defensive programming - ensure company has required properties
-                  if (!company || !company.id) {
-                    return null;
-                  }
-                  
-                  return (
-                    <Table.Row key={company.id} className="bg-white dark:border-gray-700 dark:bg-gray-800">
-                      <Table.Cell className="font-medium text-gray-900 dark:text-white">
-                        {company.companyName || "Unnamed Company"}
-                      </Table.Cell>
-                      <Table.Cell>
-                        <Badge color={company.subscriptionStatus === 'active' ? 'success' : 'warning'}>
-                          {company.subscriptionStatus || "Unknown"}
-                        </Badge>
-                      </Table.Cell>
-                      <Table.Cell>
-                        {company.subscriptionPlan || "No Plan"}
-                      </Table.Cell>
-                      <Table.Cell>
-                        {formatCurrency(company.subscriptionAmount || 0)}
-                      </Table.Cell>
-                      <Table.Cell>
-                        {company.userCount || 0}
-                      </Table.Cell>
-                      <Table.Cell>
-                        <Button size="xs" as={Link} to={`/superadmin/companies/${company.id}`}>
-                          View
-                        </Button>
-                      </Table.Cell>
-                    </Table.Row>
-                  );
-                })}
-              </Table.Body>
-            </Table>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                  <tr>
+                    <th scope="col" className="px-6 py-3">Company Name</th>
+                    <th scope="col" className="px-6 py-3">Status</th>
+                    <th scope="col" className="px-6 py-3">Subscription</th>
+                    <th scope="col" className="px-6 py-3">MRR</th>
+                    <th scope="col" className="px-6 py-3">Users</th>
+                    <th scope="col" className="px-6 py-3">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {companies.slice(0, 5).map((company) => {
+                    // Defensive programming - ensure company has required properties
+                    if (!company || !company.id) {
+                      return null;
+                    }
+                    
+                    return (
+                      <tr key={company.id} className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                        <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">
+                          {company.companyName || "Unnamed Company"}
+                        </td>
+                        <td className="px-6 py-4">
+                          <Badge color={company.subscriptionStatus === 'active' ? 'success' : 'warning'}>
+                            {company.subscriptionStatus || "Unknown"}
+                          </Badge>
+                        </td>
+                        <td className="px-6 py-4">
+                          {company.subscriptionPlan || "No Plan"}
+                        </td>
+                        <td className="px-6 py-4">
+                          {formatCurrency(company.subscriptionAmount || 0)}
+                        </td>
+                        <td className="px-6 py-4">
+                          {company.userCount || 0}
+                        </td>
+                        <td className="px-6 py-4">
+                          <Button size="xs" as={Link} to={`/superadmin/companies/${company.id}`}>
+                            View
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           ) : (
             <div className="text-center py-8 text-gray-500 dark:text-gray-400">
               {loading ? (

@@ -77,8 +77,10 @@ export default function TenantListPage() {
     try {
       // Then fetch tenants as normal
       console.log('DEBUG: Fetching tenants for display:');
+      console.log('DEBUG: Current user auth state should be checked here');
       const fetchedTenants = await getAllTenants();
       console.log(`DEBUG: Fetched ${fetchedTenants.length} tenants for display`);
+      console.log('DEBUG: Raw fetched tenants:', fetchedTenants);
       
       // Log each tenant's subscription status
       fetchedTenants.forEach(tenant => {
@@ -90,6 +92,7 @@ export default function TenantListPage() {
       setTenants(fetchedTenants);
     } catch (error) {
       console.error('Error fetching tenants:', error);
+      console.error('Error details:', error.code, error.message);
       toast.error('Failed to load tenants');
     } finally {
       setLoading(false);

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
-import { onAuthStateChanged, signOut } from 'firebase/auth'
+import { onAuthStateChanged, signOut, getIdTokenResult } from 'firebase/auth'
 import { auth } from '../firebase/init'
 import { doc, getDoc, getFirestore } from 'firebase/firestore'
 
@@ -44,7 +44,31 @@ export function AuthProvider({ children }) {
       
       if (u) {
         try {
-          // Fetch user profile from Firestore
+          // Check for super admin custom claims first
+          const tokenResult = await getIdTokenResult(u);
+          const isSuperAdmin = tokenResult.claims.superAdmin === true;
+          
+          console.log('=== AUTH DEBUG ===');
+          console.log('User UID:', u.uid);
+          console.log('User email:', u.email);
+          console.log('Auth token claims:', tokenResult.claims);
+          console.log('Is super admin:', isSuperAdmin);
+          console.log('==================');
+          
+          if (isSuperAdmin) {
+            // User is super admin based on custom claims
+            setUserProfile({
+              uid: u.uid,
+              email: u.email,
+              displayName: u.displayName,
+              role: 'superAdmin',
+              isSuperAdmin: true
+            });
+            setLoading(false);
+            return;
+          }
+          
+          // Fetch user profile from Firestore for regular users
           const db = getFirestore();
           const userDoc = await getDoc(doc(db, 'users', u.uid));
           
@@ -69,17 +93,7 @@ export function AuthProvider({ children }) {
                 setUserProfile(userData);
               }
             } else {
-              // Check if user is super admin
-              const superAdminDoc = await getDoc(doc(db, 'superAdminUsers', u.uid));
-              
-              if (superAdminDoc.exists() && superAdminDoc.data().isSuperAdmin) {
-                setUserProfile({
-                  ...userData,
-                  role: 'superAdmin'
-                });
-              } else {
-                setUserProfile(userData);
-              }
+              setUserProfile(userData);
             }
           } else {
             // No user profile found

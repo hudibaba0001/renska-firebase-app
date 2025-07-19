@@ -1,7 +1,7 @@
 // webapp/src/pages/TenantDetailPage.jsx
 
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 // Import the specific service function needed for this page.
 // This replaces the direct 'firebase/firestore' import.
 import { getTenant } from '../services/firestore';
@@ -27,6 +27,7 @@ function BookingsListPage({ tenantId }) {
 
 export default function TenantDetailPage() {
   const { tenantId } = useParams();
+  const navigate = useNavigate();
   const [tenant, setTenant] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -111,6 +112,15 @@ export default function TenantDetailPage() {
   const getStatusColor = () => (tenant?.subscription?.active ? 'success' : 'failure');
   const getStatusText = () => (tenant?.subscription?.active ? 'Active' : 'Suspended');
 
+  const handleImpersonate = () => {
+    sessionStorage.setItem('superAdminImpersonation', JSON.stringify({
+      tenantId: tenant.id,
+      tenantName: tenant.companyName || tenant.name || tenant.id,
+    }));
+    toast.success(`Impersonating ${tenant.companyName || tenant.name}`);
+    navigate(`/admin/${tenant.id}`);
+  };
+
   return (
     <div className="p-6 bg-background min-h-screen font-mono">
       <PageHeader 
@@ -127,18 +137,18 @@ export default function TenantDetailPage() {
               <div>
                 <h2 className="text-2xl font-bold text-text-heading dark:text-white">{tenant.name}</h2>
                 <div className="flex items-center space-x-3 mt-1">
-                  <p className="text-sm text-text-main dark:text-white">/booking/{tenant.slug}</p>
+                  <p className="text-sm text-text-main dark:text-white">/booking/{tenant.id}</p>
                   <Badge color={getStatusColor()}>{getStatusText()}</Badge>
                   <Badge color="info">{tenant.subscription?.plan} Plan</Badge>
                 </div>
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              <Button color="light" size="sm" onClick={() => window.open(`/admin/${tenant.slug}`, '_blank')}>
+              <Button color="light" size="sm" onClick={handleImpersonate}>
                 <BuildingOfficeIcon className="h-4 w-4 mr-2" />
                 Admin Dashboard
               </Button>
-              <Button color="light" size="sm" onClick={() => window.open(`/booking/${tenant.slug}`, '_blank')}>
+              <Button color="light" size="sm" onClick={() => window.open(`/booking/${tenant.id}`, '_blank')}>
                 <GlobeAltIcon className="h-4 w-4 mr-2" />
                 View Booking Page
               </Button>

@@ -8,12 +8,28 @@ import { serverTimestamp } from "firebase/firestore";
 export const getAllTenants = async () => {
   try {
     const companiesRef = collection(db, 'companies');
-    const q = query(companiesRef, orderBy('createdAt', 'desc'));
-    const snapshot = await getDocs(q);
-    const tenants = [];
     
-    // Add detailed logging for debugging
-    console.log(`Fetched ${snapshot.size} tenants from Firestore`);
+    // Try with orderBy first, but fallback to simple query if no results or createdAt is missing
+    let snapshot;
+    try {
+      const q = query(companiesRef, orderBy('createdAt', 'desc'));
+      snapshot = await getDocs(q);
+      console.log(`Fetched ${snapshot.size} tenants with orderBy from Firestore`);
+      
+      // If orderBy returns 0 results, try simple query (likely due to missing createdAt field)
+      if (snapshot.size === 0) {
+        console.warn('orderBy returned 0 results, trying simple query (likely missing createdAt field)');
+        snapshot = await getDocs(companiesRef);
+        console.log(`Fetched ${snapshot.size} tenants with simple query from Firestore`);
+      }
+    } catch (orderByError) {
+      console.warn('orderBy failed, trying simple query:', orderByError.message);
+      // Fallback to simple query without orderBy
+      snapshot = await getDocs(companiesRef);
+      console.log(`Fetched ${snapshot.size} tenants with simple query from Firestore`);
+    }
+    
+    const tenants = [];
     
     snapshot.forEach(doc => {
       const tenantData = { id: doc.id, ...doc.data() };

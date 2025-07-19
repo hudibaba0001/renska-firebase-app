@@ -27,8 +27,12 @@ export default function BookingPage() {
           return;
         }
 
+        console.log('🔍 Loading config for company:', companyId);
+
         // Fetch the main company configuration using the service layer.
         const companyData = await getTenant(companyId);
+        console.log('🏢 Fetched company data:', companyData);
+        
         if (!companyData) {
           setError(`No company found for "${companyId}".`);
           return;
@@ -36,6 +40,7 @@ export default function BookingPage() {
 
         // Fetch all services for this company.
         const allServices = await getAllServicesForCompany(companyId);
+        console.log('🔧 Fetched services:', allServices);
 
         // If a specific formSlug is provided, filter services based on the form's configuration.
         // NOTE: This assumes the form configuration is stored within the company document.
@@ -46,10 +51,13 @@ export default function BookingPage() {
             const availableServices = allServices.filter(service => selectedServiceIds.has(service.id));
             
             const mergedConfig = { ...companyData, ...formConfig, services: availableServices, formMode: true };
+            console.log('📋 Merged config with form:', mergedConfig);
             setConfig(mergedConfig);
         } else {
             // If no formSlug or form not found, use all company services.
-            setConfig({ ...companyData, services: allServices, formMode: false });
+            const fullConfig = { ...companyData, services: allServices, formMode: false };
+            console.log('📋 Full config without form:', fullConfig);
+            setConfig(fullConfig);
         }
 
       } catch (e) {
@@ -62,13 +70,24 @@ export default function BookingPage() {
     loadConfig();
   }, [companyId, formSlug]);
 
-  if (loading) return <div className="p-6 text-center"><Spinner /></div>;
+  if (loading) {
+    return (
+      <div className="p-6 text-center">
+        <Spinner />
+        <p className="mt-4">Laddar...</p>
+      </div>
+    );
+  }
+  
   if (error) return <div className="p-6"><Alert color="failure">{error}</Alert></div>;
+
+  // Get company name for display
+  const companyName = config?.name || config?.companyName || 'Company';
 
   return (
     <div className="bg-white shadow rounded-lg p-6">
       <h1 className="text-2xl font-semibold mb-4">
-        {config?.formMode ? (config.name || 'Booking Calculator') : `New Booking for ${config?.name}`}
+        {config?.formMode ? (companyName || 'Booking Calculator') : `New Booking for ${companyName}`}
       </h1>
       {/* The BookingForm will handle the actual creation of the booking */}
       <BookingCalculator config={config} companyId={companyId} />
@@ -94,7 +113,8 @@ export function AdminDashboard() {
         // Use the correct service function to fetch bookings from the subcollection.
         await getAllBookingsForCompany(companyId);
         // setBookings(companyBookings); // This line was removed as per the edit hint.
-      } catch (_error) {
+      } catch (error) {
+        console.error('Error loading bookings:', error);
         setError('Failed to load bookings.');
       } finally {
         setLoading(false);

@@ -27,7 +27,13 @@ export default function CompanyConfigPage({ companyId: propCompanyId }) {
           getTenant(companyId),
           getAllServicesForCompany(companyId)
         ]);
-        setConfig({ ...companyDoc, services });
+        console.log('🏢 Fetched company doc:', companyDoc);
+        console.log('🔧 Fetched services:', services);
+        const fullConfig = { ...companyDoc, services };
+        console.log('📋 Full config for preview:', fullConfig);
+        setConfig(fullConfig);
+        // Initialize preview config with the same data
+        setPreviewConfig(fullConfig);
       } catch (error) {
         console.error('Error fetching company config:', error);
         setError('Failed to load company configuration');
@@ -47,7 +53,10 @@ export default function CompanyConfigPage({ companyId: propCompanyId }) {
         getTenant(companyId),
         getAllServicesForCompany(companyId)
       ]);
-      setConfig({ ...companyDoc, services }); // This will trigger ConfigForm to update
+      const fullConfig = { ...companyDoc, services };
+      setConfig(fullConfig);
+      // Update preview config as well
+      setPreviewConfig(fullConfig);
     } catch {
       toast.error('Failed to refresh services');
     }
@@ -65,6 +74,8 @@ export default function CompanyConfigPage({ companyId: propCompanyId }) {
       toast.success('Configuration saved successfully!');
       // Update the main config state after a successful save.
       setConfig(newConfig);
+      // Update preview config as well
+      setPreviewConfig(newConfig);
     } catch (error) {
       console.error('❌ Error saving config:', error);
       toast.error(error.message || 'Failed to save configuration.');
@@ -75,6 +86,7 @@ export default function CompanyConfigPage({ companyId: propCompanyId }) {
   
   // This function is passed down to the form to update the live preview.
   const handleConfigChange = (newConfig) => {
+    console.log('🔄 Config changed, updating preview:', newConfig);
     setPreviewConfig(newConfig);
   };
 
@@ -105,8 +117,8 @@ export default function CompanyConfigPage({ companyId: propCompanyId }) {
         <p className="text-text-main dark:text-white">Configure your services, pricing models, and global settings.</p>
       </div>
       
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <div className="xl:col-span-2">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="lg:col-span-3">
           <ConfigForm 
             initialConfig={config}
             onSave={handleSave}
@@ -115,7 +127,7 @@ export default function CompanyConfigPage({ companyId: propCompanyId }) {
           />
         </div>
         
-        <div className="xl:col-span-1">
+        <div className="lg:col-span-1">
           <div className="sticky top-6">
             <LivePreview config={previewConfig} />
           </div>

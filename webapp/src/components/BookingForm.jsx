@@ -28,6 +28,9 @@ export default function BookingForm({ config = {} }) {
   const [currentStep, setCurrentStep] = useState(1);
   const [gdprConsent, setGdprConsent] = useState(false);
 
+  // Get company name for display
+  const companyName = config.name || config.companyName || 'Company';
+
   // Price calculation logic
   const currentService = availableServices.find(s => s.id === selectedService) || availableServices[0];
   const totalPrice = useMemo(() => {
@@ -51,10 +54,12 @@ export default function BookingForm({ config = {} }) {
         serviceId: selectedService,
         sqm,
         customerInfo,
-        companyId: config.slug || 'unknown',
+        companyId: config.id || config.companyId || 'unknown',
         totalPrice,
+        createdAt: new Date(),
+        status: 'pending'
       };
-      await createBooking(config.id || config.companyId, bookingData);
+      await createBooking(bookingData);
       setSubmitMessage('Booking submitted successfully!');
       toast.success('Booking submitted successfully!');
       setCustomerInfo({ name: '', email: '', phone: '' });
@@ -74,7 +79,7 @@ export default function BookingForm({ config = {} }) {
     <div className="max-w-4xl mx-auto space-y-6">
       <Card>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-bold">Book Your Service</h2>
+          <h2 className="text-2xl font-bold">New Booking for {companyName}</h2>
           <Badge color="primary">Step {currentStep} of 3</Badge>
         </div>
         <Progress progress={(currentStep / 3) * 100} />
