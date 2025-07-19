@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { db } from '../firebase/init';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, getDocs } from 'firebase/firestore';
 import { useAuth } from '../context/AuthContext';
 import { getTenant, getAllServicesForCompany } from '../services/firestore';
 
@@ -34,6 +34,11 @@ export default function FormBuilderPage() {
   const { companyId, formId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  
+  // Add detailed debugging for formId
+  console.log('🔍 FormBuilderPage - Initial params:', { companyId, formId });
+  console.log('🔍 FormBuilderPage - formId type:', typeof formId);
+  console.log('🔍 FormBuilderPage - formId === "new":', formId === 'new');
   
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -76,8 +81,12 @@ export default function FormBuilderPage() {
 
   // Load existing config if editing
   useEffect(() => {
+    console.log('🔍 FormBuilderPage - useEffect triggered:', { formId, companyId });
     if (formId && formId !== 'new') {
+      console.log('🔍 FormBuilderPage - Loading existing config for formId:', formId);
       loadExistingConfig();
+    } else {
+      console.log('🔍 FormBuilderPage - Creating new form (formId is "new" or falsy)');
     }
   }, [formId, companyId]);
 
@@ -109,22 +118,55 @@ export default function FormBuilderPage() {
   const loadExistingConfig = async () => {
     setLoading(true);
     try {
-      console.log('Loading form config for:', { companyId, formId });
+      console.log('🔧 Loading form config for:', { companyId, formId });
+      console.log('🔧 Firestore path: companies/' + companyId + '/calculators/' + formId);
+      
       const docRef = doc(db, 'companies', companyId, 'calculators', formId);
       const docSnap = await getDoc(docRef);
       
+      console.log('🔧 Document exists:', docSnap.exists());
+      console.log('🔧 Document ID:', docSnap.id);
+      
       if (docSnap.exists()) {
         const formData = docSnap.data();
-        console.log('Loaded form data:', formData);
-        setConfig(prevConfig => ({
-          ...prevConfig,
-          ...formData
-        }));
+        console.log('🔧 Loaded existing form data:', formData);
+        
+        // Merge with default config, preserving existing data
+        setConfig(prevConfig => {
+          const mergedConfig = {
+            ...prevConfig,
+            ...formData,
+            // Ensure these arrays are properly initialized
+            services: formData.services || prevConfig.services || [],
+            fieldOrder: formData.fieldOrder || prevConfig.fieldOrder || ['name', 'email', 'phone'],
+            fieldLabels: formData.fieldLabels || prevConfig.fieldLabels || {},
+            fieldHelp: formData.fieldHelp || prevConfig.fieldHelp || {},
+            zipAreas: formData.zipAreas || prevConfig.zipAreas || []
+          };
+          console.log('🔧 Merged config:', mergedConfig);
+          return mergedConfig;
+        });
       } else {
-        console.log('Form not found in Firestore');
+        console.error('❌ Form not found in Firestore:', { companyId, formId });
+        console.error('❌ Document path: companies/' + companyId + '/calculators/' + formId);
+        
+        // Let's check what calculators exist for this company
+        const calculatorsRef = collection(db, 'companies', companyId, 'calculators');
+        const calculatorsSnapshot = await getDocs(calculatorsRef);
+        const existingCalculators = calculatorsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          name: doc.data().name,
+          slug: doc.data().slug
+        }));
+        console.log('🔧 Existing calculators for this company:', existingCalculators);
+        
+        // If form doesn't exist, redirect to new form
+        navigate(`/admin/${companyId}/forms/new`, { replace: true });
       }
     } catch (error) {
-      console.error('Error loading config:', error);
+      console.error('❌ Error loading config:', error);
+      // If there's an error, redirect to new form
+      navigate(`/admin/${companyId}/forms/new`, { replace: true });
     } finally {
       setLoading(false);
     }
@@ -133,7 +175,11 @@ export default function FormBuilderPage() {
   const saveDraft = async () => {
     setSaving(true);
     try {
-      const docRef = doc(db, 'companies', companyId, 'calculators', formId || config.slug);
+      console.log('💾 Saving draft for:', { companyId, formId, config });
+      
+      // Use the existing formId if editing, or generate a new one for new forms
+      const targetFormId = formId === 'new' ? config.slug : formId;
+      const docRef = doc(db, 'companies', companyId, 'calculators', targetFormId);
       const now = new Date();
       
       const updatedConfig = {
@@ -145,15 +191,20 @@ export default function FormBuilderPage() {
         })
       };
       
+      console.log('💾 Saving config to:', targetFormId);
       await setDoc(docRef, updatedConfig, { merge: true });
       setConfig(updatedConfig);
       
       // Update URL if this is a new form
       if (formId === 'new') {
-        navigate(`/admin/${companyId}/forms/${config.slug}`, { replace: true });
+        const newUrl = `/admin/${companyId}/forms/${config.slug}`;
+        console.log('🔄 Updating URL to:', newUrl);
+        navigate(newUrl, { replace: true });
       }
+      
+      console.log('✅ Draft saved successfully');
     } catch (error) {
-      console.error('Error saving draft:', error);
+      console.error('❌ Error saving draft:', error);
     } finally {
       setSaving(false);
     }
@@ -162,7 +213,11 @@ export default function FormBuilderPage() {
   const publishForm = async () => {
     setSaving(true);
     try {
-      const docRef = doc(db, 'companies', companyId, 'calculators', formId || config.slug);
+      console.log('🚀 Publishing form for:', { companyId, formId, config });
+      
+      // Use the existing formId if editing, or generate a new one for new forms
+      const targetFormId = formId === 'new' ? config.slug : formId;
+      const docRef = doc(db, 'companies', companyId, 'calculators', targetFormId);
       const now = new Date();
       
       const publishedConfig = {
@@ -176,15 +231,20 @@ export default function FormBuilderPage() {
         })
       };
       
+      console.log('🚀 Publishing config to:', targetFormId);
       await setDoc(docRef, publishedConfig);
       setConfig(publishedConfig);
       
       // Update URL if this is a new form
       if (formId === 'new') {
-        navigate(`/admin/${companyId}/forms/${config.slug}`, { replace: true });
+        const newUrl = `/admin/${companyId}/forms/${config.slug}`;
+        console.log('🔄 Updating URL to:', newUrl);
+        navigate(newUrl, { replace: true });
       }
+      
+      console.log('✅ Form published successfully');
     } catch (error) {
-      console.error('Error publishing form:', error);
+      console.error('❌ Error publishing form:', error);
     } finally {
       setSaving(false);
     }
