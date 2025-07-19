@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { 
@@ -25,9 +26,12 @@ import {
   BanknotesIcon,
   ArrowTrendingUpIcon,
   ExclamationTriangleIcon
-} from '@heroicons/react/24/outline';
-import { doc, getDoc, getFirestore, collection, getDocs } from 'firebase/firestore';
-import { getAllServicesForCompany } from '../services/firestore';
+} from '@heroicons/react/24/outline'; 
+import { 
+  getAllServicesForCompany
+} from '../services/firestore';
+import { getFirestore, collection, getDocs, doc, getDoc } from 'firebase/firestore';
+import { getRecentBookings, getCompanyMetrics } from '../services/analytics';
 import CompanyMetrics from '../components/CompanyMetrics';
 
 export default function AdminDashboardPage() {
@@ -35,6 +39,7 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [isNewCompany, setIsNewCompany] = useState(false);
   const [services, setServices] = useState([]);
+  const [recentBookings, setRecentBookings] = useState([]);
   const [calculators, setCalculators] = useState([]);
   const [realStats, setRealStats] = useState({
     totalRevenue: 0,
@@ -43,7 +48,6 @@ export default function AdminDashboardPage() {
     activeCalculators: 0
   });
   
-  // Real stats based on fetched data
   const stats = [
     {
       name: 'Total Revenue',
@@ -87,92 +91,63 @@ export default function AdminDashboardPage() {
     }
   ];
 
-  // Fetch company data
   useEffect(() => {
-    async function fetchCompanyData() {
+    async function fetchDashboardData() {
       if (!companyId) return;
-      
+      setLoading(true);
       try {
+        // Get company data from Firestore directly
         const db = getFirestore();
         const companyDoc = await getDoc(doc(db, 'companies', companyId));
+        const companyData = companyDoc.exists() ? companyDoc.data() : null;
         
-        if (companyDoc.exists()) {
-          const companyData = companyDoc.data();
-          
-          // Check if company is new (created within the last hour)
-          if (companyData.created) {
-            const creationDate = companyData.created.toDate ? companyData.created.toDate() : new Date(companyData.created);
-            const oneHourAgo = new Date();
-            oneHourAgo.setHours(oneHourAgo.getHours() - 1);
-            
-            setIsNewCompany(creationDate > oneHourAgo);
-          }
-        }
-        
-        // Fetch services for this company
+        // Get services
         const fetchedServices = await getAllServicesForCompany(companyId);
-        setServices(fetchedServices);
         
-        // Fetch calculators for this company
+        // Get calculators from subcollection
         const calculatorsRef = collection(db, 'companies', companyId, 'calculators');
         const calculatorsSnapshot = await getDocs(calculatorsRef);
         const calculatorsData = calculatorsSnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
         }));
-        setCalculators(calculatorsData);
         
-        // Calculate real stats
+        // Get bookings and metrics
+        const [
+          bookingsData,
+          metricsData
+        ] = await Promise.all([
+          getRecentBookings(companyId, { limit: 3 }),
+          getCompanyMetrics(companyId)
+        ]);
+
+        if (companyData?.created) {
+            const creationDate = companyData.created.toDate ? companyData.created.toDate() : new Date(companyData.created);
+            const oneHourAgo = new Date();
+            oneHourAgo.setHours(oneHourAgo.getHours() - 1);
+            setIsNewCompany(creationDate > oneHourAgo);
+        }
+
+        setServices(fetchedServices);
+        setCalculators(calculatorsData);
+        setRecentBookings(bookingsData);
+
         const publishedCalculators = calculatorsData.filter(calc => calc.status === 'published');
         setRealStats({
-          totalRevenue: 0, // Will be calculated from bookings
-          activeBookings: 0, // Will be calculated from bookings
-          conversionRate: 0, // Will be calculated from analytics
+          totalRevenue: metricsData.totalRevenue,
+          activeBookings: metricsData.totalBookings,
+          conversionRate: metricsData.abandonmentRate, // Example, might need better metric
           activeCalculators: publishedCalculators.length
         });
-        
       } catch (error) {
-        console.error("Error fetching company data:", error);
+        console.error("Error fetching dashboard data:", error);
       } finally {
         setLoading(false);
       }
     }
     
-    fetchCompanyData();
+    fetchDashboardData();
   }, [companyId]);
-
-  const [recentBookings] = useState([
-    {
-      id: 'BK-2024-001',
-      customer: 'Anna Andersson',
-      service: 'Hemstädning Premium',
-      amount: '1,200 kr',
-      status: 'confirmed',
-      date: '2024-01-15',
-      time: '10:00',
-      avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop&crop=face'
-    },
-    {
-      id: 'BK-2024-002',
-      customer: 'Erik Svensson',
-      service: 'Window Cleaning',
-      amount: '950 kr',
-      status: 'pending',
-      date: '2024-01-16',
-      time: '14:30',
-      avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face'
-    },
-    {
-      id: 'BK-2024-003',
-      customer: 'Maria Johansson',
-      service: 'Deep Clean',
-      amount: '1,850 kr',
-      status: 'completed',
-      date: '2024-01-14',
-      time: '09:00',
-      avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face'
-    }
-  ]);
 
   // Generate real calculator stats from fetched data
   const calculatorStats = calculators.map(calc => ({
@@ -339,7 +314,9 @@ export default function AdminDashboardPage() {
               >
                 <div className="flex items-center">
                   <div className={`p-2 rounded-lg bg-gradient-to-r ${action.color} mr-3`}>
-                    <action.icon className="w-5 h-5 text-white" />
+                    {action.icon && typeof action.icon === 'function' ? 
+                      <action.icon className="w-5 h-5 text-white" /> : 
+                      <ChartBarIcon className="w-5 h-5 text-white" />}
                   </div>
                   <div>
                     <h3 className={`font-medium ${action.textColor}`}>{action.title}</h3>
@@ -404,7 +381,9 @@ export default function AdminDashboardPage() {
                   </div>
                 </div>
                 <div className={`p-3 rounded-lg bg-gradient-to-r ${getStatColor(stat.color)}`}>
-                  <stat.icon className="w-6 h-6 text-white" />
+                  {stat.icon && typeof stat.icon === 'function' ? 
+                    <stat.icon className="w-6 h-6 text-white" /> : 
+                    <ChartBarIcon className="w-6 h-6 text-white" />}
                 </div>
               </div>
               <div className="flex items-center mt-4">
@@ -464,7 +443,9 @@ export default function AdminDashboardPage() {
                   >
                     <div className="flex items-start space-x-3">
                       <div className={`p-2 rounded-lg bg-gradient-to-r ${action.color}`}>
-                        <action.icon className="w-5 h-5 text-white" />
+                        {action.icon && typeof action.icon === 'function' ? 
+                          <action.icon className="w-5 h-5 text-white" /> : 
+                          <ChartBarIcon className="w-5 h-5 text-white" />}
                       </div>
                       <div className="flex-1">
                         <h3 className={`font-semibold ${action.textColor} dark:text-white`}>

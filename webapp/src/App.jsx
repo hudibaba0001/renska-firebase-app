@@ -14,6 +14,7 @@ import AdminDashboardPage from './pages/AdminDashboardPage';
 import AdminBillingPage from './pages/AdminBillingPage';
 import AdminPaymentSettings from './pages/AdminPaymentSettings'; // Import the new page
 import BookingManagementPage from './pages/BookingManagementPage'; // Import the real booking management page
+import ErrorBoundary from './components/ErrorBoundary'; // Import ErrorBoundary component
 import SignupPage from './pages/SignupPage';
 import FormBuilderPage from './pages/FormBuilderPage';
 import SetupPage from './pages/SetupPage';

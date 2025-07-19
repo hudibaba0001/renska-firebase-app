@@ -616,7 +616,7 @@ const PriceCard = ({ originalPrice, finalPrice, rutApplied, selectedService, for
         </div>
         {rutApplied && (
           <p className="text-xs text-gray-500 mt-1">
-            *Framkörningsavgift kan tillkomma om du bor utanför stadsgräns.
+            *RUT-avdrag på 30% applicerat
           </p>
         )}
       </div>
@@ -743,33 +743,52 @@ export default function BookingCalculator({ config: propConfig, companyId: propC
       if (selectedService.pricingModel === 'window') {
         // Window cleaning pricing
         const windowTypes = selectedService.windowTypes || [];
+        let hasWindowSelection = false;
         windowTypes.forEach((windowType, index) => {
           const quantity = formData[`window_${index}`] || 0;
           calculatedPrice += quantity * (windowType.price || 0);
+          if (quantity > 0) hasWindowSelection = true;
         });
         
-        // Apply minimum price for window cleaning
-        const minPrice = selectedService.minPrice || 700;
-        calculatedPrice = Math.max(calculatedPrice, minPrice);
+        // Apply minimum price only if user has selected windows
+        if (hasWindowSelection) {
+          const minPrice = selectedService.minPrice || 700;
+          calculatedPrice = Math.max(calculatedPrice, minPrice);
+        }
       } else if (selectedService.pricingModel === 'universal') {
         // Universal rate per sqm
-        calculatedPrice = (formData.area || 0) * (selectedService.universalRate || 50);
+        const area = formData.area || 0;
+        if (area > 0) {
+          calculatedPrice = area * (selectedService.universalRate || 50);
+          // Apply minimum price only if area is entered
+          const minPrice = selectedService.minPrice || 1000;
+          calculatedPrice = Math.max(calculatedPrice, minPrice);
+        }
       } else if (selectedService.pricingModel === 'fixed-tier') {
         // Fixed tier pricing
-        const tier = selectedService.tiers?.find(t => 
-          (formData.area || 0) >= t.min && (formData.area || 0) <= t.max
-        );
-        calculatedPrice = tier?.price || selectedService.minPrice || 1000;
+        const area = formData.area || 0;
+        if (area > 0) {
+          const tier = selectedService.tiers?.find(t => 
+            area >= t.min && area <= t.max
+          );
+          calculatedPrice = tier?.price || selectedService.minPrice || 1000;
+        }
       } else if (selectedService.pricingModel === 'hourly') {
         // Hourly pricing
-        const hourlyTier = selectedService.hourlyTiers?.find(t => 
-          (formData.area || 0) >= t.min && (formData.area || 0) <= t.max
-        );
-        const hours = hourlyTier?.hours || 3;
-        calculatedPrice = hours * (selectedService.hourlyRate || 400);
+        const area = formData.area || 0;
+        if (area > 0) {
+          const hourlyTier = selectedService.hourlyTiers?.find(t => 
+            area >= t.min && area <= t.max
+          );
+          const hours = hourlyTier?.hours || 3;
+          calculatedPrice = hours * (selectedService.hourlyRate || 400);
+        }
       } else {
         // Default pricing
-        calculatedPrice = (formData.area || 0) * (selectedService.pricePerSqm || 50);
+        const area = formData.area || 0;
+        if (area > 0) {
+          calculatedPrice = area * (selectedService.pricePerSqm || 50);
+        }
       }
       
       // Add add-ons prices

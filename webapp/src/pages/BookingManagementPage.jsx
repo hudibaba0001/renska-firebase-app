@@ -234,6 +234,12 @@ const BookingManagementPage = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {statsCards.map((stat, index) => {
           const Icon = stat.icon;
+          
+          // Defensive check to ensure Icon is a valid component
+          const IconComponent = Icon && typeof Icon === 'function' 
+            ? <Icon className={`w-6 h-6 ${stat.iconColor}`} />
+            : <HiClock className={`w-6 h-6 ${stat.iconColor}`} />;
+            
           return (
             <Card key={index} className="p-4">
               <div className="flex items-center justify-between">
@@ -242,7 +248,7 @@ const BookingManagementPage = () => {
                   <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
                 </div>
                 <div className={`p-3 rounded-full ${stat.bgColor}`}>
-                  <Icon className={`w-6 h-6 ${stat.iconColor}`} />
+                  {IconComponent}
                 </div>
               </div>
             </Card>
