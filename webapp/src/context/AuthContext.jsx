@@ -1,19 +1,16 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { auth } from '../firebase/init';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { doc, getDoc, getFirestore } from 'firebase/firestore';
 
 // Import the getUserProfile function from services
 import { getUserProfile } from '../services/firestore';
 
 // Create context object
-const AuthContext = createContext({ user: null, userProfile: null, loading: true, logout: () => {} })
+export const AuthContext = createContext({ user: null, loading: true, logout: () => {} })
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
-  const [userProfile, setUserProfile] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [profileError, setProfileError] = useState('')
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (u) => {
@@ -56,10 +53,8 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, userProfile, loading, profileError, logout }}>
+    <AuthContext.Provider value={{ user, loading, logout }}>
       {children}
     </AuthContext.Provider>
   )
 }
-
-export const useAuth = () => useContext(AuthContext)

@@ -202,6 +202,24 @@ export const updateTenant = async (tenantId, tenantData) => {
   }
 };
 
+// Get user profile from Firestore
+export const getUserProfile = async (userId) => {
+  try {
+    const userDocRef = doc(db, 'users', userId);
+    const userSnap = await getDoc(userDocRef);
+    if (userSnap.exists()) {
+      return { id: userSnap.id, ...userSnap.data() };
+    } else {
+      // Return empty profile if user document doesn't exist
+      return {};
+    }
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    // Return empty profile on error to prevent app crash
+    return {};
+  }
+};
+
 // Delete a tenant (company) from the 'companies' collection by ID
 export const deleteTenant = async (tenantId) => {
   try {

@@ -15,7 +15,7 @@ import { STRIPE_CONFIG, formatPrice } from '../stripe/config';
 import { doc, getDoc, updateDoc, collection, addDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase/init';
 import toast from 'react-hot-toast';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 
 export default function PaymentPage() {
   const navigate = useNavigate();
