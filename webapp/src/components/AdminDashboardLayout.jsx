@@ -1,242 +1,398 @@
-import React, { useState } from 'react';
-import { Link, useLocation, useParams, Outlet } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+// UI milestone: Admin dashboard layout fixed (header, sidebar, overflow, text size, search modal)
+// This commit marks a stable, production-ready UI baseline for the admin dashboard.
+//
+// All major layout, overflow, and text issues resolved. Safe to revert to this commit for a clean, professional UI.
+//
+// Date: [fill in date if you want]
+//
+// -------------------------------------------------------------
+import React, { useEffect, useState } from 'react'
+import { Link, NavLink, Outlet, useParams, useLocation } from 'react-router-dom'
+import { doc, getDoc } from 'firebase/firestore'
+import { db } from '../firebase/init'
+import { useAuth } from '../context/AuthContext'
+import { 
+  Button, 
+  Avatar, 
+  Dropdown, 
+  Card, 
+  Spinner, 
+  Alert, 
+  Badge,
+  TextInput,
+  Modal
+} from 'flowbite-react'
+import { 
+  HomeIcon, 
+  CogIcon, 
+  ChartBarIcon, 
+  UserGroupIcon, 
+  DocumentTextIcon,
+  BellIcon,
+  ChevronDownIcon,
+  Bars3Icon,
+  XMarkIcon,
+  CreditCardIcon,
+  MagnifyingGlassIcon,
+  SunIcon,
+  MoonIcon,
+  ArrowRightOnRectangleIcon,
+  UserIcon,
+  BuildingOfficeIcon,
+  QuestionMarkCircleIcon,
+  BanknotesIcon
+} from '@heroicons/react/24/outline'
+import { AnimatePresence } from 'framer-motion'
+import toast, { Toaster } from 'react-hot-toast'
+import AdminHeader from './AdminHeader';
 
 export default function AdminDashboardLayout() {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const { user } = useAuth();
-  const { companyId } = useParams();
-  const location = useLocation();
-  
-  // Check for super admin impersonation
-  const impersonationData = JSON.parse(sessionStorage.getItem('superAdminImpersonation') || 'null');
-  const isImpersonating = impersonationData && impersonationData.tenantId === companyId;
-
-  const navigation = [
+  const { companyId } = useParams()
+  const location = useLocation()
+  const { user } = useAuth()
+  // Debug log for impersonation state
+  console.log('AdminDashboardLayout:', { user, companyId, impersonationData: JSON.parse(sessionStorage.getItem('superAdminImpersonation') || 'null') })
+  const [company, setCompany] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  // Remove sidebarOpen state and all logic related to toggling sidebar visibility on desktop
+  // Remove AnimatePresence and motion.div for mobile overlay
+  // Sidebar should always be visible on the left for lg: and up, and main content should always be visible on the right
+  // Adjust the main content div to always have left padding/margin for the sidebar
+  const [darkMode, setDarkMode] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [notifications] = useState([
     {
-      name: 'Dashboard',
-      href: `/admin/${companyId}`,
-      icon: '📊',
-      current: location.pathname === `/admin/${companyId}`
+      id: 1,
+      title: 'New booking received',
+      message: 'Anna Andersson booked Hemstädning Premium',
+      time: '2 minutes ago',
+      unread: true,
+      type: 'booking'
     },
     {
-      name: 'Form Builder',
-      href: `/admin/${companyId}/forms/new`,
-      icon: '🛠️',
-      current: location.pathname.includes('/forms')
+      id: 2,
+      title: 'Payment processed',
+      message: 'Erik Svensson - 1,200 kr',
+      time: '1 hour ago',
+      unread: true,
+      type: 'payment'
     },
     {
-      name: 'Bookings',
-      href: `/admin/${companyId}/bookings`,
-      icon: '📅',
-      current: location.pathname.includes('/bookings')
-    },
-    {
-      name: 'Analytics',
-      href: `/admin/${companyId}/analytics`,
-      icon: '📈',
-      current: location.pathname.includes('/analytics')
-    },
-    {
-      name: 'Settings',
-      href: `/admin/${companyId}/config`,
-      icon: '⚙️',
-      current: location.pathname.includes('/config')
+      id: 3,
+      title: 'Calculator published',
+      message: 'Window Cleaning calculator is now live',
+      time: '2 hours ago',
+      unread: false,
+      type: 'system'
     }
-  ];
+  ])
+
+  // Check for super admin impersonation
+  const impersonationData = JSON.parse(sessionStorage.getItem('superAdminImpersonation') || 'null')
+  const isImpersonating = impersonationData && impersonationData.tenantId === companyId
+
+  useEffect(() => {
+    async function fetchCompany() {
+      setLoading(true)
+      setError('')
+      try {
+        const ref = doc(db, 'companies', companyId)
+        const snap = await getDoc(ref)
+        if (snap.exists()) {
+          setCompany(snap.data())
+          toast.success(`Welcome to ${snap.data().companyName}!`)
+        } else {
+          setError('Company not found.')
+          toast.error('Company not found')
+        }
+      } catch {
+        setError('Failed to load company data.')
+        toast.error('Failed to load company data')
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchCompany()
+  }, [companyId])
+
+  const getBreadcrumbItems = () => {
+    const pathSegments = location.pathname.split('/').filter(Boolean)
+    const items = [
+      { label: 'Dashboard', href: `/admin/${companyId}` }
+    ]
+    
+    if (pathSegments.includes('config')) {
+      items.push({ label: 'Configuration', href: `/admin/${companyId}/config` })
+    } else if (pathSegments.includes('bookings')) {
+      items.push({ label: 'Bookings', href: `/admin/${companyId}/bookings` })
+    } else if (pathSegments.includes('analytics')) {
+      items.push({ label: 'Analytics', href: `/admin/${companyId}/analytics` })
+    } else if (pathSegments.includes('billing')) {
+      items.push({ label: 'Billing', href: `/admin/${companyId}/billing` })
+    } else if (pathSegments.includes('forms')) {
+      items.push({ label: 'Form Builder', href: `/admin/${companyId}/forms` })
+    } else if (pathSegments.includes('customers')) {
+      items.push({ label: 'Customers', href: `/admin/${companyId}/customers` })
+    } else if (pathSegments.includes('payment-settings')) {
+      items.push({ label: 'Payment Settings', href: `/admin/${companyId}/payment-settings` })
+    }
+    
+    return items
+  }
+
+  const getPageTitle = () => {
+    const path = location.pathname
+    if (path.includes('/config')) return 'Calculator Configuration'
+    if (path.includes('/bookings')) return 'Booking Management'
+    if (path.includes('/analytics')) return 'Analytics & Reports'
+    if (path.includes('/billing')) return 'Billing & Subscriptions'
+    if (path.includes('/customers')) return 'Customer Management'
+    if (path.includes('/forms')) return 'Form Builder'
+    if (path.includes('/payment-settings')) return 'Payment Settings'
+    return 'Dashboard Overview'
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <Card className="w-96 text-center shadow-xl">
+          <div className="flex flex-col items-center p-6">
+            <div className="relative">
+              <Spinner size="xl" className="text-blue-600" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">S</span>
+                </div>
+              </div>
+            </div>
+            <h3 className="text-lg font-semibold text-text-heading dark:text-white mt-4 mb-2">
+              Loading SwedPrime Dashboard
+            </h3>
+            <p className="text-gray-500 dark:text-gray-400">
+              Please wait while we fetch your company information...
+            </p>
+          </div>
+        </Card>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <Alert color="failure">
+          <p>{error}</p>
+        </Alert>
+      </div>
+    )
+  }
+
+  const navigationItems = [
+    {
+      label: 'Dashboard',
+      href: `/admin/${companyId}`,
+      icon: HomeIcon,
+      exact: true,
+      badge: null,
+      description: 'Overview and quick actions'
+    },
+    {
+      label: 'Form Builder',
+      href: `/admin/${companyId}/forms`,
+      icon: CogIcon,
+      badge: null,
+      description: 'Create booking calculators'
+    },
+    {
+      label: 'Bookings',
+      href: `/admin/${companyId}/bookings`,
+      icon: DocumentTextIcon,
+      badge: '12',
+      description: 'Manage customer bookings'
+    },
+    {
+      label: 'Analytics',
+      href: `/admin/${companyId}/analytics`,
+      icon: ChartBarIcon,
+      badge: null,
+      description: 'Performance metrics and reports'
+    },
+    {
+      label: 'Customers',
+      href: `/admin/${companyId}/customers`,
+      icon: UserGroupIcon,
+      badge: null,
+      description: 'Customer management'
+    },
+    {
+      label: 'Settings',
+      href: `/admin/${companyId}/config`,
+      icon: CogIcon,
+      badge: null,
+      description: 'Configuration and settings'
+    },
+    {
+      label: 'Payment Settings',
+      href: `/admin/${companyId}/payment-settings`,
+      icon: BanknotesIcon,
+      badge: null,
+      description: 'Configure payment providers'
+    },
+    {
+      label: 'Billing',
+      href: `/admin/${companyId}/billing`,
+      icon: CreditCardIcon,
+      badge: null,
+      description: 'Subscription and payments'
+    }
+  ]
 
   return (
-    <div className="min-h-screen bg-background font-mono text-gray-900 flex">
-      {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out ${
-        sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-      } lg:translate-x-0 lg:relative lg:z-0`}>
-        
-        {/* Sidebar Header */}
-        <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">SW</span>
+    <div className={`flex min-h-screen ${darkMode ? 'dark' : ''}`}> 
+      <aside className={`sticky top-0 h-screen w-64 flex-shrink-0 bg-white border-r border-gray-200 dark:bg-gray-800 dark:border-gray-700 ${isImpersonating ? 'pt-20' : 'pt-16'}`}>
+          <div className="h-full px-3 pb-4 overflow-y-auto bg-white dark:bg-gray-800">
+            {/* Company Info Card */}
+            <div className="mb-6 p-4 rounded-lg text-white custom-company-header" style={{backgroundColor: '#005659', background: '#005659 !important', backgroundImage: 'none !important'}}>
+              <div className="flex items-center space-x-3 mb-3">
+                <div className="w-10 h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
+                  <BuildingOfficeIcon className="w-6 h-6" />
+                </div>
+                <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-base truncate text-text-heading dark:text-white">{company?.companyName || 'Company'}</h3>
+                <p className="text-base text-text-subtle dark:text-white capitalize">{company?.serviceType || 'Cleaning Service'}</p>
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <Badge color="success" size="sm">Pro Plan</Badge>
+                <Link
+                  to={`/booking/${companyId}`}
+                className="text-base text-black dark:text-white underline"
+                >
+                  View Live Form →
+                </Link>
+              </div>
             </div>
-            <div>
-              <h1 className="text-lg font-semibold text-gray-900">SwedPrime</h1>
-              <p className="text-xs text-gray-500">Admin Panel</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Company Info */}
-        <div className="px-6 py-4 bg-blue-50 border-b border-gray-200">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-              <span className="text-blue-600 font-semibold">
-                {companyId?.charAt(0)?.toUpperCase() || 'C'}
-              </span>
-            </div>
-            <div>
-              <h2 className="font-medium text-gray-900 capitalize">
-                {companyId?.replace('-', ' ') || 'Company'}
-              </h2>
-              <p className="text-sm text-gray-500">Premium Plan</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Navigation */}
-        <nav className="mt-6 px-3">
-          <div className="space-y-1">
-            {navigation.map((item) => (
-              <Link
-                key={item.name}
-                to={item.href}
-                className={`group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                  item.current
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
-                }`}
+            {/* Navigation */}
+            <nav className="space-y-2">
+              {navigationItems.map((item) => (
+                <NavLink
+                  key={item.href}
+                  to={item.href}
+                  end={item.exact}
+                  className={({ isActive }) =>
+                  `group flex items-center w-full p-2 text-base font-normal rounded-lg transition duration-75 ${
+                      isActive
+                      ? 'text-black bg-gray-100 dark:bg-gray-700 dark:text-white'
+                      : 'text-black hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'
+                    }`
+                  }
               >
-                <span className="mr-3 text-lg">{item.icon}</span>
-                {item.name}
-              </Link>
-            ))}
-          </div>
-        </nav>
-
-        {/* Quick Actions */}
-        <div className="mt-8 px-3">
-          <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-            Quick Actions
-          </h3>
-          <div className="mt-3 space-y-2">
-            <Link
-              to={`/admin/${companyId}/forms/new`}
-              className="group flex items-center px-3 py-2 text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors"
-            >
-              <span className="mr-3">➕</span>
-              New Calculator
-            </Link>
-          </div>
-        </div>
-
-        {/* Bottom User Info */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-              <span className="text-gray-600 text-sm font-medium">
-                {user?.email?.charAt(0)?.toUpperCase() || 'U'}
-              </span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate">
-                {user?.email || 'Admin User'}
-              </p>
-              <p className="text-xs text-gray-500">Online</p>
+                {item.icon && <item.icon className="w-5 h-5 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white" />}
+                  <span className="ml-3 flex-1 whitespace-nowrap">{item.label}</span>
+                  {item.badge && (
+                    <Badge color="info" size="sm">
+                      {item.badge}
+                    </Badge>
+                  )}
+                </NavLink>
+              ))}
+            </nav>
+            {/* Bottom Section */}
+            <div className="mt-8 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="p-4 bg-blue-50 dark:bg-blue-900 rounded-lg">
+              <h4 className="text-base font-semibold text-text-heading dark:text-white mb-2">
+                  Need Help?
+                </h4>
+              <p className="text-base text-text-subtle dark:text-white mb-3">
+                  Check our documentation or contact support for assistance.
+                </p>
+                <Button size="xs" color="blue" className="w-full">
+                  Get Support
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0">
+        </aside>
+      <div className="flex-1 min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200 overflow-x-hidden">
+        <Toaster 
+          position="top-right"
+          toastOptions={{
+            duration: 4000,
+            style: {
+              background: darkMode ? '#374151' : '#ffffff',
+              color: darkMode ? '#ffffff' : '#000000',
+            },
+          }}
+        />
+        
         {/* Super Admin Impersonation Banner */}
         {isImpersonating && (
-          <div className="bg-red-600 text-white px-4 py-2 text-sm flex items-center justify-between">
+          <div className="bg-red-600 text-white px-4 py-2 text-base flex items-center justify-between relative z-50">
             <div className="flex items-center gap-2">
               <span>🦹‍♀️</span>
               <span>
                 Super Admin Mode: Impersonating <strong>{impersonationData.tenantName}</strong>
               </span>
             </div>
-            <button
-              onClick={() => {
-                sessionStorage.removeItem('superAdminImpersonation');
-                window.location.href = '/super-admin/tenants';
-              }}
-              className="underline hover:no-underline"
-            >
-              Exit Impersonation
-            </button>
           </div>
         )}
         
-        {/* Top Header */}
-        <header className="bg-white shadow-sm border-b border-gray-200">
-          <div className="flex items-center justify-between h-16 px-6">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="lg:hidden p-2 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100"
-              >
-                <span className="sr-only">Open sidebar</span>
-                ☰
-              </button>
-              
-              {/* Breadcrumbs */}
-              <nav className="flex" aria-label="Breadcrumb">
-                <ol className="flex items-center space-x-2">
-                  <li>
-                    <Link to={`/admin/${companyId}`} className="text-gray-500 hover:text-gray-700">
-                      Dashboard
-                    </Link>
-                  </li>
-                  {location.pathname.includes('/forms') && (
-                    <>
-                      <li className="text-gray-300">/</li>
-                      <li className="text-gray-900 font-medium">Form Builder</li>
-                    </>
-                  )}
-                </ol>
-              </nav>
+        {/* Top Navigation Bar */}
+        <AdminHeader
+          darkMode={darkMode}
+          setDarkMode={setDarkMode}
+          setSearchOpen={setSearchOpen}
+          unreadCount={notifications.filter(n => n.unread).length}
+          notifications={notifications}
+        />
+
+        {/* Main Content - Always has left margin on desktop to account for fixed sidebar */}
+        <div className={`min-h-screen transition-all duration-300 ease-in-out w-full ${isImpersonating ? 'pt-20' : 'pt-16'} overflow-x-hidden`}>
+          <div className="p-6">
+            {/* Page Header */}
+            <div className="mb-6">
+              <nav aria-label="Breadcrumb" className="mb-2 text-sm text-text-subtle dark:text-gray-400"><ol className="list-reset flex">
+                {getBreadcrumbItems().map((item, index) => (
+                  <li key={index} className="flex items-center">{index > 0 && <span className="mx-2">/</span>}<Link to={item.href} className="hover:underline">
+                    {item.label}
+                  </Link></li>
+                ))}
+              </ol></nav>
+              <h1 className="text-2xl font-bold text-text-heading dark:text-white">
+                {getPageTitle()}
+              </h1>
             </div>
 
-            {/* Header Actions */}
-            <div className="flex items-center gap-4">
-              {/* Search */}
-              <div className="hidden md:block">
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Search..."
-                    className="w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                  <div className="absolute left-3 top-2.5 text-gray-400">
-                    🔍
-                  </div>
-                </div>
-              </div>
-
-              {/* Notifications */}
-              <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg relative">
-                <span className="sr-only">Notifications</span>
-                🔔
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-              </button>
-
-              {/* User Menu */}
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                  <span className="text-white text-sm font-medium">
-                    {user?.email?.charAt(0)?.toUpperCase() || 'U'}
-                  </span>
-                </div>
-              </div>
-            </div>
+            {/* Page Content */}
+            <AnimatePresence>
+              <Outlet context={{ company }} />
+            </AnimatePresence>
           </div>
-        </header>
+        </div>
 
-        {/* Page Content */}
-        <main className="flex-1">
-          <Outlet />
-        </main>
+        {/* Search Modal */}
+        <Modal show={searchOpen} onClose={() => setSearchOpen(false)} className="fixed inset-0 w-screen h-screen z-[9999] flex items-center justify-center">
+          <Modal.Header>Quick Search</Modal.Header>
+          <Modal.Body className="w-full h-full flex items-center justify-center bg-white dark:bg-gray-900">
+            <div className="space-y-4">
+              <TextInput
+                icon={MagnifyingGlassIcon}
+                placeholder="Search bookings, customers, calculators..."
+                className="w-full max-w-xl"
+              />
+              <div className="text-base text-text-subtle dark:text-white">
+                <p>Try searching for:</p>
+                <ul className="mt-2 space-y-1">
+                  <li>• Customer names (e.g., "Anna Andersson")</li>
+                  <li>• Booking IDs (e.g., "BK-2024-001")</li>
+                  <li>• Calculator names (e.g., "Premium Cleaning")</li>
+                </ul>
+              </div>
+            </div>
+          </Modal.Body>
+        </Modal>
       </div>
-
-      {/* Mobile sidebar overlay */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-gray-600 bg-opacity-75 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        ></div>
-      )}
     </div>
-  );
-} 
+  )
+}

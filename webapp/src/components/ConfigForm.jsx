@@ -9,10 +9,7 @@ import {
   Badge, 
   Alert, 
   Spinner,
-  Accordion,
-  Table,
-  Modal,
-  Toast
+  Modal
 } from 'flowbite-react'
 import { 
   PlusIcon, 
@@ -23,12 +20,49 @@ import {
   CurrencyDollarIcon,
   BuildingOfficeIcon,
   TagIcon,
-  MapIcon
+  MapIcon,
+  InformationCircleIcon,
+  ChevronDownIcon
 } from '@heroicons/react/24/outline'
-import { motion } from 'framer-motion'
-import toast from 'react-hot-toast'
 
-export default function ConfigForm({ initialConfig, onSave, onChange }) {
+import toast from 'react-hot-toast'
+import { createService, updateService, deleteService as deleteServiceFromFirestore } from '../services/firestore';
+
+// 1. Update the default service structure to support all SwedPrime models and options
+const defaultService = () => ({
+  name: '',
+  pricingModel: 'fixed-tier', // SwedPrime models: fixed-tier, tiered-multiplier, universal, window, hourly, per-room
+  tiers: [{ min: 1, max: 50, price: 3000 }], // for fixed-tier and tiered-multiplier
+  universalRate: 50, // for universal multiplier
+  windowTypes: [{ name: 'Typ 1', price: 60 }], // for window cleaning
+  hourlyTiers: [{ min: 1, max: 50, hours: 3 }], // for hourly model
+  hourlyRate: 400, // for hourly model
+  perRoomRates: [{ type: 'room', price: 300 }, { type: 'bathroom', price: 150 }], // for per-room
+  minPrice: 700,
+  vatRate: undefined, // fallback to global if not set
+  addOns: [], // [{ name, price, rutEligible }]
+  frequencyMultipliers: [], // No default frequencies
+  frequencyEnabled: true,
+  rutEligible: true,
+  customFees: [], // [{ label, amount, rutEligible }]
+});
+
+const sanitizeConfig = (config) => {
+  // Remove undefined values recursively
+  if (Array.isArray(config)) {
+    return config.map(sanitizeConfig);
+  } else if (config && typeof config === 'object') {
+    return Object.entries(config).reduce((acc, [key, value]) => {
+      if (value !== undefined) {
+        acc[key] = sanitizeConfig(value);
+      }
+      return acc;
+    }, {});
+  }
+  return config;
+};
+
+export default function ConfigForm({ initialConfig, onSave, onChange, refreshServices }) {
   const [config, setConfig] = useState({
     services: [],
     frequencyMultiplier: { weekly: 1, biweekly: 1.15, monthly: 1.4 },
@@ -37,6 +71,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
     zipAreas: ["41107", "41121", "41254", "41318", "41503"],
     rutPercentage: 0.3,
     rutEnabled: true,
+    vatRate: 25, // Universal VAT setting
     ...initialConfig
   })
 
@@ -45,15 +80,40 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
   const [isValid, setIsValid] = useState(false)
   const [showAddOnModal, setShowAddOnModal] = useState(false)
   const [newAddOnName, setNewAddOnName] = useState('')
+  const [expandedServiceId, setExpandedServiceId] = useState(null)
+  const [expandedSections, setExpandedSections] = useState({
+    rut: true,
+    zip: true,
+    vat: true
+  });
+  
+  // Function to toggle service expansion
+  const toggleService = (serviceId) => {
+    setExpandedServiceId(expandedServiceId === serviceId ? null : serviceId);
+  };
+  
+  // Function to check if a service is expanded
+  const isServiceExpanded = (serviceId) => {
+    return expandedServiceId === serviceId;
+  };
+
+  // Function to toggle section expansion
+  const toggleSection = (section) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
 
   useEffect(() => {
     if (initialConfig) {
-      setConfig(prevConfig => ({
-        ...prevConfig,
-        ...initialConfig
-      }))
+      setConfig(config => ({
+        ...config,
+        ...initialConfig,
+        services: initialConfig.services || []
+      }));
     }
-  }, [initialConfig])
+  }, [initialConfig]);
 
   // Validation
   useEffect(() => {
@@ -67,127 +127,130 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
 
   // Notify parent of config changes for live preview
   useEffect(() => {
+    console.log('🔄 ConfigForm config changed:', config);
     if (onChange) {
+      console.log('📤 Calling onChange with config:', config);
       onChange(config)
     }
   }, [config, onChange])
 
   // Service management
-  const addService = () => {
-    setConfig(prev => ({
-      ...prev,
-      services: [...prev.services, {
-        id: Date.now().toString(),
-        name: '',
-        pricingModel: 'flat-rate',
-        pricePerSqm: 10,
-        tiers: [{ min: 0, max: 50, pricePerSqm: 12 }]
-      }]
-    }))
-    toast.success('New service added')
-  }
+  const addService = async () => {
+    const companyId = initialConfig?.id;
+    if (!companyId) {
+      toast.error('Missing company ID');
+      return;
+    }
+    try {
+      const newService = defaultService();
+      await createService(companyId, newService);
+      if (typeof refreshServices === 'function') {
+        await refreshServices();
+      }
+      toast.success('New service added');
+    } catch {
+      toast.error('Failed to add service');
+    }
+  };
 
-  const updateService = (serviceId, updates) => {
+  const saveService = async (service) => {
+    const companyId = initialConfig?.id;
+    if (!companyId) {
+      toast.error('Missing company ID');
+      return;
+    }
+    try {
+      await updateService(companyId, service.id, service);
+      if (typeof refreshServices === 'function') {
+        await refreshServices();
+      }
+      toast.success('Service saved!');
+    } catch {
+      toast.error('Failed to save service');
+    }
+  };
+
+  const deleteService = async (serviceId) => {
+    const companyId = initialConfig?.id;
+    if (!companyId) {
+      toast.error('Missing company ID');
+      return;
+    }
+    try {
+      await deleteServiceFromFirestore(companyId, serviceId);
+      if (typeof refreshServices === 'function') {
+        await refreshServices();
+      }
+      toast.success('Service deleted');
+    } catch {
+      toast.error('Failed to delete service');
+    }
+  };
+
+  // Add per-service helpers for add-ons, custom fees, and frequency multipliers
+  function addAddOn(serviceId) {
     setConfig(prev => ({
       ...prev,
       services: prev.services.map(service =>
-        service.id === serviceId ? { ...service, ...updates } : service
+        service.id === serviceId
+          ? { ...service, addOns: [...(service.addOns || []), { name: '', price: 0, rutEligible: false }] }
+          : service
       )
-    }))
+    }));
   }
-
-  const deleteService = (serviceId) => {
+  function deleteAddOn(serviceId, addOnIdx) {
     setConfig(prev => ({
       ...prev,
-      services: prev.services.filter(service => service.id !== serviceId)
-    }))
-    toast.success('Service deleted')
+      services: prev.services.map(service => {
+        if (service.id !== serviceId) return service;
+        const addOns = [...(service.addOns || [])];
+        addOns.splice(addOnIdx, 1);
+        return { ...service, addOns };
+      })
+    }));
   }
-
-  // Tier management
-  const addTier = (serviceId) => {
-    const service = config.services.find(s => s.id === serviceId)
-    const lastTier = service.tiers[service.tiers.length - 1]
-    const newTier = {
-      min: lastTier ? lastTier.max + 1 : 0,
-      max: lastTier ? lastTier.max + 50 : 50,
-      pricePerSqm: 10
-    }
-    
-    updateService(serviceId, {
-      tiers: [...service.tiers, newTier]
-    })
-  }
-
-  const updateTier = (serviceId, tierIndex, updates) => {
-    const service = config.services.find(s => s.id === serviceId)
-    const updatedTiers = service.tiers.map((tier, index) =>
-      index === tierIndex ? { ...tier, ...updates } : tier
-    )
-    
-    updateService(serviceId, { tiers: updatedTiers })
-  }
-
-  const deleteTier = (serviceId, tierIndex) => {
-    const service = config.services.find(s => s.id === serviceId)
-    const updatedTiers = service.tiers.filter((_, index) => index !== tierIndex)
-    
-    updateService(serviceId, { tiers: updatedTiers })
-  }
-
-  // Global settings management
-  const updateFrequencyMultiplier = (key, value) => {
+  function updateAddOn(serviceId, addOnIdx, changes) {
     setConfig(prev => ({
       ...prev,
-      frequencyMultiplier: {
-        ...prev.frequencyMultiplier,
-        [key]: parseFloat(value) || 1
-      }
-    }))
+      services: prev.services.map(service => {
+        if (service.id !== serviceId) return service;
+        const addOns = [...(service.addOns || [])];
+        addOns[addOnIdx] = { ...addOns[addOnIdx], ...changes };
+        return { ...service, addOns };
+      })
+    }));
   }
-
-  const updateAddOn = (key, value) => {
+  function addCustomFee(serviceId) {
     setConfig(prev => ({
       ...prev,
-      addOns: {
-        ...prev.addOns,
-        [key]: parseInt(value) || 0
-      }
-    }))
+      services: prev.services.map(service =>
+        service.id === serviceId
+          ? { ...service, customFees: [...(service.customFees || []), { label: '', amount: 0, rutEligible: false }] }
+          : service
+      )
+    }));
   }
-
-  const addNewAddOn = () => {
-    if (newAddOnName && !config.addOns[newAddOnName]) {
-      setConfig(prev => ({
-        ...prev,
-        addOns: {
-          ...prev.addOns,
-          [newAddOnName]: 0
-        }
-      }))
-      setNewAddOnName('')
-      setShowAddOnModal(false)
-      toast.success('Add-on created')
-    }
-  }
-
-  const deleteAddOn = (key) => {
-    setConfig(prev => {
-      const newAddOns = { ...prev.addOns }
-      delete newAddOns[key]
-      return { ...prev, addOns: newAddOns }
-    })
-    toast.success('Add-on deleted')
-  }
-
-  const updateWindowPrice = (size, price) => {
+  function deleteCustomFee(serviceId, feeIdx) {
     setConfig(prev => ({
       ...prev,
-      windowCleaningPrices: {
-        ...prev.windowCleaningPrices,
-        [size]: parseInt(price) || 0
-      }
-    }))
+      services: prev.services.map(service => {
+        if (service.id !== serviceId) return service;
+        const customFees = [...(service.customFees || [])];
+        customFees.splice(feeIdx, 1);
+        return { ...service, customFees };
+      })
+    }));
+  }
+  function updateCustomFee(serviceId, feeIdx, changes) {
+    setConfig(prev => ({
+      ...prev,
+      services: prev.services.map(service => {
+        if (service.id !== serviceId) return service;
+        const customFees = [...(service.customFees || [])];
+        customFees[feeIdx] = { ...customFees[feeIdx], ...changes };
+        return { ...service, customFees };
+      })
+    }));
   }
 
   const updateZipAreas = (zipString) => {
@@ -198,312 +261,36 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
     }))
   }
 
-  const handleSave = async () => {
-    setSaving(true)
-    setMessage('')
-    
-    try {
-      await onSave(config)
-      setMessage('Configuration saved successfully!')
-      toast.success('Configuration saved!')
-    } catch (error) {
-      setMessage('Failed to save configuration: ' + error.message)
-      toast.error('Failed to save configuration')
-    } finally {
-      setSaving(false)
-    }
-  }
+  // Only show services with a valid Firestore ID
+  const validServices = config.services.filter(s => typeof s.id === 'string' && s.id.length > 0);
 
   return (
     <div className="space-y-6">
-      {/* Services Section */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-      >
-        <Card className="shadow-soft">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-primary-100 rounded-xl">
-                <BuildingOfficeIcon className="h-6 w-6 text-primary-600" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-gray-900">Services</h2>
-                <p className="text-sm text-gray-500">Configure your cleaning services and pricing</p>
-              </div>
-            </div>
-            <Button color="primary" onClick={addService} className="flex items-center space-x-2">
-              <PlusIcon className="h-4 w-4" />
-              <span>Add Service</span>
-            </Button>
-          </div>
-
-          <div className="space-y-4">
-            {config.services.map((service, index) => (
-              <motion.div
-                key={service.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.2, delay: index * 0.1 }}
-              >
-                <Card className="border-2 border-gray-100 hover:border-primary-200 transition-colors">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex-1 space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <div className="mb-2 block">
-                            <Label htmlFor={`service-name-${service.id}`} value="Service Name" />
-                          </div>
-                          <TextInput
-                            id={`service-name-${service.id}`}
-                            value={service.name}
-                            onChange={(e) => updateService(service.id, { name: e.target.value })}
-                            placeholder="e.g., Basic Cleaning"
-                            icon={TagIcon}
-                          />
-                        </div>
-
-                        <div>
-                          <div className="mb-2 block">
-                            <Label htmlFor={`pricing-model-${service.id}`} value="Pricing Model" />
-                          </div>
-                          <Select
-                            id={`pricing-model-${service.id}`}
-                            value={service.pricingModel}
-                            onChange={(e) => updateService(service.id, { pricingModel: e.target.value })}
-                          >
-                            <option value="flat-rate">Flat Rate (per sqm)</option>
-                            <option value="per-sqm-tiered">Tiered Pricing (per sqm)</option>
-                            <option value="per-room">Per Room</option>
-                            <option value="hourly">Hourly Rate</option>
-                          </Select>
-                        </div>
-                      </div>
-
-                      {service.pricingModel === 'flat-rate' && (
-                        <div className="w-full md:w-1/3">
-                          <div className="mb-2 block">
-                            <Label htmlFor={`price-per-sqm-${service.id}`} value="Price per sqm (kr)" />
-                          </div>
-                          <TextInput
-                            id={`price-per-sqm-${service.id}`}
-                            type="number"
-                            value={service.pricePerSqm || ''}
-                            onChange={(e) => updateService(service.id, { pricePerSqm: parseFloat(e.target.value) || 0 })}
-                            placeholder="10"
-                            icon={CurrencyDollarIcon}
-                          />
-                        </div>
-                      )}
-
-                      {service.pricingModel === 'per-sqm-tiered' && (
-                        <div>
-                          <div className="flex justify-between items-center mb-4">
-                            <Label value="Pricing Tiers" />
-                            <Button
-                              color="secondary"
-                              size="sm"
-                              onClick={() => addTier(service.id)}
-                              className="flex items-center space-x-1"
-                            >
-                              <PlusIcon className="h-3 w-3" />
-                              <span>Add Tier</span>
-                            </Button>
-                          </div>
-                          
-                          <div className="overflow-x-auto">
-                            <Table>
-                              <Table.Head>
-                                <Table.HeadCell>Min sqm</Table.HeadCell>
-                                <Table.HeadCell>Max sqm</Table.HeadCell>
-                                <Table.HeadCell>Price per sqm</Table.HeadCell>
-                                <Table.HeadCell>Actions</Table.HeadCell>
-                              </Table.Head>
-                              <Table.Body>
-                                {service.tiers?.map((tier, tierIndex) => (
-                                  <Table.Row key={tierIndex}>
-                                    <Table.Cell>
-                                      <TextInput
-                                        type="number"
-                                        value={tier.min}
-                                        onChange={(e) => updateTier(service.id, tierIndex, { min: parseInt(e.target.value) || 0 })}
-                                        size="sm"
-                                        placeholder="0"
-                                      />
-                                    </Table.Cell>
-                                    <Table.Cell>
-                                      <TextInput
-                                        type="number"
-                                        value={tier.max}
-                                        onChange={(e) => updateTier(service.id, tierIndex, { max: parseInt(e.target.value) || 0 })}
-                                        size="sm"
-                                        placeholder="50"
-                                      />
-                                    </Table.Cell>
-                                    <Table.Cell>
-                                      <TextInput
-                                        type="number"
-                                        value={tier.pricePerSqm}
-                                        onChange={(e) => updateTier(service.id, tierIndex, { pricePerSqm: parseFloat(e.target.value) || 0 })}
-                                        size="sm"
-                                        placeholder="12"
-                                      />
-                                    </Table.Cell>
-                                    <Table.Cell>
-                                      <Button
-                                        color="failure"
-                                        size="xs"
-                                        onClick={() => deleteTier(service.id, tierIndex)}
-                                      >
-                                        <TrashIcon className="h-3 w-3" />
-                                      </Button>
-                                    </Table.Cell>
-                                  </Table.Row>
-                                ))}
-                              </Table.Body>
-                            </Table>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    <Button
-                      color="failure"
-                      size="sm"
-                      onClick={() => deleteService(service.id)}
-                      className="ml-4"
-                    >
-                      <TrashIcon className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </Card>
-              </motion.div>
-            ))}
-
-            {config.services.length === 0 && (
-              <div className="text-center py-12 text-gray-500">
-                <BuildingOfficeIcon className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                <p className="text-lg font-medium">No services configured</p>
-                <p className="text-sm">Add your first service to get started</p>
-              </div>
-            )}
-          </div>
-        </Card>
-      </motion.div>
-
       {/* Global Settings */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, delay: 0.1 }}
-      >
-        <Card className="shadow-soft">
-          <div className="flex items-center space-x-3 mb-6">
-            <div className="p-2 bg-secondary-100 rounded-xl">
-              <CogIcon className="h-6 w-6 text-secondary-600" />
+      <div className="rounded-lg bg-gray-50 p-6 mb-8 border border-gray-200">
+        <h2 className="text-2xl font-bold mb-4 text-gray-900">Global Settings</h2>
+        
+        <>
+          {/* RUT Discount Settings */}
+          <div className="mb-6 border rounded-lg bg-white shadow-sm">
+            <div 
+              className="p-4 cursor-pointer bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 transition-all duration-200 border-b border-gray-200"
+              onClick={() => toggleSection('rut')}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="flex items-center justify-center w-8 h-8 bg-blue-100 rounded-full">
+                    <ChevronDownIcon
+                      className={`h-4 w-4 text-blue-600 transform transition-transform duration-300 ${expandedSections.rut ? 'rotate-180' : ''}`}
+                    />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900">RUT Discount Settings</h3>
+                </div>
+              </div>
             </div>
-            <div>
-              <h2 className="text-xl font-bold text-gray-900">Global Settings</h2>
-              <p className="text-sm text-gray-500">Configure pricing multipliers and add-ons</p>
-            </div>
-          </div>
-
-          <Accordion>
-            {/* Frequency Multipliers */}
-            <Accordion.Panel>
-              <Accordion.Title>Frequency Multipliers</Accordion.Title>
-              <Accordion.Content>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {Object.entries(config.frequencyMultiplier).map(([key, value]) => (
-                    <div key={key}>
-                      <div className="mb-2 block">
-                        <Label htmlFor={`freq-${key}`} value={`${key.charAt(0).toUpperCase() + key.slice(1)} (${value}x)`} />
-                      </div>
-                      <TextInput
-                        id={`freq-${key}`}
-                        type="number"
-                        step="0.01"
-                        value={value}
-                        onChange={(e) => updateFrequencyMultiplier(key, e.target.value)}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </Accordion.Content>
-            </Accordion.Panel>
-
-            {/* Add-ons */}
-            <Accordion.Panel>
-              <Accordion.Title>Add-ons</Accordion.Title>
-              <Accordion.Content>
-                <div className="mb-4">
-                  <Button
-                    color="secondary"
-                    size="sm"
-                    onClick={() => setShowAddOnModal(true)}
-                    className="flex items-center space-x-2"
-                  >
-                    <PlusIcon className="h-4 w-4" />
-                    <span>Add New Add-on</span>
-                  </Button>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {Object.entries(config.addOns).map(([key, value]) => (
-                    <div key={key} className="flex items-center space-x-2">
-                      <div className="flex-1">
-                        <Label htmlFor={`addon-${key}`} value={key.charAt(0).toUpperCase() + key.slice(1)} />
-                      </div>
-                      <TextInput
-                        id={`addon-${key}`}
-                        type="number"
-                        value={value}
-                        onChange={(e) => updateAddOn(key, e.target.value)}
-                        className="w-24"
-                      />
-                      <span className="text-sm text-gray-500">kr</span>
-                      <Button
-                        color="failure"
-                        size="xs"
-                        onClick={() => deleteAddOn(key)}
-                      >
-                        <TrashIcon className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </Accordion.Content>
-            </Accordion.Panel>
-
-            {/* Window Cleaning */}
-            <Accordion.Panel>
-              <Accordion.Title>Window Cleaning Prices</Accordion.Title>
-              <Accordion.Content>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {Object.entries(config.windowCleaningPrices).map(([size, price]) => (
-                    <div key={size}>
-                      <div className="mb-2 block">
-                        <Label htmlFor={`window-${size}`} value={`${size.charAt(0).toUpperCase() + size.slice(1)} Windows`} />
-                      </div>
-                      <TextInput
-                        id={`window-${size}`}
-                        type="number"
-                        value={price}
-                        onChange={(e) => updateWindowPrice(size, e.target.value)}
-                        addon="kr"
-                      />
-                    </div>
-                  ))}
-                </div>
-              </Accordion.Content>
-            </Accordion.Panel>
-
-            {/* RUT Discount */}
-            <Accordion.Panel>
-              <Accordion.Title>RUT Discount Settings</Accordion.Title>
-              <Accordion.Content>
-                <div className="space-y-4">
+            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${expandedSections.rut ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0'}`}>
+              {expandedSections.rut && (
+                <div className="p-4 space-y-4">
                   <div className="flex items-center space-x-2">
                     <Checkbox
                       id="rut-enabled"
@@ -528,116 +315,1066 @@ export default function ConfigForm({ initialConfig, onSave, onChange }) {
                             max="1"
                             value={config.rutPercentage}
                             onChange={(e) => setConfig(prev => ({ ...prev, rutPercentage: parseFloat(e.target.value) || 0 }))}
-                          />
-                        </div>
-
-                        <div>
-                          <div className="mb-2 block">
-                            <Label htmlFor="zip-areas" value="Eligible ZIP Codes" />
-                          </div>
-                          <TextInput
-                            id="zip-areas"
-                            value={config.zipAreas.join(', ')}
-                            onChange={(e) => updateZipAreas(e.target.value)}
-                            placeholder="41107, 41121, 41254"
-                            icon={MapIcon}
+                            className="text-gray-900"
                           />
                         </div>
                       </div>
                     </>
                   )}
                 </div>
-              </Accordion.Content>
-            </Accordion.Panel>
-          </Accordion>
-        </Card>
-      </motion.div>
-
-      {/* Add-on Modal */}
-      <Modal show={showAddOnModal} onClose={() => setShowAddOnModal(false)}>
-        <Modal.Header>Add New Add-on</Modal.Header>
-        <Modal.Body>
-          <div className="space-y-4">
-            <div>
-              <div className="mb-2 block">
-                <Label htmlFor="new-addon-name" value="Add-on Name" />
-              </div>
-              <TextInput
-                id="new-addon-name"
-                value={newAddOnName}
-                onChange={(e) => setNewAddOnName(e.target.value)}
-                placeholder="e.g., Window Cleaning"
-              />
+              )}
             </div>
           </div>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button color="primary" onClick={addNewAddOn} disabled={!newAddOnName}>
-            Add Add-on
-          </Button>
-          <Button color="gray" onClick={() => setShowAddOnModal(false)}>
-            Cancel
-          </Button>
-        </Modal.Footer>
-      </Modal>
 
-      {/* Save Section */}
-      <motion.div
+          {/* Eligible ZIP Codes */}
+          <div className="mb-6 border rounded-lg bg-white shadow-sm">
+            <div 
+              className="p-4 cursor-pointer bg-gradient-to-r from-green-50 to-emerald-50 hover:from-green-100 hover:to-emerald-100 transition-all duration-200 border-b border-gray-200"
+              onClick={() => toggleSection('zip')}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-full">
+                    <ChevronDownIcon
+                      className={`h-4 w-4 text-green-600 transform transition-transform duration-300 ${expandedSections.zip ? 'rotate-180' : ''}`}
+                    />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900">Eligible ZIP Codes</h3>
+                </div>
+              </div>
+            </div>
+            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${expandedSections.zip ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0'}`}>
+              {expandedSections.zip && (
+                <div className="p-4">
+                  <div className="rounded-lg bg-gray-50 p-4 mb-4 border border-gray-200">
+                    <div className="mb-2 block">
+                      <Label htmlFor="zip-areas" value="Eligible ZIP Codes" />
+                    </div>
+                    <TextInput
+                      id="zip-areas"
+                      value={config.zipAreas.join(', ')}
+                      onChange={(e) => updateZipAreas(e.target.value)}
+                      placeholder="41107, 41121, 41254"
+                      icon={MapIcon}
+                      className="text-gray-900"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* VAT Rate */}
+          <div className="mb-6 border rounded-lg bg-white shadow-sm">
+            <div 
+              className="p-4 cursor-pointer bg-gradient-to-r from-purple-50 to-violet-50 hover:from-purple-100 hover:to-violet-100 transition-all duration-200 border-b border-gray-200"
+              onClick={() => toggleSection('vat')}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="flex items-center justify-center w-8 h-8 bg-purple-100 rounded-full">
+                    <ChevronDownIcon
+                      className={`h-4 w-4 text-purple-600 transform transition-transform duration-300 ${expandedSections.vat ? 'rotate-180' : ''}`}
+                    />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900">VAT Rate (%)</h3>
+                </div>
+              </div>
+            </div>
+            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${expandedSections.vat ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0'}`}>
+              {expandedSections.vat && (
+                <div className="p-4">
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700">VAT Rate (%)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.1"
+                      value={config.vatRate || ''}
+                      onChange={e => setConfig(c => ({ ...c, vatRate: Number(e.target.value) }))}
+                      className="mt-1 block w-32 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    />
+                    <div className="flex items-center mt-1 text-xs text-gray-500">
+                      <InformationCircleIcon className="h-4 w-4 mr-1" /> 
+                      VAT will apply to service, add-ons, and custom fees.
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      </div>
+
+      {/* Services Section */}
+      <div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, delay: 0.2 }}
+        transition={{ duration: 0.3 }}
       >
-        <Card className="shadow-soft bg-gradient-to-r from-primary-50 to-secondary-50">
-          <div className="flex justify-between items-center">
+        <Card className="shadow-soft">
+          <div className="flex items-center justify-between mb-6">
             <div className="flex items-center space-x-3">
-              {isValid ? (
-                <CheckCircleIcon className="h-6 w-6 text-success-500" />
-              ) : (
-                <ExclamationTriangleIcon className="h-6 w-6 text-warning-500" />
-              )}
+              <div className="p-2 bg-primary-100 rounded-xl">
+                <BuildingOfficeIcon className="h-6 w-6 text-primary-600" />
+              </div>
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">
-                  {isValid ? 'Configuration Valid' : 'Configuration Incomplete'}
-                </h3>
-                <p className="text-sm text-gray-600">
-                  {isValid 
-                    ? 'Your configuration is ready to save' 
-                    : 'Please add at least one service with valid pricing'
-                  }
-                </p>
+                <h2 className="text-xl font-bold text-gray-900">Services</h2>
+                <p className="text-sm text-gray-500">Configure your cleaning services and pricing</p>
               </div>
             </div>
-            
-            <Button
-              color="primary"
-              size="lg"
-              onClick={handleSave}
-              disabled={!isValid || saving}
-              className="flex items-center space-x-2"
-            >
-              {saving ? (
-                <>
-                  <Spinner size="sm" />
-                  <span>Saving...</span>
-                </>
-              ) : (
-                <>
-                  <CheckCircleIcon className="h-5 w-5" />
-                  <span>Save Configuration</span>
-                </>
-              )}
+            <Button color="primary" onClick={addService} className="flex items-center space-x-2">
+              <PlusIcon className="h-4 w-4" />
+              <span>Add Service</span>
             </Button>
           </div>
-          
-          {message && (
-            <div className="mt-4">
-              <Alert color={message.includes('success') ? 'success' : 'failure'}>
-                {message}
-              </Alert>
-            </div>
-          )}
+
+          <div className="space-y-4">
+            {/* Only render services with a valid Firestore ID */}
+            {validServices.map(service => {
+              const isExpanded = isServiceExpanded(service.id);
+              return (
+                <div key={service.id} className="border rounded-lg bg-white shadow relative">
+                  {/* Service Header - Always Visible */}
+                  <div
+                    className="p-6 cursor-pointer bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-200 transition-all duration-200 border-b border-gray-200"
+                    onClick={() => toggleService(service.id)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-4">
+                        <div className="flex items-center justify-center w-10 h-10 bg-white rounded-full shadow-sm border-2 border-gray-200">
+                          <ChevronDownIcon
+                            className={`h-5 w-5 text-gray-600 transform transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
+                          />
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <span className="font-bold text-xl text-gray-900">{service.name || 'Unnamed Service'}</span>
+                          {service.status === 'draft' && (
+                            <span className="px-3 py-1 rounded-full bg-yellow-100 text-yellow-800 text-xs font-semibold border border-yellow-200">
+                              Draft
+                            </span>
+                          )}
+                          <span className="text-sm text-gray-500 font-medium">
+                            {service.pricingModel ? service.pricingModel.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'No Model'}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        <button
+                          type="button"
+                          onClick={e => { e.stopPropagation(); deleteService(service.id); }}
+                          className="flex items-center space-x-2 px-4 py-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors duration-200"
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                          <span className="text-sm font-medium">Remove</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  {/* Service Content - Collapsible */}
+                  <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isExpanded ? 'max-h-none opacity-100' : 'max-h-0 opacity-0'}`}>
+                    {isExpanded && (
+                    <div className="p-6 border-t border-gray-200 bg-gradient-to-br from-white to-gray-50 max-h-[80vh] overflow-y-auto">
+                      <div className="max-w-4xl mx-auto">
+                        <div className="mb-6">
+                          <h3 className="text-lg font-semibold text-gray-900 mb-2 flex items-center">
+                            <CogIcon className="h-5 w-5 mr-2 text-blue-600" />
+                            Service Configuration
+                          </h3>
+                          <div className="h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
+                          <p className="text-sm text-gray-600 mt-2">
+                            Scroll down to see all configuration options. All changes are saved automatically.
+                          </p>
+                        </div>
+                        <div>
+                      {/* Pricing Model */}
+                <div className="mb-2">
+                  <label className="block text-sm font-medium">Pricing Model</label>
+                  <select
+                    value={service.pricingModel}
+                    onChange={e => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, pricingModel: e.target.value } : s) }))}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                  >
+                    <option value="fixed-tier">Fixed Tier</option>
+                    <option value="tiered-multiplier">Tiered Multiplier</option>
+                    <option value="universal">Universal Multiplier</option>
+                    <option value="window">Window Cleaning</option>
+                    <option value="hourly">Hourly</option>
+                    <option value="per-room">Per Room</option>
+                  </select>
+                </div>
+                {service.pricingModel === 'fixed-tier' || service.pricingModel === 'tiered-multiplier' ? (
+                  <div className="rounded-lg bg-gradient-to-r from-amber-50 to-orange-50 p-6 mb-6 border border-amber-100 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center">
+                        <div className="bg-amber-100 p-2 rounded-full mr-3">
+                          <MapIcon className="h-5 w-5 text-amber-600" />
+                        </div>
+                        <h3 className="text-lg font-semibold text-gray-900">Area Tiers (sqm)</h3>
+                      </div>
+                      <button 
+                        type="button" 
+                        onClick={() => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, tiers: [...s.tiers, { min: 0, max: 0, price: 0 }] } : s) }))} 
+                        className="flex items-center px-4 py-2 rounded-full bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium shadow-sm transition"
+                      >
+                        <PlusIcon className="h-4 w-4 mr-1" /> Add Tier
+                      </button>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      {service.tiers.map((tier, tIdx) => (
+                        <div key={tIdx} className="bg-white rounded-lg p-4 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                          <div className="flex items-center justify-between">
+                            <div className="flex-grow grid grid-cols-3 gap-4">
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Min Area (sqm)</label>
+                                <input 
+                                  type="number" 
+                                  value={tier.min} 
+                                  onChange={e => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, tiers: s.tiers.map((t, i) => i === tIdx ? { ...t, min: Number(e.target.value) } : t) } : s) }))} 
+                                  className="w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-amber-300 text-gray-900" 
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Max Area (sqm)</label>
+                                <input 
+                                  type="number" 
+                                  value={tier.max} 
+                                  onChange={e => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, tiers: s.tiers.map((t, i) => i === tIdx ? { ...t, max: Number(e.target.value) } : t) } : s) }))} 
+                                  className="w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-amber-300 text-gray-900" 
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Price (kr)</label>
+                                <input 
+                                  type="number" 
+                                  value={tier.price} 
+                                  onChange={e => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, tiers: s.tiers.map((t, i) => i === tIdx ? { ...t, price: Number(e.target.value) } : t) } : s) }))} 
+                                  className="w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-amber-300 text-gray-900" 
+                                />
+                              </div>
+                            </div>
+                            <div className="ml-4">
+                              <button 
+                                type="button" 
+                                onClick={() => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, tiers: s.tiers.filter((_, i) => i !== tIdx) } : s) }))} 
+                                className="text-gray-400 hover:text-red-500 p-1 rounded-full hover:bg-red-50"
+                              >
+                                <TrashIcon className="h-5 w-5" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                      
+                      {service.tiers.length === 0 && (
+                        <div className="bg-white rounded-lg p-6 border border-dashed border-gray-300 text-center">
+                          <div className="text-gray-400 mb-2">
+                            <MapIcon className="h-8 w-8 mx-auto mb-2" />
+                            <p className="text-gray-500">No area tiers defined yet</p>
+                          </div>
+                          <button 
+                            type="button" 
+                            onClick={() => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, tiers: [...s.tiers, { min: 0, max: 0, price: 0 }] } : s) }))} 
+                            className="mt-2 inline-flex items-center px-4 py-2 rounded-md bg-amber-50 hover:bg-amber-100 text-amber-700 text-sm font-medium"
+                          >
+                            <PlusIcon className="h-4 w-4 mr-1" /> Add Your First Tier
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="mt-4 bg-amber-50 rounded-md p-3 flex items-start">
+                      <InformationCircleIcon className="h-5 w-5 text-amber-500 mr-2 flex-shrink-0 mt-0.5" />
+                      <p className="text-sm text-gray-600">
+                        Define price tiers based on area size. Each tier specifies the price for cleaning areas within the given range.
+                      </p>
+                    </div>
+                  </div>
+                ) : null}
+                {service.pricingModel === 'universal' ? (
+                  <div className="rounded-lg bg-gray-50 p-4 mb-4 border border-gray-200">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-lg font-semibold text-gray-900">Universal Rate (kr/sqm)</h3>
+                    </div>
+                    <input type="number" value={service.universalRate} onChange={e => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, universalRate: Number(e.target.value) } : s) }))} className="w-full border rounded px-2 py-1 focus:ring-2 focus:ring-primary-300" />
+                  </div>
+                ) : null}
+                {service.pricingModel === 'window' ? (
+                  <div className="rounded-lg bg-gray-50 p-4 mb-4 border border-gray-200">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-lg font-semibold text-gray-900">Window Types</h3>
+                      <button type="button" onClick={() => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, windowTypes: [...s.windowTypes, { name: '', price: 0 }] } : s) }))} className="flex items-center px-4 py-2 rounded bg-primary-600 hover:bg-primary-700 text-black text-sm font-bold shadow-sm transition ml-2">
+                        <PlusIcon className="h-4 w-4 mr-1" /> Add Window Type
+                      </button>
+                    </div>
+                    <table className="w-full text-sm border mb-2 table-auto">
+                      <thead>
+                        <tr>
+                          <th className="border px-3 py-2 text-left align-middle">Type</th>
+                          <th className="border px-3 py-2 text-left align-middle">Price (kr)</th>
+                          <th className="border px-3 py-2 text-left align-middle"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {service.windowTypes.map((type, wIdx) => (
+                          <tr key={wIdx}>
+                            <td className="border px-3 py-2 text-left align-middle"><input value={type.name} onChange={e => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, windowTypes: s.windowTypes.map((t, i) => i === wIdx ? { ...t, name: e.target.value } : t) } : s) }))} className="w-32 border rounded" /></td>
+                            <td className="border px-3 py-2 text-left align-middle"><input type="number" value={type.price} onChange={e => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, windowTypes: s.windowTypes.map((t, i) => i === wIdx ? { ...t, price: Number(e.target.value) } : t) } : s) }))} className="w-20 border rounded" /></td>
+                            <td className="border px-3 py-2 text-left align-middle"><button type="button" onClick={() => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, windowTypes: s.windowTypes.filter((_, i) => i !== wIdx) } : s) }))} className="text-red-400">Remove</button></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : null}
+                {service.pricingModel === 'hourly' ? (
+                  <div className="rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 p-6 mb-6 border border-blue-100 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center">
+                        <div className="bg-blue-100 p-2 rounded-full mr-3">
+                          <CurrencyDollarIcon className="h-5 w-5 text-blue-600" />
+                        </div>
+                        <h3 className="text-lg font-semibold text-gray-900">Hourly Pricing</h3>
+                      </div>
+                      <button 
+                        type="button" 
+                        onClick={() => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, hourlyTiers: [...(s.hourlyTiers || []), { min: 1, max: 50, hours: 3 }] } : s) }))} 
+                        className="flex items-center px-4 py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium shadow-sm transition"
+                      >
+                        <PlusIcon className="h-4 w-4 mr-1" /> Add Tier
+                      </button>
+                    </div>
+                    
+                    <div className="mb-6 bg-white p-4 rounded-lg shadow-sm border border-gray-100">
+                      <h4 className="text-md font-semibold text-gray-800 mb-3 flex items-center">
+                        <span className="bg-blue-100 p-1 rounded-md mr-2">
+                          <CurrencyDollarIcon className="h-4 w-4 text-blue-600" />
+                        </span>
+                        Base Hourly Rate
+                      </h4>
+                      <div className="flex items-center">
+                        <input 
+                          type="number" 
+                          value={service.hourlyRate || 400} 
+                          onChange={e => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, hourlyRate: Number(e.target.value) } : s) }))} 
+                          className="w-32 border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-300 focus:border-blue-300 text-lg" 
+                        />
+                        <span className="ml-2 text-lg font-medium text-gray-700">kr/hour</span>
+                      </div>
+                      <p className="text-sm text-gray-500 mt-2">This rate will be multiplied by the hours for each area tier</p>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      {(service.hourlyTiers || []).map((tier, tIdx) => (
+                        <div key={tIdx} className="bg-white rounded-lg p-4 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                          <div className="flex justify-between">
+                            <div className="flex-grow">
+                              <div className="grid grid-cols-2 gap-4 mb-3">
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-1">Area Range</label>
+                                  <div className="flex items-center gap-2">
+                                    <input 
+                                      type="number" 
+                                      value={tier.min} 
+                                      onChange={e => {
+                                        const newTiers = [...service.hourlyTiers];
+                                        newTiers[tIdx] = { ...tier, min: Number(e.target.value) };
+                                        setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, hourlyTiers: newTiers } : s) }));
+                                      }} 
+                                      className="w-24 border rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-300" 
+                                      placeholder="Min" 
+                                    />
+                                    <span className="text-gray-500">to</span>
+                                    <input 
+                                      type="number" 
+                                      value={tier.max} 
+                                      onChange={e => {
+                                        const newTiers = [...service.hourlyTiers];
+                                        newTiers[tIdx] = { ...tier, max: Number(e.target.value) };
+                                        setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, hourlyTiers: newTiers } : s) }));
+                                      }} 
+                                      className="w-24 border rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-300" 
+                                      placeholder="Max" 
+                                    />
+                                    <span className="text-gray-500">m²</span>
+                                  </div>
+                                </div>
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-1">Hours Required</label>
+                                  <div className="flex items-center">
+                                    <input 
+                                      type="number" 
+                                      value={tier.hours} 
+                                      onChange={e => {
+                                        const newTiers = [...service.hourlyTiers];
+                                        newTiers[tIdx] = { ...tier, hours: Number(e.target.value) };
+                                        setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, hourlyTiers: newTiers } : s) }));
+                                      }} 
+                                      className="w-24 border rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-300" 
+                                      placeholder="Hours" 
+                                    />
+                                    <span className="ml-2 text-gray-500">hours</span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="bg-blue-50 rounded-md p-3 flex justify-between items-center">
+                                <span className="text-sm font-medium text-gray-700">Calculated Price:</span>
+                                <span className="text-lg font-bold text-blue-700">
+                                  {(tier.hours * (service.hourlyRate || 400)).toLocaleString()} kr
+                                </span>
+                              </div>
+                            </div>
+                            <div className="ml-4 flex items-start">
+                              <button 
+                                type="button" 
+                                onClick={() => {
+                                  const newTiers = [...service.hourlyTiers];
+                                  newTiers.splice(tIdx, 1);
+                                  setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, hourlyTiers: newTiers } : s) }));
+                                }} 
+                                className="text-gray-400 hover:text-red-500 p-1 rounded-full hover:bg-red-50"
+                              >
+                                <TrashIcon className="h-5 w-5" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                      
+                      {(!service.hourlyTiers || service.hourlyTiers.length === 0) && (
+                        <div className="bg-white rounded-lg p-6 border border-dashed border-gray-300 text-center">
+                          <div className="text-gray-400 mb-2">
+                            <CogIcon className="h-8 w-8 mx-auto mb-2" />
+                            <p className="text-gray-500">No hourly tiers defined yet</p>
+                          </div>
+                          <button 
+                            type="button" 
+                            onClick={() => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, hourlyTiers: [...(s.hourlyTiers || []), { min: 1, max: 50, hours: 3 }] } : s) }))} 
+                            className="mt-2 inline-flex items-center px-4 py-2 rounded-md bg-blue-50 hover:bg-blue-100 text-blue-700 text-sm font-medium"
+                          >
+                            <PlusIcon className="h-4 w-4 mr-1" /> Add Your First Tier
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="mt-4 bg-blue-50 rounded-md p-3 flex items-start">
+                      <InformationCircleIcon className="h-5 w-5 text-blue-500 mr-2 flex-shrink-0 mt-0.5" />
+                      <p className="text-sm text-gray-600">
+                        Define area ranges and how many hours each range requires. The final price is calculated by multiplying the hours by your hourly rate.
+                      </p>
+                    </div>
+                  </div>
+                ) : null}
+                {service.pricingModel === 'per-room' ? (
+                  <div className="rounded-lg bg-gray-50 p-4 mb-4 border border-gray-200">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-lg font-semibold text-gray-900">Room Types</h3>
+                      <button type="button" onClick={() => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, perRoomRates: [...s.perRoomRates, { type: '', price: 0 }] } : s) }))} className="flex items-center px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 text-red-500 text-sm font-bold shadow-sm transition ml-2">
+                        <PlusIcon className="h-4 w-4 mr-1" /> Add Room Type
+                      </button>
+                    </div>
+                    <table className="w-full text-sm border mb-2 table-auto">
+                      <thead>
+                        <tr>
+                          <th className="border px-3 py-2 text-left align-middle">Type</th>
+                          <th className="border px-3 py-2 text-left align-middle">Price (kr)</th>
+                          <th className="border px-3 py-2 text-left align-middle"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {service.perRoomRates.map((type, rIdx) => (
+                          <tr key={rIdx}>
+                            <td className="border px-3 py-2 text-left align-middle"><input value={type.type} onChange={e => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, perRoomRates: s.perRoomRates.map((r, i) => i === rIdx ? { ...r, type: e.target.value } : r) } : s) }))} className="w-32 border rounded" /></td>
+                            <td className="border px-3 py-2 text-left align-middle"><input type="number" value={type.price} onChange={e => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, perRoomRates: s.perRoomRates.map((r, i) => i === rIdx ? { ...r, price: Number(e.target.value) } : r) } : s) }))} className="w-20 border rounded" /></td>
+                            <td className="border px-3 py-2 text-left align-middle"><button type="button" onClick={() => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, perRoomRates: s.perRoomRates.filter((_, i) => i !== rIdx) } : s) }))} className="text-red-400">Remove</button></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : null}
+                {/* Add-Ons */}
+                <div className="rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 p-6 mb-6 border border-green-100 shadow-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center">
+                      <div className="bg-green-100 p-2 rounded-full mr-3">
+                        <PlusIcon className="h-5 w-5 text-green-600" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-900">Add-Ons</h3>
+                    </div>
+                    <button 
+                      type="button" 
+                      onClick={() => addAddOn(service.id)} 
+                      className="flex items-center px-4 py-2 rounded-full bg-green-600 hover:bg-green-700 text-white text-sm font-medium shadow-sm transition"
+                    >
+                      <PlusIcon className="h-4 w-4 mr-1" /> Add Add-On
+                    </button>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    {service.addOns && service.addOns.map((addOn, aIdx) => (
+                      <div key={aIdx} className="bg-white rounded-lg p-4 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-grow grid grid-cols-3 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                              <input
+                                className="w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-green-300 text-gray-900"
+                                value={addOn.name}
+                                onChange={e => updateAddOn(service.id, aIdx, { name: e.target.value })}
+                                placeholder="Add-on name"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Price (kr)</label>
+                              <input
+                                type="number"
+                                className="w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-green-300 text-gray-900"
+                                value={addOn.price}
+                                onChange={e => updateAddOn(service.id, aIdx, { price: Number(e.target.value) })}
+                                placeholder="Price"
+                              />
+                            </div>
+                            {config.rutEnabled ? (
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">RUT Eligible</label>
+                                <div className="flex items-center h-[38px]">
+                                  <label className="flex items-center gap-2 cursor-pointer">
+                                    <div className="relative">
+                                      <input
+                                        type="checkbox"
+                                        checked={addOn.rutEligible}
+                                        onChange={e => updateAddOn(service.id, aIdx, { rutEligible: e.target.checked })}
+                                        className="sr-only"
+                                      />
+                                      <div className={`block w-10 h-6 rounded-full transition ${addOn.rutEligible ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                                      <div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition ${addOn.rutEligible ? 'transform translate-x-4' : ''}`}></div>
+                                    </div>
+                                    <span className="text-sm text-gray-700">
+                                      {addOn.rutEligible ? 'Yes' : 'No'}
+                                    </span>
+                                  </label>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex items-end">
+                                <span className="text-xs text-gray-400">RUT is disabled globally</span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="ml-4">
+                            <button 
+                              type="button" 
+                              onClick={() => deleteAddOn(service.id, aIdx)} 
+                              className="text-gray-400 hover:text-red-500 p-1 rounded-full hover:bg-red-50"
+                            >
+                              <TrashIcon className="h-5 w-5" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    
+                    {(!service.addOns || service.addOns.length === 0) && (
+                      <div className="bg-white rounded-lg p-6 border border-dashed border-gray-300 text-center">
+                        <div className="text-gray-400 mb-2">
+                          <PlusIcon className="h-8 w-8 mx-auto mb-2" />
+                          <p className="text-gray-500">No add-ons defined yet</p>
+                        </div>
+                        <button 
+                          type="button" 
+                          onClick={() => addAddOn(service.id)} 
+                          className="mt-2 inline-flex items-center px-4 py-2 rounded-md bg-green-50 hover:bg-green-100 text-green-700 text-sm font-medium"
+                        >
+                          <PlusIcon className="h-4 w-4 mr-1" /> Add Your First Add-On
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="mt-4 bg-green-50 rounded-md p-3 flex items-start">
+                    <InformationCircleIcon className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-gray-600">
+                      Add-ons are optional services customers can select. Mark them as RUT eligible if they qualify for tax deductions.
+                    </p>
+                  </div>
+                </div>
+                {/* Frequency Multipliers */}
+                <div className="rounded-lg bg-gradient-to-r from-indigo-50 to-blue-50 p-6 mb-6 border border-indigo-100 shadow-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center">
+                      <div className="bg-indigo-100 p-2 rounded-full mr-3">
+                        <TagIcon className="h-5 w-5 text-indigo-600" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-900">Frequency Options</h3>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <div className="relative">
+                          <input
+                            type="checkbox"
+                            checked={service.frequencyEnabled !== false}
+                            onChange={e => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, frequencyEnabled: e.target.checked } : s) }))}
+                            className="sr-only"
+                          />
+                          <div className={`block w-10 h-6 rounded-full transition ${service.frequencyEnabled !== false ? 'bg-indigo-500' : 'bg-gray-300'}`}></div>
+                          <div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition ${service.frequencyEnabled !== false ? 'transform translate-x-4' : ''}`}></div>
+                        </div>
+                        <span className="text-sm text-gray-700">
+                          {service.frequencyEnabled !== false ? 'Enabled' : 'Disabled'}
+                        </span>
+                      </label>
+                      
+                      <button 
+                        type="button" 
+                        onClick={() => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, frequencyMultipliers: [...(s.frequencyMultipliers || []), { label: '', multiplier: 1 }] } : s) }))} 
+                        className="flex items-center px-4 py-2 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium shadow-sm transition"
+                        disabled={service.frequencyEnabled === false}
+                      >
+                        <PlusIcon className="h-4 w-4 mr-1" /> Add Option
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {service.frequencyEnabled !== false ? (
+                    <div className="space-y-3">
+                      {service.frequencyMultipliers && service.frequencyMultipliers.length > 0 ? (
+                        service.frequencyMultipliers.map((freq, fIdx) => (
+                          <div key={fIdx} className="bg-white rounded-lg p-4 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                            <div className="flex items-center justify-between">
+                              <div className="flex-grow grid grid-cols-2 gap-4">
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-1">Label</label>
+                                  <input
+                                    className="w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-indigo-300 text-gray-900"
+                                    value={freq.label}
+                                    onChange={e => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, frequencyMultipliers: s.frequencyMultipliers.map((f, i) => i === fIdx ? { ...f, label: e.target.value } : f) } : s) }))}
+                                    placeholder="e.g., Weekly, Monthly"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-1">Multiplier</label>
+                                  <div className="flex items-center">
+                                    <input
+                                      type="number"
+                                      step="0.01"
+                                      className="w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-indigo-300 text-gray-900"
+                                      value={freq.multiplier}
+                                      onChange={e => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, frequencyMultipliers: s.frequencyMultipliers.map((f, i) => i === fIdx ? { ...f, multiplier: Number(e.target.value) } : f) } : s) }))}
+                                      placeholder="1.0"
+                                    />
+                                    <span className="ml-2 text-sm text-gray-500">×</span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="ml-4">
+                                <button 
+                                  type="button" 
+                                  onClick={() => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, frequencyMultipliers: s.frequencyMultipliers.filter((_, i) => i !== fIdx) } : s) }))} 
+                                  className="text-gray-400 hover:text-red-500 p-1 rounded-full hover:bg-red-50"
+                                >
+                                  <TrashIcon className="h-5 w-5" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="bg-white rounded-lg p-6 border border-dashed border-gray-300 text-center">
+                          <div className="text-gray-400 mb-2">
+                            <TagIcon className="h-8 w-8 mx-auto mb-2" />
+                            <p className="text-gray-500">No frequency options defined yet</p>
+                          </div>
+                          <button 
+                            type="button" 
+                            onClick={() => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, frequencyMultipliers: [...(s.frequencyMultipliers || []), { label: '', multiplier: 1 }] } : s) }))} 
+                            className="mt-2 inline-flex items-center px-4 py-2 rounded-md bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-sm font-medium"
+                          >
+                            <PlusIcon className="h-4 w-4 mr-1" /> Add Your First Option
+                          </button>
+                        </div>
+                      )}
+                      
+                      <div className="mt-4 bg-indigo-50 rounded-md p-3 flex items-start">
+                        <InformationCircleIcon className="h-5 w-5 text-indigo-500 mr-2 flex-shrink-0 mt-0.5" />
+                        <p className="text-sm text-gray-600">
+                          Frequency options allow customers to select how often they want the service. Each option has a price multiplier (e.g., 1.0 for one-time, 0.9 for weekly).
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-gray-100 p-4 rounded-lg border border-gray-200">
+                      <div className="flex items-center text-gray-500">
+                        <ExclamationTriangleIcon className="h-5 w-5 mr-2 text-gray-400" />
+                        <span>Frequency options are disabled for this service. Enable them using the toggle above.</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                {/* RUT Eligible Toggle */}
+                <div className="rounded-lg bg-gradient-to-r from-sky-50 to-cyan-50 p-6 mb-6 border border-sky-100 shadow-sm">
+                  <div className="flex items-center mb-4">
+                    <div className="bg-sky-100 p-2 rounded-full mr-3">
+                      <CheckCircleIcon className="h-5 w-5 text-sky-600" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900">RUT Eligibility</h3>
+                  </div>
+                  
+                  {config.rutEnabled ? (
+                    <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Is this service RUT eligible?</label>
+                      <div className="flex items-center">
+                        <label className="flex items-center gap-3 cursor-pointer">
+                          <div className="relative">
+                            <input
+                              type="checkbox"
+                              checked={service.rutEligible}
+                              onChange={e => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, rutEligible: e.target.checked } : s) }))}
+                              className="sr-only"
+                            />
+                            <div className={`block w-12 h-6 rounded-full transition ${service.rutEligible ? 'bg-sky-500' : 'bg-gray-300'}`}></div>
+                            <div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition ${service.rutEligible ? 'transform translate-x-6' : ''}`}></div>
+                          </div>
+                          <span className="text-base font-medium text-gray-700">
+                            {service.rutEligible ? 'Eligible for RUT deduction' : 'Not eligible for RUT deduction'}
+                          </span>
+                        </label>
+                      </div>
+                      <p className="mt-3 text-sm text-gray-500">
+                        This applies to the main service only. For add-ons and custom fees, enable RUT eligibility individually.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="bg-gray-100 p-4 rounded-lg border border-gray-200">
+                      <div className="flex items-center text-gray-500">
+                        <ExclamationTriangleIcon className="h-5 w-5 mr-2 text-gray-400" />
+                        <span>RUT is disabled globally. Enable it in global settings to configure per-item eligibility.</span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="mt-4 bg-sky-50 rounded-md p-3 flex items-start">
+                    <InformationCircleIcon className="h-5 w-5 text-sky-500 mr-2 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-gray-600">
+                      RUT-eligible services qualify for a tax deduction of up to 30% for customers.
+                    </p>
+                  </div>
+                </div>
+                {/* Custom Fees */}
+                <div className="rounded-lg bg-gradient-to-r from-purple-50 to-violet-50 p-6 mb-6 border border-purple-100 shadow-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center">
+                      <div className="bg-purple-100 p-2 rounded-full mr-3">
+                        <CurrencyDollarIcon className="h-5 w-5 text-purple-600" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-900">Custom Fees</h3>
+                    </div>
+                    <button 
+                      type="button" 
+                      onClick={() => addCustomFee(service.id)} 
+                      className="flex items-center px-4 py-2 rounded-full bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium shadow-sm transition"
+                    >
+                      <PlusIcon className="h-4 w-4 mr-1" /> Add Custom Fee
+                    </button>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    {service.customFees && service.customFees.map((fee, fIdx) => (
+                      <div key={fIdx} className="bg-white rounded-lg p-4 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-grow grid grid-cols-3 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Label</label>
+                              <input
+                                className="w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-purple-300 text-gray-900"
+                                value={fee.label}
+                                onChange={e => updateCustomFee(service.id, fIdx, { label: e.target.value })}
+                                placeholder="Fee label"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Amount (kr)</label>
+                              <input
+                                type="number"
+                                className="w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-purple-300 text-gray-900"
+                                value={fee.amount}
+                                onChange={e => updateCustomFee(service.id, fIdx, { amount: Number(e.target.value) })}
+                                placeholder="Amount"
+                              />
+                            </div>
+                            {config.rutEnabled ? (
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">RUT Eligible</label>
+                                <div className="flex items-center h-[38px]">
+                                  <label className="flex items-center gap-2 cursor-pointer">
+                                    <div className="relative">
+                                      <input
+                                        type="checkbox"
+                                        checked={fee.rutEligible}
+                                        onChange={e => updateCustomFee(service.id, fIdx, { rutEligible: e.target.checked })}
+                                        className="sr-only"
+                                      />
+                                      <div className={`block w-10 h-6 rounded-full transition ${fee.rutEligible ? 'bg-purple-500' : 'bg-gray-300'}`}></div>
+                                      <div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition ${fee.rutEligible ? 'transform translate-x-4' : ''}`}></div>
+                                    </div>
+                                    <span className="text-sm text-gray-700">
+                                      {fee.rutEligible ? 'Yes' : 'No'}
+                                    </span>
+                                  </label>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex items-end">
+                                <span className="text-xs text-gray-400">RUT is disabled globally</span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="ml-4">
+                            <button 
+                              type="button" 
+                              onClick={() => deleteCustomFee(service.id, fIdx)} 
+                              className="text-gray-400 hover:text-red-500 p-1 rounded-full hover:bg-red-50"
+                            >
+                              <TrashIcon className="h-5 w-5" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    
+                    {(!service.customFees || service.customFees.length === 0) && (
+                      <div className="bg-white rounded-lg p-6 border border-dashed border-gray-300 text-center">
+                        <div className="text-gray-400 mb-2">
+                          <CurrencyDollarIcon className="h-8 w-8 mx-auto mb-2" />
+                          <p className="text-gray-500">No custom fees defined yet</p>
+                        </div>
+                        <button 
+                          type="button" 
+                          onClick={() => addCustomFee(service.id)} 
+                          className="mt-2 inline-flex items-center px-4 py-2 rounded-md bg-purple-50 hover:bg-purple-100 text-purple-700 text-sm font-medium"
+                        >
+                          <PlusIcon className="h-4 w-4 mr-1" /> Add Your First Custom Fee
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="mt-4 bg-purple-50 rounded-md p-3 flex items-start">
+                    <InformationCircleIcon className="h-5 w-5 text-purple-500 mr-2 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-gray-600">
+                      Custom fees are additional charges that apply to all bookings. Mark them as RUT eligible if they qualify for tax deductions.
+                    </p>
+                  </div>
+                </div>
+                {/* Per-service VAT override */}
+                <div className="rounded-lg bg-gray-50 p-4 mb-4 border border-gray-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-lg font-semibold text-gray-900">VAT Override (%)</h3>
+                  </div>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    value={service.vatRate ?? ''}
+                    onChange={e => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, vatRate: e.target.value ? Number(e.target.value) : undefined } : s) }))}
+                    className="mt-1 block w-24 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm text-gray-900"
+                    placeholder={`Default: ${config.vatRate}%`}
+                  />
+                  <div className="flex items-center mt-1 text-xs text-gray-500"><InformationCircleIcon className="h-4 w-4 mr-1" /> VAT will apply to service, add-ons, and custom fees.</div>
+                </div>
+                
+                {/* Minimum Fee */}
+                <div className="rounded-lg bg-gradient-to-r from-amber-50 to-yellow-50 p-6 mb-6 border border-amber-100 shadow-sm">
+                  <div className="flex items-center mb-4">
+                    <div className="bg-amber-100 p-2 rounded-full mr-3">
+                      <CurrencyDollarIcon className="h-5 w-5 text-amber-600" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900">Minimum Fee</h3>
+                  </div>
+                  
+                  <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
+                    <div className="flex flex-col">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Minimum Charge (kr)</label>
+                      <div className="flex items-center">
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          value={service.minPrice ?? ''}
+                          onChange={e => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, minPrice: e.target.value ? Number(e.target.value) : undefined } : s) }))}
+                          className="w-32 border rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-300 focus:border-amber-300 text-lg"
+                          placeholder="0"
+                        />
+                        <span className="ml-2 text-lg font-medium text-gray-700">kr</span>
+                      </div>
+                      <p className="mt-2 text-sm text-gray-500">
+                        This is the minimum amount a customer will be charged, regardless of the calculated price.
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4 bg-amber-50 rounded-md p-3 flex items-start">
+                    <InformationCircleIcon className="h-5 w-5 text-amber-500 mr-2 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-gray-600">
+                      If the calculated price is lower than this minimum fee, customers will be charged this amount instead.
+                    </p>
+                  </div>
+                </div>
+                
+                {/* TODO: Add pricing model-specific fields here (not in this step) */}
+                <div className="flex justify-end mt-4">
+                  <Button
+                    color="gray"
+                    size="sm"
+                    onClick={async () => {
+                      setSaving(true);
+                      setMessage('');
+                      try {
+                        await saveService(service);
+                        setMessage('Service saved successfully!');
+                      } catch (error) {
+                        setMessage('Failed to save service: ' + error.message);
+                      } finally {
+                        setSaving(false);
+                      }
+                    }}
+                    disabled={saving}
+                    className="absolute bottom-4 right-4 text-red-500"
+                  >
+                    {saving ? <Spinner size="sm" /> : 'Save'}
+                  </Button>
+                </div>
+              </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+            {config.services.length === 0 && (
+              <div className="text-center py-12 text-gray-500">
+                <BuildingOfficeIcon className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                <p className="text-lg font-medium">No services configured</p>
+                <p className="text-sm">Add your first service to get started</p>
+              </div>
+            )}
+          </div>
         </Card>
-      </motion.div>
+
+        {/* Add-on Modal */}
+        <Modal show={showAddOnModal} onClose={() => setShowAddOnModal(false)}>
+          <Modal.Header>Add New Add-on</Modal.Header>
+          <Modal.Body>
+            <div className="space-y-4">
+              <div>
+                <div className="mb-2 block">
+                  <Label htmlFor="new-addon-name" value="Add-on Name" />
+                </div>
+                <TextInput
+                  id="new-addon-name"
+                  value={newAddOnName}
+                  onChange={(e) => setNewAddOnName(e.target.value)}
+                  placeholder="e.g., Window Cleaning"
+                  className="text-gray-900"
+                />
+              </div>
+            </div>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button color="primary" onClick={() => {
+              const newAddOn = { name: newAddOnName, price: 0, rutEligible: false };
+              setConfig(prev => ({
+                ...prev,
+                addOns: { ...prev.addOns, [newAddOnName.toLowerCase().replace(/\s/g, '-')]: newAddOn }
+              }));
+              setShowAddOnModal(false);
+              setNewAddOnName('');
+              toast.success('Add-on added!');
+            }} disabled={!newAddOnName}>
+              Add Add-on
+            </Button>
+            <Button color="gray" onClick={() => setShowAddOnModal(false)}>
+              Cancel
+            </Button>
+          </Modal.Footer>
+        </Modal>
+
+        {/* Save Section */}
+        <div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.2 }}
+        >
+          <Card className="shadow-soft bg-gradient-to-r from-primary-50 to-secondary-50">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center space-x-3">
+                {isValid ? (
+                  <CheckCircleIcon className="h-6 w-6 text-success-500" />
+                ) : (
+                  <ExclamationTriangleIcon className="h-6 w-6 text-warning-500" />
+                )}
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    {isValid ? 'Configuration Valid' : 'Configuration Incomplete'}
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    {isValid 
+                      ? 'Your configuration is ready to save' 
+                      : 'Please add at least one service with valid pricing'
+                    }
+                  </p>
+                </div>
+              </div>
+              
+              <Button
+                color="gray"
+                size="lg"
+                onClick={async () => {
+                  setSaving(true);
+                  setMessage('');
+                  try {
+                    await onSave(sanitizeConfig(config));
+                    setMessage('Configuration saved successfully!');
+                    toast.success('Configuration saved!');
+                  } catch (error) {
+                    setMessage('Failed to save configuration: ' + error.message);
+                    toast.error('Failed to save configuration');
+                  } finally {
+                    setSaving(false);
+                  }
+                }}
+                disabled={!isValid || saving}
+                className="flex items-center space-x-2 text-red-500"
+              >
+                {saving ? (
+                  <>
+                    <Spinner size="sm" />
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircleIcon className="h-5 w-5" />
+                    <span>Save Configuration</span>
+                  </>
+                )}
+              </Button>
+            </div>
+            
+            {message && (
+              <div className="mt-4">
+                <Alert color={message.includes('success') ? 'success' : 'failure'}>
+                  {message}
+                </Alert>
+              </div>
+            )}
+          </Card>
+        </div>
+      </div>
     </div>
   )
 } 

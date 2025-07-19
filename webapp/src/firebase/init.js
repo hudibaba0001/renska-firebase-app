@@ -6,31 +6,37 @@ import { getFirestore }    from "firebase/firestore";
 import { getAuth }         from "firebase/auth";
 import { getAnalytics }    from "firebase/analytics";
 
-// Fallback values to ensure app works even if env vars are not injected
-const FALLBACK_CONFIG = {
-  apiKey: "AIzaSyBTrOmWHj0iQH2mkcNjUrD0IVKVnioHYbs",
-  authDomain: "swed-de2a3.firebaseapp.com",
-  projectId: "swed-de2a3",
-  storageBucket: "swed-de2a3.firebasestorage.app",
-  messagingSenderId: "647686291389",
-  appId: "1:647686291389:web:2306e61c2b196be2e51cd4",
-  measurementId: "G-QQCGCERGV3",
+// Firebase configuration sourced strictly from environment variables
+const firebaseConfig = {
+  apiKey:            import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain:        import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId:         import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket:     import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId:             import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId:     import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 }
 
-// Firebase configuration from environment variables with fallback
-const firebaseConfig = {
-  apiKey:            import.meta.env.VITE_FIREBASE_API_KEY        || FALLBACK_CONFIG.apiKey,
-  authDomain:        import.meta.env.VITE_FIREBASE_AUTH_DOMAIN    || FALLBACK_CONFIG.authDomain,
-  projectId:         import.meta.env.VITE_FIREBASE_PROJECT_ID     || FALLBACK_CONFIG.projectId,
-  storageBucket:     import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || FALLBACK_CONFIG.storageBucket,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || FALLBACK_CONFIG.messagingSenderId,
-  appId:             import.meta.env.VITE_FIREBASE_APP_ID         || FALLBACK_CONFIG.appId,
-  measurementId:     import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || FALLBACK_CONFIG.measurementId,
+// Validate required configuration – fail fast in development, warn in production build
+const required = ['apiKey', 'authDomain', 'projectId']
+const missing = required.filter(k => !firebaseConfig[k])
+if (missing.length) {
+  if (import.meta.env.DEV) {
+    console.warn('⚠️ Missing Firebase env vars in development:', missing, '– using placeholder config');
+    Object.assign(firebaseConfig, {
+      apiKey: 'dev-placeholder',
+      authDomain: 'dev-placeholder.firebaseapp.com',
+      projectId: 'dev-placeholder'
+    });
+  } else {
+    console.error('🚨 Missing Firebase config vars:', missing);
+    throw new Error(`Missing Firebase environment variables: ${missing.join(', ')}`);
+  }
 }
 
 console.log("🔧 firebaseConfig:", firebaseConfig);
 
-const app = initializeApp(firebaseConfig);
+export const app = initializeApp(firebaseConfig);
 
 try {
   getAnalytics(app);

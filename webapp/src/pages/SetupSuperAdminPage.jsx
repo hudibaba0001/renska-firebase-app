@@ -56,12 +56,12 @@ export default function SetupSuperAdminPage() {
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center">
       <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8">
-        <h1 className="text-2xl font-bold text-center mb-6">Super Admin Setup</h1>
+        <h1 className="text-2xl font-bold text-text-heading dark:text-white">Super Admin Setup</h1>
         
         <div className="space-y-4">
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h3 className="font-semibold text-blue-900">Setup Instructions:</h3>
-            <p className="text-blue-700 text-sm mt-1">
+            <h3 className="font-semibold text-text-heading dark:text-white">Setup Instructions:</h3>
+            <p className="text-sm text-text-main dark:text-white">
               This will configure super admin access for admin@swedprime.com
             </p>
           </div>
@@ -75,7 +75,7 @@ export default function SetupSuperAdminPage() {
           {error && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4">
               <p className="text-red-700 text-sm">{error}</p>
-              <div className="mt-2 text-xs text-red-600">
+              <div className="mt-2 text-xs text-text-subtle dark:text-white">
                 <p>Make sure the user admin@swedprime.com exists in Firebase Authentication</p>
               </div>
             </div>

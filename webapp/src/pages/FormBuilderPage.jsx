@@ -1,28 +1,43 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { db } from '../firebase/init';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, getDocs } from 'firebase/firestore';
 import { useAuth } from '../context/AuthContext';
+import { getTenant, getAllServicesForCompany } from '../services/firestore';
 
 // Step Components
 import CreateCalculatorStep from '../components/formbuilder/CreateCalculatorStep';
-import DefineServicesStep from '../components/formbuilder/DefineServicesStep';
-import GlobalOptionsStep from '../components/formbuilder/GlobalOptionsStep';
 import FieldOrderingStep from '../components/formbuilder/FieldOrderingStep';
-import PreviewTestStep from '../components/formbuilder/PreviewTestStep';
+import CustomFormStep from '../components/formbuilder/CustomFormStep';
+// import FormBuilderDragDrop from '../components/formbuilder/FormBuilderDragDrop';
+import ServiceSelectionStep from '../components/formbuilder/ServiceSelectionStep';
+import ZipCodeValidationStep from '../components/formbuilder/ZipCodeValidationStep';
 
-const STEPS = [
-  { id: 1, title: 'Create Calculator', component: CreateCalculatorStep },
-  { id: 2, title: 'Define Services', component: DefineServicesStep },
-  { id: 3, title: 'Global Options', component: GlobalOptionsStep },
-  { id: 4, title: 'Field Ordering', component: FieldOrderingStep },
-  { id: 5, title: 'Preview & Test', component: PreviewTestStep }
-];
+// Dynamically build steps based on config
+function getSteps() {
+  const steps = [
+    { id: 1, title: 'Form Details', component: CreateCalculatorStep }
+  ];
+  
+  // Always show ZIP Code Validation step - it will handle enabling/disabling internally
+  steps.push({ id: 2, title: 'ZIP Code Validation', component: ZipCodeValidationStep });
+  
+  steps.push({ id: 3, title: 'Service Selection', component: ServiceSelectionStep });
+  steps.push({ id: 4, title: 'Custom Form Builder', component: FieldOrderingStep });
+  steps.push({ id: 5, title: 'Preview & Test', component: CustomFormStep });
+  
+  return steps;
+}
 
 export default function FormBuilderPage() {
   const { companyId, formId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  
+  // Add detailed debugging for formId
+  console.log('🔍 FormBuilderPage - Initial params:', { companyId, formId });
+  console.log('🔍 FormBuilderPage - formId type:', typeof formId);
+  console.log('🔍 FormBuilderPage - formId === "new":', formId === 'new');
   
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -49,13 +64,9 @@ export default function FormBuilderPage() {
     
     // Field Ordering & Customization
     fieldOrder: [
-      'zipCode',
-      'serviceSelector',
-      'area',
-      'frequency',
-      'addOns',
-      'windowCleaning',
-      'rutToggle'
+      'name',
+      'email',
+      'phone'
     ],
     fieldLabels: {},
     fieldHelp: {},
@@ -69,25 +80,100 @@ export default function FormBuilderPage() {
 
   // Load existing config if editing
   useEffect(() => {
+    console.log('🔍 FormBuilderPage - useEffect triggered:', { formId, companyId });
     if (formId && formId !== 'new') {
+      console.log('🔍 FormBuilderPage - Loading existing config for formId:', formId);
       loadExistingConfig();
+    } else {
+      console.log('🔍 FormBuilderPage - Creating new form (formId is "new" or falsy)');
     }
   }, [formId, companyId]);
+
+  useEffect(() => {
+    async function fetchCompanyData() {
+      if (!companyId) return;
+      setLoading(true);
+      try {
+        // Fetch company config and services
+        const [companyConfig, services] = await Promise.all([
+          getTenant(companyId),
+          getAllServicesForCompany(companyId)
+        ]);
+        setConfig(prev => ({
+          ...prev,
+          zipAreas: (companyConfig && companyConfig.zipAreas) ? companyConfig.zipAreas : prev.zipAreas,
+          services: services.length > 0 ? services : prev.services
+        }));
+      } catch (error) {
+        console.error('Error fetching company config/services:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchCompanyData();
+    // eslint-disable-next-line
+  }, [companyId]);
 
   const loadExistingConfig = async () => {
     setLoading(true);
     try {
+      console.log('🔧 Loading form config for:', { companyId, formId });
+      console.log('🔧 Firestore path: companies/' + companyId + '/calculators/' + formId);
+      
       const docRef = doc(db, 'companies', companyId, 'calculators', formId);
       const docSnap = await getDoc(docRef);
       
+      console.log('🔧 Document exists:', docSnap.exists());
+      console.log('🔧 Document ID:', docSnap.id);
+      
       if (docSnap.exists()) {
-        setConfig(prevConfig => ({
-          ...prevConfig,
-          ...docSnap.data()
+        const formData = docSnap.data();
+        console.log('🔧 Loaded existing form data:', formData);
+        
+        // Get all available services for this company
+        const allServices = await getAllServicesForCompany(companyId);
+        console.log('🔧 All available services:', allServices);
+        
+        // For the form builder, we want to show ALL services in the ServiceSelectionStep
+        // The selectedServiceIds will be used to determine which services are pre-selected
+        console.log('🔧 Using all services for form builder, selectedServiceIds for pre-selection');
+        
+        // Merge with default config, preserving existing data
+        setConfig(prevConfig => {
+          const mergedConfig = {
+            ...prevConfig,
+            ...formData,
+            // Use ALL services for the form builder (ServiceSelectionStep will handle selection)
+            services: allServices,
+            fieldOrder: formData.fieldOrder || prevConfig.fieldOrder || ['name', 'email', 'phone'],
+            fieldLabels: formData.fieldLabels || prevConfig.fieldLabels || {},
+            fieldHelp: formData.fieldHelp || prevConfig.fieldHelp || {},
+            zipAreas: formData.zipAreas || prevConfig.zipAreas || []
+          };
+          console.log('🔧 Merged config:', mergedConfig);
+          return mergedConfig;
+        });
+      } else {
+        console.error('❌ Form not found in Firestore:', { companyId, formId });
+        console.error('❌ Document path: companies/' + companyId + '/calculators/' + formId);
+        
+        // Let's check what calculators exist for this company
+        const calculatorsRef = collection(db, 'companies', companyId, 'calculators');
+        const calculatorsSnapshot = await getDocs(calculatorsRef);
+        const existingCalculators = calculatorsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          name: doc.data().name,
+          slug: doc.data().slug
         }));
+        console.log('🔧 Existing calculators for this company:', existingCalculators);
+        
+        // If form doesn't exist, redirect to new form
+        navigate(`/admin/${companyId}/forms/new`, { replace: true });
       }
     } catch (error) {
-      console.error('Error loading config:', error);
+      console.error('❌ Error loading config:', error);
+      // If there's an error, redirect to new form
+      navigate(`/admin/${companyId}/forms/new`, { replace: true });
     } finally {
       setLoading(false);
     }
@@ -96,7 +182,20 @@ export default function FormBuilderPage() {
   const saveDraft = async () => {
     setSaving(true);
     try {
-      const docRef = doc(db, 'companies', companyId, 'calculators', formId || config.slug);
+      console.log('💾 Saving draft for:', { companyId, formId, config });
+      console.log('💾 Config being saved:', config);
+      console.log('💾 Services in config:', config.services);
+      console.log('💾 Zip areas in config:', config.zipAreas);
+      
+      // For new forms, we need to create a document ID first
+      let targetFormId = formId;
+      if (formId === 'new') {
+        // Generate a unique ID for new forms
+        targetFormId = `calc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        console.log('🆕 Generated new form ID:', targetFormId);
+      }
+      
+      const docRef = doc(db, 'companies', companyId, 'calculators', targetFormId);
       const now = new Date();
       
       const updatedConfig = {
@@ -108,15 +207,21 @@ export default function FormBuilderPage() {
         })
       };
       
+      console.log('💾 Final config being saved:', updatedConfig);
+      console.log('💾 Saving config to:', targetFormId);
       await setDoc(docRef, updatedConfig, { merge: true });
       setConfig(updatedConfig);
       
       // Update URL if this is a new form
       if (formId === 'new') {
-        navigate(`/admin/${companyId}/forms/${config.slug}`, { replace: true });
+        const newUrl = `/admin/${companyId}/forms/${targetFormId}`;
+        console.log('🔄 Updating URL to:', newUrl);
+        navigate(newUrl, { replace: true });
       }
+      
+      console.log('✅ Draft saved successfully');
     } catch (error) {
-      console.error('Error saving draft:', error);
+      console.error('❌ Error saving draft:', error);
     } finally {
       setSaving(false);
     }
@@ -125,19 +230,44 @@ export default function FormBuilderPage() {
   const publishForm = async () => {
     setSaving(true);
     try {
-      const docRef = doc(db, 'companies', companyId, 'calculators', formId || config.slug);
-      await updateDoc(docRef, {
-        status: 'published',
-        publishedAt: new Date()
-      });
+      console.log('🚀 Publishing form for:', { companyId, formId, config });
       
-      setConfig(prev => ({ 
-        ...prev, 
+      // For new forms, we need to create a document ID first
+      let targetFormId = formId;
+      if (formId === 'new') {
+        // Generate a unique ID for new forms
+        targetFormId = `calc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        console.log('🆕 Generated new form ID:', targetFormId);
+      }
+      
+      const docRef = doc(db, 'companies', companyId, 'calculators', targetFormId);
+      const now = new Date();
+      
+      const publishedConfig = {
+        ...config,
         status: 'published',
-        publishedAt: new Date()
-      }));
+        publishedAt: now,
+        updatedAt: now,
+        ...(formId === 'new' && {
+          createdAt: now,
+          createdBy: user?.uid
+        })
+      };
+      
+      console.log('🚀 Publishing config to:', targetFormId);
+      await setDoc(docRef, publishedConfig);
+      setConfig(publishedConfig);
+      
+      // Update URL if this is a new form
+      if (formId === 'new') {
+        const newUrl = `/admin/${companyId}/forms/${targetFormId}`;
+        console.log('🔄 Updating URL to:', newUrl);
+        navigate(newUrl, { replace: true });
+      }
+      
+      console.log('✅ Form published successfully');
     } catch (error) {
-      console.error('Error publishing form:', error);
+      console.error('❌ Error publishing form:', error);
     } finally {
       setSaving(false);
     }
@@ -146,6 +276,9 @@ export default function FormBuilderPage() {
   const updateConfig = (updates) => {
     setConfig(prev => ({ ...prev, ...updates }));
   };
+
+  // Dynamically get steps based on config
+  const STEPS = getSteps();
 
   const nextStep = () => {
     if (currentStep < STEPS.length) {
@@ -174,7 +307,19 @@ export default function FormBuilderPage() {
     );
   }
 
-  const CurrentStepComponent = STEPS.find(step => step.id === currentStep)?.component;
+  // Debug logging
+  console.log('Current form config:', {
+    name: config.name,
+    slug: config.slug,
+    formId,
+    companyId,
+    currentStep,
+    totalSteps: STEPS.length,
+    fieldOrder: config.fieldOrder,
+    services: config.services?.length
+  });
+
+  const CurrentStepComponent = STEPS[currentStep - 1]?.component;
 
   return (
     <div className="p-6">
@@ -182,10 +327,10 @@ export default function FormBuilderPage() {
       <div className="mb-6">
         <div className="flex justify-between items-center mb-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1 className="text-2xl font-bold text-text-heading dark:text-white">
               {config.name || 'New Form Builder'}
             </h1>
-            <p className="text-gray-600">
+            <p className="text-sm text-text-main dark:text-white">
               {config.description || 'Create a custom booking calculator'}
             </p>
           </div>
@@ -194,7 +339,7 @@ export default function FormBuilderPage() {
             <button
               onClick={saveDraft}
               disabled={saving}
-              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              className="px-4 py-2 border border-gray-300 rounded-md text-text-main hover:bg-gray-50 disabled:opacity-50"
             >
               {saving ? 'Saving...' : 'Save Draft'}
             </button>
@@ -214,27 +359,27 @@ export default function FormBuilderPage() {
         {/* Progress Steps */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
           <nav className="flex space-x-8 px-6">
-            {STEPS.map((step) => (
+            {STEPS.map((step, idx) => (
               <button
                 key={step.id}
-                onClick={() => goToStep(step.id)}
+                onClick={() => goToStep(idx + 1)}
                 className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                  step.id === currentStep
+                  idx + 1 === currentStep
                     ? 'border-blue-500 text-blue-600'
-                    : step.id < currentStep
+                    : idx + 1 < currentStep
                     ? 'border-green-500 text-green-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                    : 'border-transparent text-text-subtle hover:text-text-main'
                 }`}
               >
                 <span className="flex items-center">
                   <span className={`mr-2 w-6 h-6 rounded-full text-xs flex items-center justify-center ${
-                    step.id === currentStep
+                    idx + 1 === currentStep
                       ? 'bg-blue-100 text-blue-600'
-                      : step.id < currentStep
+                      : idx + 1 < currentStep
                       ? 'bg-green-100 text-green-600'
-                      : 'bg-gray-100 text-gray-400'
+                      : 'bg-gray-100 text-text-subtle'
                   }`}>
-                    {step.id < currentStep ? '✓' : step.id}
+                    {idx + 1 < currentStep ? '✓' : idx + 1}
                   </span>
                   {step.title}
                 </span>
@@ -246,6 +391,25 @@ export default function FormBuilderPage() {
 
       {/* Step Content */}
       <div>
+        {/* Debug Info */}
+        <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <h3 className="font-medium text-yellow-800 mb-2">Debug Info</h3>
+          <p className="text-sm text-yellow-700">
+            Current Step: {currentStep} of {STEPS.length} - {STEPS[currentStep - 1]?.title}
+          </p>
+          <div className="mt-2 space-x-2">
+            {STEPS.map((step, idx) => (
+              <button
+                key={step.id}
+                onClick={() => goToStep(idx + 1)}
+                className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+              >
+                {idx + 1}: {step.title}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {CurrentStepComponent && (
           <CurrentStepComponent
             config={config}
