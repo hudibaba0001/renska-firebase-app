@@ -271,7 +271,8 @@ const BookingTable = ({
                 <th>Skapad</th>
                 <th>Åtgärder</th>
               </tr>
-            )
+            )}
+          </Table.Head>
           </Table.Head>
           <Table.Body className="divide-y">
             {sortedBookings.map((booking) => (
