@@ -716,6 +716,9 @@ export default function BookingCalculator({ config: propConfig, companyId: propC
           return;
         }
         const companyData = companyDoc.data();
+        console.log('🔍 Company config loaded:', companyData);
+        console.log('🔍 RUT settings - rutEnabled:', companyData.rutEnabled);
+        console.log('🔍 RUT settings - rutPercentage:', companyData.rutPercentage);
         setConfig(companyData);
 
         // Fetch services
@@ -814,9 +817,20 @@ export default function BookingCalculator({ config: propConfig, companyId: propC
       
       // Add custom fees from the service
       let customFeesPrice = 0;
+      let rutEligibleFees = 0;
+      let nonRutEligibleFees = 0;
+      
       if (selectedService.customFees && Array.isArray(selectedService.customFees)) {
         selectedService.customFees.forEach(fee => {
-          customFeesPrice += fee.amount || 0;
+          const feeAmount = fee.amount || 0;
+          customFeesPrice += feeAmount;
+          
+          // Check if this fee is RUT eligible
+          if (fee.rutEligible !== false) {
+            rutEligibleFees += feeAmount;
+          } else {
+            nonRutEligibleFees += feeAmount;
+          }
         });
       }
       
@@ -825,19 +839,40 @@ export default function BookingCalculator({ config: propConfig, companyId: propC
       console.log('💰 Price calculation - base price:', calculatedPrice);
       console.log('💰 Price calculation - add-ons price:', addOnsPrice);
       console.log('💰 Price calculation - custom fees price:', customFeesPrice);
+      console.log('💰 Price calculation - RUT eligible fees:', rutEligibleFees);
+      console.log('💰 Price calculation - non-RUT eligible fees:', nonRutEligibleFees);
       console.log('💰 Price calculation - total price:', totalPrice);
       
       setOriginalPrice(totalPrice);
 
-      // Apply RUT discount if eligible
-      if (selectedService.rutEligible && config.rutEnabled) {
-        const rutDiscount = totalPrice * (config.rutPercentage || 0.3);
-        setFinalPrice(totalPrice - rutDiscount);
-          setRutApplied(true);
-        } else {
+      // Apply RUT discount if eligible and there's actual service data
+      const hasServiceData = (selectedService.pricingModel === 'window' && 
+        selectedService.windowTypes?.some((_, index) => (formData[`window_${index}`] || 0) > 0)) ||
+        (selectedService.pricingModel !== 'window' && formData.area && formData.area > 0);
+      
+      if (selectedService.rutEligible && config.rutEnabled && totalPrice > 0 && hasServiceData) {
+        // Calculate RUT only on eligible portions
+        const rutEligibleTotal = calculatedPrice + addOnsPrice + rutEligibleFees;
+        const rutPercentage = config.rutPercentage || 0.5; // Default to 50% if not set
+        const rutDiscount = rutEligibleTotal * rutPercentage;
+        const finalPrice = rutEligibleTotal - rutDiscount + nonRutEligibleFees;
+        
+        console.log('💰 RUT calculation - rutEligibleTotal:', rutEligibleTotal);
+        console.log('💰 RUT calculation - rutPercentage:', rutPercentage);
+        console.log('💰 RUT calculation - rutDiscount:', rutDiscount);
+        console.log('💰 RUT calculation - nonRutEligibleFees:', nonRutEligibleFees);
+        console.log('💰 RUT calculation - finalPrice:', finalPrice);
+        
+        setFinalPrice(finalPrice);
+        setRutApplied(true);
+      } else {
+        console.log('💰 RUT not applied - rutEligible:', selectedService.rutEligible);
+        console.log('💰 RUT not applied - rutEnabled:', config.rutEnabled);
+        console.log('💰 RUT not applied - totalPrice:', totalPrice);
+        console.log('💰 RUT not applied - hasServiceData:', hasServiceData);
         setFinalPrice(totalPrice);
-          setRutApplied(false);
-        }
+        setRutApplied(false);
+      }
     } else {
       setOriginalPrice(0);
       setFinalPrice(0);

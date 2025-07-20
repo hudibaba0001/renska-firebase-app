@@ -1,60 +1,80 @@
-// webapp/src/components/BookingTable.jsx
-// Debug version to identify the data flow issue
 import React, { useState, useMemo } from 'react';
 import { Badge, Button, Spinner } from 'flowbite-react';
+import { 
+  EyeIcon, 
+  PhoneIcon, 
+  EnvelopeIcon,
+  ChevronUpIcon,
+  ChevronDownIcon 
+} from '@heroicons/react/24/outline';
 
-// Import icons explicitly
-import { EyeIcon } from '@heroicons/react/24/outline';
-import { CalendarIcon } from '@heroicons/react/24/outline';
-import { ClockIcon } from '@heroicons/react/24/outline';
-import { UserIcon } from '@heroicons/react/24/outline';
-import { BuildingOfficeIcon } from '@heroicons/react/24/outline';
-import { CurrencyDollarIcon } from '@heroicons/react/24/outline';
-import { EnvelopeIcon } from '@heroicons/react/24/outline';
-import { PhoneIcon } from '@heroicons/react/24/outline';
-
-// StatusBadge component inline implementation to avoid import issues
+// Simple StatusBadge component
 const StatusBadge = ({ status }) => {
-  let color = 'gray';
-  let label = status || 'Unknown';
-  
-  // Map status to appropriate color
-  switch(status?.toLowerCase()) {
-    case 'pending':
-      color = 'yellow';
-      break;
-    case 'confirmed':
-      color = 'blue';
-      break;
-    case 'completed':
-      color = 'green';
-      break;
-    case 'cancelled':
-      color = 'red';
-      break;
-    case 'rescheduled':
-      color = 'purple';
-      break;
-    default:
-      color = 'gray';
-  }
-  
-  return (
-    <Badge color={color}>
-      {label}
-    </Badge>
-  );
+  const getStatusConfig = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'pending':
+      case 'väntande':
+        return { color: 'warning', text: 'Väntande' };
+      case 'confirmed':
+      case 'bekräftad':
+        return { color: 'info', text: 'Bekräftad' };
+      case 'completed':
+      case 'slutförd':
+        return { color: 'success', text: 'Slutförd' };
+      case 'cancelled':
+      case 'avbokad':
+        return { color: 'failure', text: 'Avbokad' };
+      default:
+        return { color: 'gray', text: status || 'Okänd' };
+    }
+  };
+
+  const config = getStatusConfig(status);
+  return <Badge color={config.color}>{config.text}</Badge>;
 };
 
-// Simple icon component with error handling
-const SimpleIcon = ({ icon: Icon, className = 'w-4 h-4' }) => {
-  if (!Icon) return null;
-  
+// Utility functions
+const formatDate = (dateValue) => {
   try {
-    return <Icon className={className} />;
+    if (!dateValue) return 'N/A';
+    if (dateValue.toDate) {
+      return dateValue.toDate().toLocaleDateString('sv-SE');
+    }
+    if (dateValue instanceof Date) {
+      return dateValue.toLocaleDateString('sv-SE');
+    }
+    return new Date(dateValue).toLocaleDateString('sv-SE');
   } catch (error) {
-    console.error('Error rendering icon:', error);
-    return null;
+    console.warn('Date formatting error:', error);
+    return 'N/A';
+  }
+};
+
+const formatTime = (dateValue) => {
+  try {
+    if (!dateValue) return 'N/A';
+    if (dateValue.toDate) {
+      return dateValue.toDate().toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
+    }
+    if (dateValue instanceof Date) {
+      return dateValue.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
+    }
+    return new Date(dateValue).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
+  } catch (error) {
+    console.warn('Time formatting error:', error);
+    return 'N/A';
+  }
+};
+
+const formatCurrency = (amount) => {
+  try {
+    if (amount === null || amount === undefined) return '0 kr';
+    const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+    if (isNaN(numAmount)) return '0 kr';
+    return `${numAmount.toLocaleString('sv-SE')} kr`;
+  } catch (error) {
+    console.warn('Currency formatting error:', error);
+    return '0 kr';
   }
 };
 
@@ -67,132 +87,141 @@ const BookingTable = ({
   className
 }) => {
   console.log('🔧 BookingTable component is rendering!');
+  console.log('🔧 BookingTable props:', {
+    bookingsCount: bookings?.length || 0,
+    bookings: bookings,
+    loading,
+    companyId
+  });
   
-  try {
-    const [sortBy, setSortBy] = useState('bookingDate');
-    const [sortDirection, setSortDirection] = useState('desc');
-    const [viewBooking, setViewBooking] = useState(null);
-    
-    // Debug logging
-    console.log('🔧 BookingTable props:', {
-      bookingsCount: bookings?.length || 0,
-      bookings: bookings,
-      loading,
-      companyId
-    });
+  const [sortBy, setSortBy] = useState('bookingDate');
+  const [sortDirection, setSortDirection] = useState('desc');
+  const [viewBooking, setViewBooking] = useState(null);
   
   // Mock data for testing if no bookings are provided
   const mockBookings = useMemo(() => {
-    return bookings?.length > 0 ? bookings : [
+    if (bookings && bookings.length > 0) {
+      return bookings;
+    }
+    
+    return [
       {
         id: 'mock-1',
-        customerName: 'Test Kund',
-        customerEmail: 'test@example.com',
-        customerPhone: '070-123-4567',
-        serviceType: 'Standard Städning',
+        customerName: 'Anna Andersson',
+        customerEmail: 'anna@example.com',
+        customerPhone: '+46701234567',
         bookingDate: new Date(),
+        serviceType: 'Hemstädning',
         status: 'pending',
         totalAmount: 1500,
-        address: 'Testgatan 123, Stockholm'
+        createdAt: new Date()
       }
     ];
   }, [bookings]);
-  
-  console.log('Using bookings:', mockBookings);
-  
-  // Helper function for currency formatting
-  const formatCurrency = (amount) => {
-    if (amount === undefined || amount === null) return 'N/A';
-    try {
-      return new Intl.NumberFormat('sv-SE', {
-        style: 'currency',
-        currency: 'SEK',
-      }).format(Number(amount));
-    } catch (error) {
-      console.error('Error formatting currency:', error);
-      return 'Invalid Amount';
-    }
-  };
 
-  // Sort the bookings
+  // Sort bookings
   const sortedBookings = useMemo(() => {
-    if (!mockBookings || !mockBookings.length) return [];
-    
-    try {
-      return [...mockBookings].sort((a, b) => {
-        if (!a || !b) return 0;
-        
-        const aValue = a[sortBy];
-        const bValue = b[sortBy];
-        
-        // Handle sorting for different data types
-        if (aValue === undefined || aValue === null) return 1;
-        if (bValue === undefined || bValue === null) return -1;
-        
-        // For dates
-        if (aValue instanceof Date || (aValue && aValue.toDate) || 
-            bValue instanceof Date || (bValue && bValue.toDate)) {
-          const aDate = aValue && aValue.toDate ? aValue.toDate() : aValue;
-          const bDate = bValue && bValue.toDate ? bValue.toDate() : bValue;
-          
-          return sortDirection === 'asc' 
-            ? new Date(aDate) - new Date(bDate) 
-            : new Date(bDate) - new Date(aDate);
-        }
-        
-        // For strings
-        if (typeof aValue === 'string' && typeof bValue === 'string') {
-          return sortDirection === 'asc' 
-            ? aValue.localeCompare(bValue) 
-            : bValue.localeCompare(aValue);
-        }
-        
-        // For numbers
-        return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
-      });
-    } catch (error) {
-      console.error('Error sorting bookings:', error);
-      return [...mockBookings];
+    if (!mockBookings || mockBookings.length === 0) {
+      return [];
     }
+
+    return [...mockBookings].sort((a, b) => {
+      let aValue = a[sortBy];
+      let bValue = b[sortBy];
+      
+      // Handle date sorting
+      if (sortBy === 'bookingDate' || sortBy === 'createdAt') {
+        aValue = aValue?.toDate ? aValue.toDate() : new Date(aValue);
+        bValue = bValue?.toDate ? bValue.toDate() : new Date(bValue);
+      }
+      
+      if (sortDirection === 'asc') {
+        return aValue > bValue ? 1 : -1;
+      } else {
+        return aValue < bValue ? 1 : -1;
+      }
+    });
   }, [mockBookings, sortBy, sortDirection]);
+
+  console.log('🔧 About to render BookingTable JSX');
+  console.log('🔧 Sorted bookings:', sortedBookings);
 
   // Loading state
   if (loading) {
+    console.log('🔧 Rendering loading state');
     return (
-      <div className="flex justify-center items-center p-8">
-        <Spinner size="xl" />
-        <span className="ml-2">Loading bookings...</span>
+      <div className="flex justify-center items-center py-8">
+        <Spinner size="lg" />
+        <span className="ml-2">Laddar bokningar...</span>
       </div>
     );
   }
 
-    // Debug table as default return
+  // Empty state
+  if (!sortedBookings || sortedBookings.length === 0) {
+    console.log('🔧 Rendering empty state');
     return (
-      <div className={`overflow-x-auto ${className || ''}`}>
-        <div className="bg-white rounded-lg shadow p-4 mb-4">
-          <h3 className="text-lg font-medium mb-2">Debug Info</h3>
-          <p>Bookings count: {mockBookings.length}</p>
-          <p>Sorted bookings count: {sortedBookings.length}</p>
-          <p>Loading: {loading ? 'Yes' : 'No'}</p>
-          <p>Company ID: {companyId}</p>
-        </div>
+      <div className="bg-white rounded-lg shadow p-6 text-center">
+        <p className="text-gray-500">Inga bokningar hittades</p>
+      </div>
+    );
+  }
+
+  console.log('🔧 Rendering main table');
+
+  // Main table render
+  return (
+    <div className={`overflow-x-auto ${className || ''}`}>
+      <div className="bg-white rounded-lg shadow p-4 mb-4">
+        <h3 className="text-lg font-medium mb-2">🔧 BookingTable Debug Info</h3>
+        <p>Bookings count: {mockBookings.length}</p>
+        <p>Sorted bookings count: {sortedBookings.length}</p>
+        <p>Loading: {loading ? 'Yes' : 'No'}</p>
+        <p>Company ID: {companyId}</p>
+        <p>Component rendered at: {new Date().toLocaleTimeString()}</p>
+      </div>
       
       {/* Simple table for debugging */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Kund
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Datum
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Tid
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Tjänst
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Status
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Belopp
+              </th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {sortedBookings.map((booking) => (
-              <tr key={booking.id}>
+              <tr key={booking.id} className="hover:bg-gray-50">
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm font-medium text-gray-900">
+                    {booking.customerName || 'N/A'}
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    {booking.customerEmail || 'N/A'}
+                  </div>
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {booking.customerName || 'Unknown'}
+                  {formatDate(booking.bookingDate)}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  {formatTime(booking.bookingDate)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   {booking.serviceType || 'Standard'}
