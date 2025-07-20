@@ -52,11 +52,13 @@ const BookingManagementPage = () => {
     
     try {
       const result = await BookingService.getBookingsForCompany(companyId);
+      console.log('Loaded bookings:', result.bookings);
       setBookings(result.bookings);
       setFilteredBookings(result.bookings);
       
       // Load stats
       const statsData = await BookingService.getBookingStats(companyId);
+      console.log('Loaded stats:', statsData);
       setStats(statsData);
       
     } catch (err) {
@@ -115,6 +117,7 @@ const BookingManagementPage = () => {
       });
     }
 
+    console.log('Applying filters:', { filters, originalCount: bookings.length, filteredCount: filtered.length });
     setFilteredBookings(filtered);
   }, [bookings, filters]);
 

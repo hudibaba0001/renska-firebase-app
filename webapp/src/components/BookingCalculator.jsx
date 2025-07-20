@@ -526,12 +526,18 @@ const PriceCard = ({ originalPrice, finalPrice, rutApplied, selectedService, for
     return formData[addOnKey] ? total + (addOn.price || 0) : total;
   }, 0) || 0;
 
-  // Calculate base price (without add-ons only, custom fees are part of the base service)
-  const basePrice = originalPrice - addOnsTotal;
+  // Calculate custom fees total
+  const customFeesTotal = selectedService?.customFees?.reduce((total, fee) => {
+    return total + (fee.amount || 0);
+  }, 0) || 0;
+
+  // Calculate base price (service price without add-ons and custom fees)
+  const basePrice = originalPrice - addOnsTotal - customFeesTotal;
 
   // Debug logging
   console.log('💰 PriceCard - originalPrice:', originalPrice);
   console.log('💰 PriceCard - addOnsTotal:', addOnsTotal);
+  console.log('💰 PriceCard - customFeesTotal:', customFeesTotal);
   console.log('💰 PriceCard - basePrice:', basePrice);
   console.log('💰 PriceCard - custom fees:', selectedService?.customFees);
   console.log('💰 PriceCard - step:', step);
@@ -567,7 +573,11 @@ const PriceCard = ({ originalPrice, finalPrice, rutApplied, selectedService, for
             })}
             
             {/* Custom Fees */}
-            {selectedService?.customFees && selectedService.customFees.length > 0 && (
+            {selectedService?.customFees && selectedService.customFees.length > 0 && 
+             // Only show custom fees if user has added service data
+             ((selectedService.pricingModel === 'window' && 
+               selectedService.windowTypes?.some((_, index) => (formData[`window_${index}`] || 0) > 0)) ||
+              (selectedService.pricingModel !== 'window' && formData.area && formData.area > 0)) && (
               <>
                 <div className="pt-2 border-t border-gray-100">
                   {selectedService.customFees.map((fee, index) => (

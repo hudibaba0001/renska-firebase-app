@@ -123,7 +123,7 @@ export default function AdminDashboardPage() {
         const [
           bookingsData,
           metricsData
-        ] = await Promise.all([
+        ] = await Promise.allSettled([
           getRecentBookings(companyId, { limit: 3 }),
           getCompanyMetrics(companyId)
         ]);
@@ -137,19 +137,35 @@ export default function AdminDashboardPage() {
 
         setServices(fetchedServices);
         setCalculators(calculatorsData);
-        setRecentBookings(bookingsData);
+        setRecentBookings(bookingsData.status === 'fulfilled' ? bookingsData.value : []);
 
         const publishedCalculators = calculatorsData.filter(calc => calc.status === 'published');
         console.log('Published calculators:', publishedCalculators);
         
+        // Use default values if metrics fail to load
+        const safeMetrics = metricsData.status === 'fulfilled' ? metricsData.value : {
+          totalRevenue: 0,
+          totalBookings: 0,
+          abandonmentRate: 0
+        };
+        
         setRealStats({
-          totalRevenue: metricsData.totalRevenue,
-          activeBookings: metricsData.totalBookings,
-          conversionRate: metricsData.abandonmentRate, // Example, might need better metric
+          totalRevenue: safeMetrics.totalRevenue,
+          activeBookings: safeMetrics.totalBookings,
+          conversionRate: safeMetrics.abandonmentRate, // Example, might need better metric
           activeCalculators: publishedCalculators.length
         });
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
+        // Even if there's an error, we might have partial data
+        if (calculatorsData.length > 0) {
+          setCalculators(calculatorsData);
+          const publishedCalculators = calculatorsData.filter(calc => calc.status === 'published');
+          setRealStats(prev => ({
+            ...prev,
+            activeCalculators: publishedCalculators.length
+          }));
+        }
       } finally {
         setLoading(false);
       }
@@ -170,6 +186,9 @@ export default function AdminDashboardPage() {
     slug: calc.slug,
     publishedAt: calc.publishedAt
   }));
+
+  console.log('Calculator stats generated:', calculatorStats);
+  console.log('Calculator stats length:', calculatorStats.length);
 
   const quickActions = [
     {

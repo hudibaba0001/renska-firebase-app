@@ -176,15 +176,14 @@ class BookingService {
         completed: 0,
         cancelled: 0,
         totalRevenue: 0,
-        averageBookingValue: 0
       };
     }
   }
 
   /**
-   * Export bookings to CSV format
+   * Export bookings to CSV
    */
-  static exportBookingsToCSV(bookings) {
+  static async exportBookingsToCSV(bookings) {
     try {
       const headers = [
         'Boknings-ID',
