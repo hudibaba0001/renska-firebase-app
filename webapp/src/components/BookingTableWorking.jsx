@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Badge, Button } from 'flowbite-react';
 import { EyeIcon, PhoneIcon, EnvelopeIcon } from '@heroicons/react/24/outline';
 
@@ -83,11 +83,8 @@ const StatusBadge = ({ status }) => {
   return <Badge color={config.color}>{config.text}</Badge>;
 };
 
-const BookingTableSimple = ({ bookings = [], loading = false }) => {
-  const [selectedBooking, setSelectedBooking] = useState(null);
-  const [showModal, setShowModal] = useState(false);
-  
-  console.log('📋 BookingTableSimple rendering with', bookings.length, 'bookings');
+const BookingTableWorking = ({ bookings = [], loading = false }) => {
+  console.log('📋 BookingTableWorking rendering with', bookings.length, 'bookings');
   
   // Debug: Show actual booking data structure
   if (bookings.length > 0) {
@@ -101,8 +98,8 @@ const BookingTableSimple = ({ bookings = [], loading = false }) => {
   }
   
   const handleViewBooking = (booking) => {
-    setSelectedBooking(booking);
-    setShowModal(true);
+    console.log('👀 View booking:', booking);
+    alert(`Bokningsdetaljer för ${booking.customerName}\n\nStatus: ${booking.status}\nTjänst: ${getServiceName(booking)}\nBelopp: ${formatCurrency(booking.totalAmount)}\nDatum: ${formatDate(booking.bookingDate)}`);
   };
   
   const handleContactCustomer = (booking, method) => {
@@ -234,116 +231,8 @@ const BookingTableSimple = ({ bookings = [], loading = false }) => {
           </tbody>
         </table>
       </div>
-      
-      {/* Booking Details Modal */}
-      {selectedBooking && showModal && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
-            <div className="mt-3">
-              <div className="flex items-center justify-between pb-3">
-                <h3 className="text-lg font-medium text-gray-900">
-                  Bokningsdetaljer - {selectedBooking.customerName}
-                </h3>
-                <button
-                  onClick={() => setShowModal(false)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <span className="sr-only">Stäng</span>
-                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-            <div className="space-y-4">
-              {/* Customer Information */}
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-gray-900 mb-2">Kundinformation</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-gray-600">Namn</p>
-                    <p className="font-medium">{selectedBooking.customerName || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">E-post</p>
-                    <p className="font-medium">{selectedBooking.customerEmail || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Telefon</p>
-                    <p className="font-medium">{selectedBooking.customerPhone || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Adress</p>
-                    <p className="font-medium">{selectedBooking.address || 'N/A'}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Booking Information */}
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-gray-900 mb-2">Bokningsinformation</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-gray-600">Datum</p>
-                    <p className="font-medium">{formatDate(selectedBooking.bookingDate)}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Tid</p>
-                    <p className="font-medium">{formatTime(selectedBooking.bookingDate)}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Tjänst</p>
-                    <p className="font-medium">{getServiceName(selectedBooking)}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Belopp</p>
-                    <p className="font-medium">{formatCurrency(selectedBooking.totalAmount)}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Status</p>
-                    <p className="font-medium"><StatusBadge status={selectedBooking.status} /></p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Notes */}
-              {selectedBooking.notes && (
-                <div className="bg-green-50 p-4 rounded-lg">
-                  <h3 className="font-semibold text-gray-900 mb-2">Anteckningar</h3>
-                  <p className="text-gray-700">{selectedBooking.notes}</p>
-                </div>
-              )}
-              
-              {/* Footer */}
-              <div className="flex justify-between items-center pt-4 border-t border-gray-200">
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleContactCustomer(selectedBooking, 'phone')}
-                    className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                  >
-                    <PhoneIcon className="w-4 h-4 mr-2" />
-                    Ring
-                  </button>
-                  <button
-                    onClick={() => handleContactCustomer(selectedBooking, 'email')}
-                    className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                  >
-                    <EnvelopeIcon className="w-4 h-4 mr-2" />
-                    E-post
-                  </button>
-                </div>
-                <button
-                  onClick={() => setShowModal(false)}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  Stäng
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
 
-export default BookingTableSimple;
+export default BookingTableWorking;

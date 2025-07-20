@@ -346,39 +346,141 @@ const ServiceDetailsStep = ({ onNext, onBack, formData, setFormData, config }) =
           </div>
       )}
       
-      {/* Frequency Selection */}
+      {/* Additional Options & Modifiers */}
       {(() => {
-        // Check both company-level and service-level frequency multipliers
+        // Check for any available modifiers (frequency, pet surcharge, etc.)
         const companyFrequencyMultipliers = config.frequencyMultipliers;
         const serviceFrequencyMultipliers = selectedService?.frequencyMultipliers;
         const frequencyMultipliers = serviceFrequencyMultipliers || companyFrequencyMultipliers;
         
-        const shouldShowFrequency = selectedService.frequencyEnabled !== false && frequencyMultipliers && frequencyMultipliers.length > 0;
+        const hasFrequencyOptions = selectedService.frequencyEnabled !== false && frequencyMultipliers && frequencyMultipliers.length > 0;
+        const hasPetSurcharge = selectedService.petSurcharge !== false;
+        const hasAccessibilityOptions = selectedService.accessibilityOptions && selectedService.accessibilityOptions.length > 0;
+        const hasTimePreferences = selectedService.timePreferences && selectedService.timePreferences.length > 0;
+        const hasPropertyTypeOptions = selectedService.propertyTypeOptions && selectedService.propertyTypeOptions.length > 0;
         
-        console.log('🔍 Frequency condition check:');
-        console.log('  - selectedService.frequencyEnabled !== false:', selectedService.frequencyEnabled !== false);
-        console.log('  - companyFrequencyMultipliers:', companyFrequencyMultipliers);
-        console.log('  - serviceFrequencyMultipliers:', serviceFrequencyMultipliers);
-        console.log('  - frequencyMultipliers (final):', frequencyMultipliers);
-        console.log('  - frequencyMultipliers.length > 0:', frequencyMultipliers?.length > 0);
-        console.log('  - shouldShowFrequency:', shouldShowFrequency);
+        const hasAnyModifiers = hasFrequencyOptions || hasPetSurcharge || hasAccessibilityOptions || hasTimePreferences || hasPropertyTypeOptions;
         
-        return shouldShowFrequency;
+        console.log('🔍 Additional Options check:');
+        console.log('  - hasFrequencyOptions:', hasFrequencyOptions);
+        console.log('  - hasPetSurcharge:', hasPetSurcharge);
+        console.log('  - hasAccessibilityOptions:', hasAccessibilityOptions);
+        console.log('  - hasTimePreferences:', hasTimePreferences);
+        console.log('  - hasPropertyTypeOptions:', hasPropertyTypeOptions);
+        console.log('  - hasAnyModifiers:', hasAnyModifiers);
+        
+        return hasAnyModifiers;
       })() && (
-        <div className="mb-4">
-          <label className="block font-semibold mb-1">Frekvens</label>
-          <select
-            className="border p-2 rounded w-full"
-            value={formData.frequency || ''}
-            onChange={e => setFormData(f => ({ ...f, frequency: e.target.value }))}
-          >
-            <option value="">Välj frekvens</option>
-            {(selectedService?.frequencyMultipliers || config.frequencyMultipliers || []).map((freq, index) => (
-              <option key={index} value={freq.key || freq.label}>
-                {freq.label} {freq.multiplier !== 1 ? `(${freq.multiplier}x)` : ''}
-              </option>
-            ))}
-          </select>
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold mb-3">Ytterligare alternativ</h3>
+          
+          {/* Frequency Selection */}
+          {(() => {
+            const companyFrequencyMultipliers = config.frequencyMultipliers;
+            const serviceFrequencyMultipliers = selectedService?.frequencyMultipliers;
+            const frequencyMultipliers = serviceFrequencyMultipliers || companyFrequencyMultipliers;
+            
+            return selectedService.frequencyEnabled !== false && frequencyMultipliers && frequencyMultipliers.length > 0;
+          })() && (
+            <div className="mb-4">
+              <label className="block font-semibold mb-2">Frekvens</label>
+              <select
+                className="border p-2 rounded w-full"
+                value={formData.frequency || ''}
+                onChange={e => setFormData(f => ({ ...f, frequency: e.target.value }))}
+              >
+                <option value="">Välj frekvens</option>
+                {(selectedService?.frequencyMultipliers || config.frequencyMultipliers || []).map((freq, index) => {
+                  console.log('🔍 Frequency option:', freq);
+                  return (
+                    <option key={index} value={freq.key || freq.label}>
+                      {freq.label} {freq.multiplier !== 1 ? `(${freq.multiplier}x)` : ''}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+          )}
+          
+          {/* Pet Surcharge */}
+          {selectedService.petSurcharge !== false && (
+            <div className="mb-4">
+              <label className="flex items-center gap-2 font-semibold mb-2">
+                <input
+                  type="checkbox"
+                  checked={!!formData.hasPets}
+                  onChange={e => setFormData(f => ({ ...f, hasPets: e.target.checked }))}
+                  className="rounded"
+                />
+                <span>Har ni husdjur? (+10%)</span>
+              </label>
+              <p className="text-sm text-gray-600 ml-6">Vi tar extra tid för att säkerställa att husdjuren är trygga under städningen.</p>
+            </div>
+          )}
+          
+          {/* Accessibility Options */}
+          {selectedService.accessibilityOptions && selectedService.accessibilityOptions.length > 0 && (
+            <div className="mb-4">
+              <label className="block font-semibold mb-2">Tillgänglighet</label>
+              <div className="space-y-2">
+                {selectedService.accessibilityOptions.map((option, index) => (
+                  <label key={index} className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={!!formData[`accessibility_${index}`]}
+                      onChange={e => setFormData(f => ({ 
+                        ...f, 
+                        [`accessibility_${index}`]: e.target.checked 
+                      }))}
+                      className="rounded"
+                    />
+                    <span>{option.label}</span>
+                    {option.surcharge && (
+                      <span className="text-sm text-gray-600">(+{option.surcharge}%)</span>
+                    )}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {/* Time Preferences */}
+          {selectedService.timePreferences && selectedService.timePreferences.length > 0 && (
+            <div className="mb-4">
+              <label className="block font-semibold mb-2">Tidspreferens</label>
+              <select
+                className="border p-2 rounded w-full"
+                value={formData.timePreference || ''}
+                onChange={e => setFormData(f => ({ ...f, timePreference: e.target.value }))}
+              >
+                <option value="">Välj tidspreferens</option>
+                {selectedService.timePreferences.map((pref, index) => (
+                  <option key={index} value={pref.key || pref.label}>
+                    {pref.label} {pref.surcharge ? `(+${pref.surcharge}%)` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          
+          {/* Property Type */}
+          {selectedService.propertyTypeOptions && selectedService.propertyTypeOptions.length > 0 && (
+            <div className="mb-4">
+              <label className="block font-semibold mb-2">Fastighetstyp</label>
+              <select
+                className="border p-2 rounded w-full"
+                value={formData.propertyType || ''}
+                onChange={e => setFormData(f => ({ ...f, propertyType: e.target.value }))}
+              >
+                <option value="">Välj fastighetstyp</option>
+                {selectedService.propertyTypeOptions.map((type, index) => (
+                  <option key={index} value={type.key || type.label}>
+                    {type.label} {type.surcharge ? `(+${type.surcharge}%)` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
       )}
       
@@ -693,11 +795,89 @@ const PriceCard = ({ originalPrice, finalPrice, rutApplied, selectedService, for
 
     // Apply frequency multiplier if selected
     if (formData.frequency && config.frequencyMultipliers) {
-      const selectedFrequency = config.frequencyMultipliers.find(freq => 
+      console.log('🔍 Frequency multiplier check:');
+      console.log('  - formData.frequency:', formData.frequency);
+      console.log('  - config.frequencyMultipliers:', config.frequencyMultipliers);
+      
+      // Try multiple matching strategies
+      let selectedFrequency = config.frequencyMultipliers.find(freq => 
         (freq.key || freq.label) === formData.frequency
       );
+      
+      // If not found, try case-insensitive matching
+      if (!selectedFrequency) {
+        selectedFrequency = config.frequencyMultipliers.find(freq => 
+          (freq.key || freq.label)?.toLowerCase() === formData.frequency?.toLowerCase()
+        );
+      }
+      
+      // If still not found, try partial matching
+      if (!selectedFrequency) {
+        selectedFrequency = config.frequencyMultipliers.find(freq => 
+          (freq.key || freq.label)?.toLowerCase().includes(formData.frequency?.toLowerCase()) ||
+          formData.frequency?.toLowerCase().includes((freq.key || freq.label)?.toLowerCase())
+        );
+      }
+      
+      console.log('  - selectedFrequency:', selectedFrequency);
+      console.log('  - selectedFrequency?.multiplier:', selectedFrequency?.multiplier);
+      
       if (selectedFrequency && selectedFrequency.multiplier && selectedFrequency.multiplier !== 1) {
+        console.log('  - Applying frequency multiplier:', selectedFrequency.multiplier);
+        console.log('  - Base price before frequency:', basePrice);
         basePrice = Math.round(basePrice * selectedFrequency.multiplier);
+        console.log('  - Base price after frequency:', basePrice);
+      } else {
+        console.log('  - No frequency multiplier applied (multiplier is 1 or not found)');
+      }
+    } else {
+      console.log('🔍 No frequency selected or no frequencyMultipliers configured');
+    }
+    
+    // Apply pet surcharge if selected
+    if (formData.hasPets && selectedService.petSurcharge !== false) {
+      const petSurcharge = selectedService.petSurchargePercentage || 10; // Default 10%
+      console.log('🐕 Applying pet surcharge:', petSurcharge + '%');
+      console.log('  - Base price before pet surcharge:', basePrice);
+      basePrice = Math.round(basePrice * (1 + petSurcharge / 100));
+      console.log('  - Base price after pet surcharge:', basePrice);
+    }
+    
+    // Apply accessibility surcharges
+    if (selectedService.accessibilityOptions && selectedService.accessibilityOptions.length > 0) {
+      selectedService.accessibilityOptions.forEach((option, index) => {
+        if (formData[`accessibility_${index}`] && option.surcharge) {
+          console.log('♿ Applying accessibility surcharge:', option.label, option.surcharge + '%');
+          console.log('  - Base price before accessibility surcharge:', basePrice);
+          basePrice = Math.round(basePrice * (1 + option.surcharge / 100));
+          console.log('  - Base price after accessibility surcharge:', basePrice);
+        }
+      });
+    }
+    
+    // Apply time preference surcharge
+    if (formData.timePreference && selectedService.timePreferences) {
+      const selectedTimePref = selectedService.timePreferences.find(pref => 
+        (pref.key || pref.label) === formData.timePreference
+      );
+      if (selectedTimePref && selectedTimePref.surcharge) {
+        console.log('⏰ Applying time preference surcharge:', selectedTimePref.label, selectedTimePref.surcharge + '%');
+        console.log('  - Base price before time surcharge:', basePrice);
+        basePrice = Math.round(basePrice * (1 + selectedTimePref.surcharge / 100));
+        console.log('  - Base price after time surcharge:', basePrice);
+      }
+    }
+    
+    // Apply property type surcharge
+    if (formData.propertyType && selectedService.propertyTypeOptions) {
+      const selectedPropertyType = selectedService.propertyTypeOptions.find(type => 
+        (type.key || type.label) === formData.propertyType
+      );
+      if (selectedPropertyType && selectedPropertyType.surcharge) {
+        console.log('🏠 Applying property type surcharge:', selectedPropertyType.label, selectedPropertyType.surcharge + '%');
+        console.log('  - Base price before property surcharge:', basePrice);
+        basePrice = Math.round(basePrice * (1 + selectedPropertyType.surcharge / 100));
+        console.log('  - Base price after property surcharge:', basePrice);
       }
     }
   }
@@ -764,6 +944,56 @@ const PriceCard = ({ originalPrice, finalPrice, rutApplied, selectedService, for
               }
               return null;
             })}
+            
+            {/* Modifiers */}
+            {formData.hasPets && selectedService.petSurcharge !== false && (
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-gray-600">+ Husdjurstillägg</span>
+                <span className="font-medium text-gray-700">{(basePrice * 0.1).toLocaleString()} kr</span>
+              </div>
+            )}
+            
+            {selectedService.accessibilityOptions && selectedService.accessibilityOptions.map((option, index) => {
+              if (formData[`accessibility_${index}`] && option.surcharge) {
+                return (
+                  <div key={index} className="flex justify-between items-center text-sm">
+                    <span className="text-gray-600">+ {option.label}</span>
+                    <span className="font-medium text-gray-700">{(basePrice * (option.surcharge / 100)).toLocaleString()} kr</span>
+                  </div>
+                );
+              }
+              return null;
+            })}
+            
+            {formData.timePreference && selectedService.timePreferences && (() => {
+              const selectedTimePref = selectedService.timePreferences.find(pref => 
+                (pref.key || pref.label) === formData.timePreference
+              );
+              if (selectedTimePref && selectedTimePref.surcharge) {
+                return (
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-600">+ {selectedTimePref.label}</span>
+                    <span className="font-medium text-gray-700">{(basePrice * (selectedTimePref.surcharge / 100)).toLocaleString()} kr</span>
+                  </div>
+                );
+              }
+              return null;
+            })()}
+            
+            {formData.propertyType && selectedService.propertyTypeOptions && (() => {
+              const selectedPropertyType = selectedService.propertyTypeOptions.find(type => 
+                (type.key || type.label) === formData.propertyType
+              );
+              if (selectedPropertyType && selectedPropertyType.surcharge) {
+                return (
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-600">+ {selectedPropertyType.label}</span>
+                    <span className="font-medium text-gray-700">{(basePrice * (selectedPropertyType.surcharge / 100)).toLocaleString()} kr</span>
+                  </div>
+                );
+              }
+              return null;
+            })()}
             
             {/* Custom Fees - only show if there's service data */}
             {customFeesTotal > 0 && (
@@ -1025,12 +1255,90 @@ export default function BookingCalculator({ config: propConfig, companyId: propC
       
       // Apply frequency multiplier if selected
       if (formData.frequency && config.frequencyMultipliers) {
-        const selectedFrequency = config.frequencyMultipliers.find(freq => 
+        console.log('🔍 Frequency multiplier check (calculation):');
+        console.log('  - formData.frequency:', formData.frequency);
+        console.log('  - config.frequencyMultipliers:', config.frequencyMultipliers);
+        
+        // Try multiple matching strategies
+        let selectedFrequency = config.frequencyMultipliers.find(freq => 
           (freq.key || freq.label) === formData.frequency
         );
+        
+        // If not found, try case-insensitive matching
+        if (!selectedFrequency) {
+          selectedFrequency = config.frequencyMultipliers.find(freq => 
+            (freq.key || freq.label)?.toLowerCase() === formData.frequency?.toLowerCase()
+          );
+        }
+        
+        // If still not found, try partial matching
+        if (!selectedFrequency) {
+          selectedFrequency = config.frequencyMultipliers.find(freq => 
+            (freq.key || freq.label)?.toLowerCase().includes(formData.frequency?.toLowerCase()) ||
+            formData.frequency?.toLowerCase().includes((freq.key || freq.label)?.toLowerCase())
+          );
+        }
+        
+        console.log('  - selectedFrequency:', selectedFrequency);
+        console.log('  - selectedFrequency?.multiplier:', selectedFrequency?.multiplier);
+        
         if (selectedFrequency && selectedFrequency.multiplier && selectedFrequency.multiplier !== 1) {
+          console.log('  - Applying frequency multiplier:', selectedFrequency.multiplier);
+          console.log('  - Calculated price before frequency:', calculatedPrice);
           calculatedPrice = Math.round(calculatedPrice * selectedFrequency.multiplier);
+          console.log('  - Calculated price after frequency:', calculatedPrice);
           console.log('💰 Price calculation - frequency applied:', selectedFrequency.label, 'multiplier:', selectedFrequency.multiplier);
+        } else {
+          console.log('  - No frequency multiplier applied (multiplier is 1 or not found)');
+        }
+      } else {
+        console.log('🔍 No frequency selected or no frequencyMultipliers configured (calculation)');
+      }
+      
+      // Apply pet surcharge if selected
+      if (formData.hasPets && selectedService.petSurcharge !== false) {
+        const petSurcharge = selectedService.petSurchargePercentage || 10; // Default 10%
+        console.log('🐕 Applying pet surcharge (calculation):', petSurcharge + '%');
+        console.log('  - Calculated price before pet surcharge:', calculatedPrice);
+        calculatedPrice = Math.round(calculatedPrice * (1 + petSurcharge / 100));
+        console.log('  - Calculated price after pet surcharge:', calculatedPrice);
+      }
+      
+      // Apply accessibility surcharges
+      if (selectedService.accessibilityOptions && selectedService.accessibilityOptions.length > 0) {
+        selectedService.accessibilityOptions.forEach((option, index) => {
+          if (formData[`accessibility_${index}`] && option.surcharge) {
+            console.log('♿ Applying accessibility surcharge (calculation):', option.label, option.surcharge + '%');
+            console.log('  - Calculated price before accessibility surcharge:', calculatedPrice);
+            calculatedPrice = Math.round(calculatedPrice * (1 + option.surcharge / 100));
+            console.log('  - Calculated price after accessibility surcharge:', calculatedPrice);
+          }
+        });
+      }
+      
+      // Apply time preference surcharge
+      if (formData.timePreference && selectedService.timePreferences) {
+        const selectedTimePref = selectedService.timePreferences.find(pref => 
+          (pref.key || pref.label) === formData.timePreference
+        );
+        if (selectedTimePref && selectedTimePref.surcharge) {
+          console.log('⏰ Applying time preference surcharge (calculation):', selectedTimePref.label, selectedTimePref.surcharge + '%');
+          console.log('  - Calculated price before time surcharge:', calculatedPrice);
+          calculatedPrice = Math.round(calculatedPrice * (1 + selectedTimePref.surcharge / 100));
+          console.log('  - Calculated price after time surcharge:', calculatedPrice);
+        }
+      }
+      
+      // Apply property type surcharge
+      if (formData.propertyType && selectedService.propertyTypeOptions) {
+        const selectedPropertyType = selectedService.propertyTypeOptions.find(type => 
+          (type.key || type.label) === formData.propertyType
+        );
+        if (selectedPropertyType && selectedPropertyType.surcharge) {
+          console.log('🏠 Applying property type surcharge (calculation):', selectedPropertyType.label, selectedPropertyType.surcharge + '%');
+          console.log('  - Calculated price before property surcharge:', calculatedPrice);
+          calculatedPrice = Math.round(calculatedPrice * (1 + selectedPropertyType.surcharge / 100));
+          console.log('  - Calculated price after property surcharge:', calculatedPrice);
         }
       }
       
