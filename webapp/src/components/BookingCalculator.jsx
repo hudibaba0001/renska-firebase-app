@@ -348,12 +348,21 @@ const ServiceDetailsStep = ({ onNext, onBack, formData, setFormData, config }) =
       
       {/* Frequency Selection */}
       {(() => {
-        const shouldShowFrequency = selectedService.frequencyEnabled !== false && config.frequencyMultipliers && config.frequencyMultipliers.length > 0;
+        // Check both company-level and service-level frequency multipliers
+        const companyFrequencyMultipliers = config.frequencyMultipliers;
+        const serviceFrequencyMultipliers = selectedService?.frequencyMultipliers;
+        const frequencyMultipliers = serviceFrequencyMultipliers || companyFrequencyMultipliers;
+        
+        const shouldShowFrequency = selectedService.frequencyEnabled !== false && frequencyMultipliers && frequencyMultipliers.length > 0;
+        
         console.log('🔍 Frequency condition check:');
         console.log('  - selectedService.frequencyEnabled !== false:', selectedService.frequencyEnabled !== false);
-        console.log('  - config.frequencyMultipliers exists:', !!config.frequencyMultipliers);
-        console.log('  - config.frequencyMultipliers.length > 0:', config.frequencyMultipliers?.length > 0);
+        console.log('  - companyFrequencyMultipliers:', companyFrequencyMultipliers);
+        console.log('  - serviceFrequencyMultipliers:', serviceFrequencyMultipliers);
+        console.log('  - frequencyMultipliers (final):', frequencyMultipliers);
+        console.log('  - frequencyMultipliers.length > 0:', frequencyMultipliers?.length > 0);
         console.log('  - shouldShowFrequency:', shouldShowFrequency);
+        
         return shouldShowFrequency;
       })() && (
         <div className="mb-4">
@@ -364,7 +373,7 @@ const ServiceDetailsStep = ({ onNext, onBack, formData, setFormData, config }) =
             onChange={e => setFormData(f => ({ ...f, frequency: e.target.value }))}
           >
             <option value="">Välj frekvens</option>
-            {config.frequencyMultipliers.map((freq, index) => (
+            {(selectedService?.frequencyMultipliers || config.frequencyMultipliers || []).map((freq, index) => (
               <option key={index} value={freq.key || freq.label}>
                 {freq.label} {freq.multiplier !== 1 ? `(${freq.multiplier}x)` : ''}
               </option>

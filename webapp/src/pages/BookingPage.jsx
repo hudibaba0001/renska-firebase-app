@@ -34,6 +34,8 @@ export default function BookingPage() {
         // Fetch the main company configuration using the service layer.
         const companyData = await getTenant(companyId);
         console.log('🏢 Fetched company data:', companyData);
+        console.log('🏢 Company frequencyMultipliers:', companyData?.frequencyMultipliers);
+        console.log('🏢 Company frequencyMultipliers length:', companyData?.frequencyMultipliers?.length);
         
         if (!companyData) {
           setError(`No company found for "${companyId}".`);
@@ -90,6 +92,8 @@ export default function BookingPage() {
               formMode: true 
             };
             console.log('📋 Merged config with form:', mergedConfig);
+            console.log('📋 Merged config frequencyMultipliers:', mergedConfig.frequencyMultipliers);
+            console.log('📋 Merged config frequencyMultipliers length:', mergedConfig.frequencyMultipliers?.length);
             setConfig(mergedConfig);
           } else {
             setError(`Form "${formSlug}" not found.`);
