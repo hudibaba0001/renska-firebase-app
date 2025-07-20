@@ -347,10 +347,10 @@ export default function FormBuilderPage() {
             {currentStep === STEPS.length && (
               <button
                 onClick={publishForm}
-                disabled={saving || config.status === 'published'}
+                disabled={saving}
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
               >
-                {config.status === 'published' ? 'Published' : 'Publish'}
+                {saving ? 'Publishing...' : (config.status === 'published' ? 'Update Published Form' : 'Publish')}
               </button>
             )}
           </div>

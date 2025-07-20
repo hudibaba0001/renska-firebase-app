@@ -488,9 +488,21 @@ export default function ConfigForm({ initialConfig, onSave, onChange, refreshSer
                           </p>
                         </div>
                         <div>
+                {/* Service Name */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Service Name</label>
+                  <input
+                    type="text"
+                    value={service.name || ''}
+                    onChange={e => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, name: e.target.value } : s) }))}
+                    placeholder="Enter service name (e.g., Window Cleaning, House Cleaning)"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                  />
+                </div>
+
                 {/* Pricing Model */}
-                <div className="mb-2">
-                  <label className="block text-sm font-medium">Pricing Model</label>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Pricing Model</label>
                   <select
                     value={service.pricingModel}
                     onChange={e => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, pricingModel: e.target.value } : s) }))}

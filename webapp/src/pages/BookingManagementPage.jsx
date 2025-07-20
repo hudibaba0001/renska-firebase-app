@@ -193,7 +193,9 @@ const BookingManagementPage = () => {
     }
   ];
 
+  console.log('🚨 BookingManagementPage error state:', error);
   if (error) {
+    console.log('🚨 Returning early due to error, BookingTable will not render');
     return (
       <div className="p-6">
         <Alert color="failure" className="mb-4">
@@ -346,64 +348,20 @@ const BookingManagementPage = () => {
       </Card>
 
       {/* Bookings Table with Error Boundary */}
+      {console.log('🔧 About to render ErrorBoundary with BookingTable')}
       <ErrorBoundary 
         fallbackMessage="Kunde inte visa bokningar. Vi har loggat felet och kommer att åtgärda det så snart som möjligt."
       >
-        {({ hasError, error }) => {
-          // Log the error for debugging
-          if (hasError) {
-            console.error('BookingTable Error:', error);
-            // Show simplified table as fallback
-            return (
-              <div className="mt-8 bg-white rounded-lg shadow overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kund</th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tjänst</th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Datum & Tid</th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Belopp</th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Åtgärder</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredBookings.map(booking => (
-                      <tr key={booking.id}>
-                        <td className="px-6 py-4 whitespace-nowrap">{booking.customerName || 'Okänd kund'}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">{booking.serviceName || 'Okänd tjänst'}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">{booking.bookingDate || 'Ej angivet'}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                            {booking.status || 'Pending'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">{booking.totalAmount ? `${booking.totalAmount} kr` : '0 kr'}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <button className="text-indigo-600 hover:text-indigo-900">Visa</button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            );
-          }
-          
-          // Normal rendering if no error
-          return (
-            <BookingTable 
-              bookings={filteredBookings} 
-              loading={loading}
-              companyId={companyId}
-              onBookingUpdate={handleBookingUpdate}
-              onContactCustomer={(booking, method) => {
-                console.log('Contact customer:', booking.customerName, 'via', method);
-              }}
-              className="mt-8"
-            />
-          );
-        }}
+        <BookingTable 
+          bookings={filteredBookings} 
+          loading={loading}
+          companyId={companyId}
+          onBookingUpdate={handleBookingUpdate}
+          onContactCustomer={(booking, method) => {
+            console.log('Contact customer:', booking.customerName, 'via', method);
+          }}
+          className="mt-8"
+        />
       </ErrorBoundary>
 
       {/* Loading Overlay */}

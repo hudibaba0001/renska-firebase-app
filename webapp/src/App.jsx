@@ -70,7 +70,7 @@ export default function App() {
           element={
             <RequireAuth>
               <RequireCompanyAccess>
-                <AdminDashboardLayout />
+              <AdminDashboardLayout />
               </RequireCompanyAccess>
             </RequireAuth>
           }

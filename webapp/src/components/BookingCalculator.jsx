@@ -181,11 +181,18 @@ const ServiceDetailsStep = ({ onNext, onBack, formData, setFormData, config }) =
   const isWindowService = selectedService.pricingModel === 'window';
   const windowTypes = selectedService.windowTypes || [];
   
+  // Check if this is a per-room service
+  const isPerRoomService = selectedService.pricingModel === 'per-room';
+  const roomTypes = selectedService.perRoomRates || [];
+  
   // Check if form is valid for next step
   const isFormValid = () => {
     if (isWindowService) {
       // For window services, check if at least one window type has quantity > 0
       return windowTypes.some((_, index) => (formData[`window_${index}`] || 0) > 0);
+    } else if (isPerRoomService) {
+      // For per-room services, check if at least one room type has quantity > 0
+      return roomTypes.some((_, index) => (formData[`room_${index}`] || 0) > 0);
     } else {
       // For other services, check if area is filled
       return formData.area && formData.area > 0;
@@ -258,6 +265,68 @@ const ServiceDetailsStep = ({ onNext, onBack, formData, setFormData, config }) =
             </div>
           )}
         </div>
+      ) : isPerRoomService ? (
+        // Per-room service
+        <div className="mb-4">
+          <label className="block font-semibold mb-1">Rumstyper</label>
+          {roomTypes.length === 0 ? (
+            <div className="text-gray-500">Inga rumstyper konfigurerade för denna tjänst.</div>
+          ) : (
+            <div className="space-y-3">
+              {roomTypes.map((roomType, index) => (
+                <div key={index} className="flex items-center justify-between p-3 border rounded">
+                  <div className="flex-1">
+                    <span className="font-medium">{roomType.type || roomType.name}</span>
+                    <span className="text-sm text-gray-600 ml-2">({roomType.price} kr/rum)</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm">Antal:</label>
+                    <div className="flex items-center border rounded">
+                      <button
+                        type="button"
+                        className="px-3 py-1 bg-gray-100 hover:bg-gray-200 border-r text-gray-600 font-bold"
+                        onClick={() => {
+                          const currentValue = formData[`room_${index}`] || 0;
+                          if (currentValue > 0) {
+                            setFormData(f => ({ 
+                              ...f, 
+                              [`room_${index}`]: currentValue - 1 
+                            }));
+                          }
+                        }}
+                      >
+                        -
+                      </button>
+                      <input
+                        type="number"
+                        min="0"
+                        className="w-16 p-1 text-center border-none focus:ring-0"
+                        value={formData[`room_${index}`] || 0}
+                        onChange={e => setFormData(f => ({ 
+                          ...f, 
+                          [`room_${index}`]: parseInt(e.target.value) || 0 
+                        }))}
+                      />
+                      <button
+                        type="button"
+                        className="px-3 py-1 bg-gray-100 hover:bg-gray-200 border-l text-gray-600 font-bold"
+                        onClick={() => {
+                          const currentValue = formData[`room_${index}`] || 0;
+                          setFormData(f => ({ 
+                            ...f, 
+                            [`room_${index}`]: currentValue + 1 
+                          }));
+                        }}
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       ) : (
         // Regular service with area input
           <div className="mb-4">
@@ -271,6 +340,25 @@ const ServiceDetailsStep = ({ onNext, onBack, formData, setFormData, config }) =
               placeholder="Ange yta i m²"
             />
           </div>
+      )}
+      
+      {/* Frequency Selection */}
+      {selectedService.frequencyEnabled !== false && config.frequencyMultipliers && config.frequencyMultipliers.length > 0 && (
+        <div className="mb-4">
+          <label className="block font-semibold mb-1">Frekvens</label>
+          <select
+            className="border p-2 rounded w-full"
+            value={formData.frequency || ''}
+            onChange={e => setFormData(f => ({ ...f, frequency: e.target.value }))}
+          >
+            <option value="">Välj frekvens</option>
+            {config.frequencyMultipliers.map((freq, index) => (
+              <option key={index} value={freq.key || freq.label}>
+                {freq.label} {freq.multiplier !== 1 ? `(${freq.multiplier}x)` : ''}
+              </option>
+            ))}
+          </select>
+        </div>
       )}
       
           <div className="mb-4">
@@ -519,28 +607,58 @@ const CustomerInfoStep = ({ onBack, formData, setFormData, companyId, totalPrice
   );
 };
 
-const PriceCard = ({ originalPrice, finalPrice, rutApplied, selectedService, formData, step }) => {
+const PriceCard = ({ originalPrice, finalPrice, rutApplied, selectedService, formData, step, config }) => {
   // Calculate add-ons total
   const addOnsTotal = selectedService?.addOns?.reduce((total, addOn) => {
     const addOnKey = `addon_${addOn.name || addOn}`;
     return formData[addOnKey] ? total + (addOn.price || 0) : total;
   }, 0) || 0;
 
-  // Calculate custom fees total
-  const customFeesTotal = selectedService?.customFees?.reduce((total, fee) => {
-    return total + (fee.amount || 0);
-  }, 0) || 0;
+  // Calculate custom fees total - only if there's service data
+  const hasServiceData = (selectedService?.pricingModel === 'window' && 
+    selectedService.windowTypes?.some((_, index) => (formData[`window_${index}`] || 0) > 0)) ||
+    (selectedService?.pricingModel === 'per-room' && 
+    selectedService.perRoomRates?.some((_, index) => (formData[`room_${index}`] || 0) > 0)) ||
+    (selectedService?.pricingModel !== 'window' && selectedService?.pricingModel !== 'per-room' && formData.area && formData.area > 0);
+
+  const customFeesTotal = hasServiceData && selectedService?.customFees ? 
+    selectedService.customFees.reduce((total, fee) => total + (fee.amount || 0), 0) : 0;
 
   // Calculate base price (service price without add-ons and custom fees)
-  const basePrice = originalPrice - addOnsTotal - customFeesTotal;
+  const basePrice = Math.max(0, originalPrice - addOnsTotal - customFeesTotal);
 
   // Debug logging
   console.log('💰 PriceCard - originalPrice:', originalPrice);
   console.log('💰 PriceCard - addOnsTotal:', addOnsTotal);
   console.log('💰 PriceCard - customFeesTotal:', customFeesTotal);
   console.log('💰 PriceCard - basePrice:', basePrice);
-  console.log('💰 PriceCard - custom fees:', selectedService?.customFees);
+  console.log('💰 PriceCard - hasServiceData:', hasServiceData);
   console.log('💰 PriceCard - step:', step);
+
+  // Only show price card if there's actual service data or we're on step 4+
+  const shouldShowPriceCard = step >= 4 || hasServiceData;
+
+  if (!shouldShowPriceCard) {
+    return (
+      <div className="sticky top-4 bg-white shadow-lg rounded-lg p-6 min-w-[320px] border border-gray-200">
+        <h3 className="text-xl font-bold text-gray-900 mb-4 pb-3 border-b border-gray-200">
+          Sammanställning
+        </h3>
+        <div className="text-center py-8">
+          <div className="text-gray-400 mb-2">
+            <svg className="h-12 w-12 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+            <p className="text-gray-500 text-sm">
+              {step === 1 ? 'Ange ditt postnummer för att komma igång' : 
+               step === 2 ? 'Välj en tjänst för att se priset' :
+               'Konfigurera tjänsten för att se priset'}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="sticky top-4 bg-white shadow-lg rounded-lg p-6 min-w-[320px] border border-gray-200">
@@ -551,7 +669,7 @@ const PriceCard = ({ originalPrice, finalPrice, rutApplied, selectedService, for
       
       {/* Service Breakdown */}
       <div className="space-y-3 mb-4">
-        {selectedService ? (
+        {selectedService && hasServiceData ? (
           <>
             <div className="flex justify-between items-center">
               <span className="text-gray-700">{selectedService.name}</span>
@@ -572,17 +690,16 @@ const PriceCard = ({ originalPrice, finalPrice, rutApplied, selectedService, for
               return null;
             })}
             
-            {/* Custom Fees */}
-            {selectedService?.customFees && selectedService.customFees.length > 0 && 
-             // Only show custom fees if user has added service data
-             ((selectedService.pricingModel === 'window' && 
-               selectedService.windowTypes?.some((_, index) => (formData[`window_${index}`] || 0) > 0)) ||
-              (selectedService.pricingModel !== 'window' && formData.area && formData.area > 0)) && (
+            {/* Custom Fees - only show if there's service data */}
+            {customFeesTotal > 0 && (
               <>
                 <div className="pt-2 border-t border-gray-100">
                   {selectedService.customFees.map((fee, index) => (
                     <div key={index} className="flex justify-between items-center text-sm">
-                      <span className="text-gray-600">{fee.label || 'Custom Fee'}</span>
+                      <span className="text-gray-600">
+                        {fee.label || 'Custom Fee'}
+                        {fee.rutEligible === false && <span className="text-xs text-gray-400 ml-1">(ej RUT)</span>}
+                      </span>
                       <span className="font-medium text-gray-700">{(fee.amount || 0).toLocaleString()} kr</span>
                     </div>
                   ))}
@@ -597,9 +714,7 @@ const PriceCard = ({ originalPrice, finalPrice, rutApplied, selectedService, for
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
               </svg>
               <p className="text-gray-500 text-sm">
-                {step === 1 ? 'Ange ditt postnummer för att komma igång' : 
-                 step === 2 ? 'Välj en tjänst för att se priset' :
-                 'Konfigurera tjänsten för att se priset'}
+                Konfigurera tjänsten för att se priset
               </p>
             </div>
           </div>
@@ -626,7 +741,7 @@ const PriceCard = ({ originalPrice, finalPrice, rutApplied, selectedService, for
         </div>
         {rutApplied && (
           <p className="text-xs text-gray-500 mt-1">
-            *RUT-avdrag på 30% applicerat
+            *RUT-avdrag på {Math.round((config.rutPercentage || 0.5) * 100)}% applicerat
           </p>
         )}
       </div>
@@ -786,6 +901,20 @@ export default function BookingCalculator({ config: propConfig, companyId: propC
           );
           calculatedPrice = tier?.price || selectedService.minPrice || 1000;
         }
+      } else if (selectedService.pricingModel === 'tiered-multiplier') {
+        // Tiered multiplier pricing
+        const area = formData.area || 0;
+        if (area > 0) {
+          const tier = selectedService.tiers?.find(t => 
+            area >= t.min && area <= t.max
+          );
+          if (tier) {
+            // For tiered multiplier, multiply area by the tier's multiplier rate
+            calculatedPrice = area * (tier.multiplier || tier.price || 50);
+          } else {
+            calculatedPrice = selectedService.minPrice || 1000;
+          }
+        }
       } else if (selectedService.pricingModel === 'hourly') {
         // Hourly pricing
         const area = formData.area || 0;
@@ -796,11 +925,37 @@ export default function BookingCalculator({ config: propConfig, companyId: propC
           const hours = hourlyTier?.hours || 3;
           calculatedPrice = hours * (selectedService.hourlyRate || 400);
         }
+      } else if (selectedService.pricingModel === 'per-room') {
+        // Per room pricing
+        const roomTypes = selectedService.perRoomRates || [];
+        let hasRoomSelection = false;
+        roomTypes.forEach((roomType, index) => {
+          const quantity = formData[`room_${index}`] || 0;
+          calculatedPrice += quantity * (roomType.price || 0);
+          if (quantity > 0) hasRoomSelection = true;
+        });
+        
+        // Apply minimum price only if user has selected rooms
+        if (hasRoomSelection) {
+          const minPrice = selectedService.minPrice || 700;
+          calculatedPrice = Math.max(calculatedPrice, minPrice);
+        }
       } else {
         // Default pricing
         const area = formData.area || 0;
         if (area > 0) {
           calculatedPrice = area * (selectedService.pricePerSqm || 50);
+        }
+      }
+      
+      // Apply frequency multiplier if selected
+      if (formData.frequency && config.frequencyMultipliers) {
+        const selectedFrequency = config.frequencyMultipliers.find(freq => 
+          (freq.key || freq.label) === formData.frequency
+        );
+        if (selectedFrequency && selectedFrequency.multiplier && selectedFrequency.multiplier !== 1) {
+          calculatedPrice = Math.round(calculatedPrice * selectedFrequency.multiplier);
+          console.log('💰 Price calculation - frequency applied:', selectedFrequency.label, 'multiplier:', selectedFrequency.multiplier);
         }
       }
       
@@ -820,7 +975,14 @@ export default function BookingCalculator({ config: propConfig, companyId: propC
       let rutEligibleFees = 0;
       let nonRutEligibleFees = 0;
       
-      if (selectedService.customFees && Array.isArray(selectedService.customFees)) {
+      // Only add custom fees if there's actual service data
+      const hasServiceData = (selectedService.pricingModel === 'window' && 
+        selectedService.windowTypes?.some((_, index) => (formData[`window_${index}`] || 0) > 0)) ||
+        (selectedService.pricingModel === 'per-room' && 
+        selectedService.perRoomRates?.some((_, index) => (formData[`room_${index}`] || 0) > 0)) ||
+        (selectedService.pricingModel !== 'window' && selectedService.pricingModel !== 'per-room' && formData.area && formData.area > 0);
+      
+      if (hasServiceData && selectedService.customFees && Array.isArray(selectedService.customFees)) {
         selectedService.customFees.forEach(fee => {
           const feeAmount = fee.amount || 0;
           customFeesPrice += feeAmount;
@@ -836,6 +998,7 @@ export default function BookingCalculator({ config: propConfig, companyId: propC
       
       const totalPrice = calculatedPrice + addOnsPrice + customFeesPrice;
       
+      console.log('💰 Price calculation - hasServiceData:', hasServiceData);
       console.log('💰 Price calculation - base price:', calculatedPrice);
       console.log('💰 Price calculation - add-ons price:', addOnsPrice);
       console.log('💰 Price calculation - custom fees price:', customFeesPrice);
@@ -846,10 +1009,6 @@ export default function BookingCalculator({ config: propConfig, companyId: propC
       setOriginalPrice(totalPrice);
 
       // Apply RUT discount if eligible and there's actual service data
-      const hasServiceData = (selectedService.pricingModel === 'window' && 
-        selectedService.windowTypes?.some((_, index) => (formData[`window_${index}`] || 0) > 0)) ||
-        (selectedService.pricingModel !== 'window' && formData.area && formData.area > 0);
-      
       if (selectedService.rutEligible && config.rutEnabled && totalPrice > 0 && hasServiceData) {
         // Calculate RUT only on eligible portions
         const rutEligibleTotal = calculatedPrice + addOnsPrice + rutEligibleFees;
@@ -963,6 +1122,7 @@ export default function BookingCalculator({ config: propConfig, companyId: propC
             selectedService={formServices.find(s => s.id === formData.service)}
             formData={formData}
             step={step}
+            config={config}
           />
       </div>
       )}

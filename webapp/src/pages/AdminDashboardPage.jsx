@@ -9,7 +9,8 @@ import {
   Avatar, 
   Dropdown,
   Alert,
-  Spinner
+  Spinner,
+  Modal
 } from 'flowbite-react';
 import {
   ArrowUpIcon,
@@ -25,14 +26,16 @@ import {
   ClockIcon,
   BanknotesIcon,
   ArrowTrendingUpIcon,
-  ExclamationTriangleIcon
+  ExclamationTriangleIcon,
+  TrashIcon
 } from '@heroicons/react/24/outline'; 
 import { 
   getAllServicesForCompany
 } from '../services/firestore';
-import { getFirestore, collection, getDocs, doc, getDoc } from 'firebase/firestore';
+import { getFirestore, collection, getDocs, doc, getDoc, deleteDoc } from 'firebase/firestore';
 import { getRecentBookings, getCompanyMetrics } from '../services/analytics';
 import CompanyMetrics from '../components/CompanyMetrics';
+import toast from 'react-hot-toast';
 
 export default function AdminDashboardPage() {
   const { companyId } = useParams();
@@ -47,6 +50,11 @@ export default function AdminDashboardPage() {
     conversionRate: 0,
     activeCalculators: 0
   });
+  
+  // Delete confirmation state
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [calculatorToDelete, setCalculatorToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
   
   const stats = [
     {
@@ -95,6 +103,9 @@ export default function AdminDashboardPage() {
     async function fetchDashboardData() {
       if (!companyId) return;
       setLoading(true);
+      
+      let calculatorsData = []; // Declare outside try block
+      
       try {
         console.log('Fetching dashboard data for company:', companyId);
         
@@ -112,7 +123,7 @@ export default function AdminDashboardPage() {
         const calculatorsRef = collection(db, 'companies', companyId, 'calculators');
         console.log('Fetching calculators from:', `companies/${companyId}/calculators`);
         const calculatorsSnapshot = await getDocs(calculatorsRef);
-        const calculatorsData = calculatorsSnapshot.docs.map(doc => ({
+        calculatorsData = calculatorsSnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
         }));
@@ -247,6 +258,35 @@ export default function AdminDashboardPage() {
       purple: 'from-purple-500 to-purple-600'
     };
     return colors[color] || colors.blue;
+  };
+
+  // Delete calculator function
+  const handleDeleteCalculator = (calculator) => {
+    setCalculatorToDelete(calculator);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDeleteCalculator = async () => {
+    if (!calculatorToDelete) return;
+    
+    setDeleting(true);
+    try {
+      const db = getFirestore();
+      const calculatorRef = doc(db, 'companies', companyId, 'calculators', calculatorToDelete.id);
+      await deleteDoc(calculatorRef);
+      
+      // Remove from local state
+      setCalculators(prev => prev.filter(calc => calc.id !== calculatorToDelete.id));
+      
+      toast.success('Calculator deleted successfully');
+      setShowDeleteModal(false);
+      setCalculatorToDelete(null);
+    } catch (error) {
+      console.error('Error deleting calculator:', error);
+      toast.error('Failed to delete calculator');
+    } finally {
+      setDeleting(false);
+    }
   };
 
   if (!companyId) {
@@ -670,6 +710,13 @@ export default function AdminDashboardPage() {
                       {calc.status === 'published' && calc.slug && (
                         <Button as={Link} to={`/booking/${companyId}/${calc.slug}`} className="bg-gray-200 hover:bg-gray-300 text-gray-800 border-gray-300" size="xs" target="_blank">View Live</Button>
                       )}
+                      <Button 
+                        onClick={() => handleDeleteCalculator(calc)} 
+                        className="bg-red-100 hover:bg-red-200 text-red-600 border-red-200" 
+                        size="xs"
+                      >
+                        <TrashIcon className="w-3 h-3" />
+                      </Button>
                     </div>
                   </div>
               </div>
@@ -703,6 +750,32 @@ export default function AdminDashboardPage() {
           Check them out →
         </Link>
       </Alert>
+
+      {/* Delete Confirmation Modal */}
+      <Modal show={showDeleteModal} onClose={() => setShowDeleteModal(false)}>
+        <Modal.Header>Delete Calculator</Modal.Header>
+        <Modal.Body>
+          <div className="text-center">
+            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+              <TrashIcon className="h-6 w-6 text-red-600" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              Delete Calculator
+            </h3>
+            <p className="text-sm text-gray-500 mb-4">
+              Are you sure you want to delete "{calculatorToDelete?.name}"? This action cannot be undone.
+            </p>
+          </div>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button color="failure" onClick={confirmDeleteCalculator} disabled={deleting}>
+            {deleting ? 'Deleting...' : 'Delete Calculator'}
+          </Button>
+          <Button color="gray" onClick={() => setShowDeleteModal(false)} disabled={deleting}>
+            Cancel
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 }
