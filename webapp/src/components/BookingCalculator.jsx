@@ -147,12 +147,16 @@ const ServiceDetailsStep = ({ onNext, onBack, formData, setFormData, config }) =
   // Get add-ons from the selected service
   const addOns = selectedService?.addOns || [];
   
+  // Debug logging
   console.log('🔍 ServiceDetailsStep - service ID:', service);
   console.log('🔍 ServiceDetailsStep - config:', config);
   console.log('🔍 ServiceDetailsStep - config.services:', config.services);
   console.log('🔍 ServiceDetailsStep - selectedService:', selectedService);
   console.log('🔍 ServiceDetailsStep - addOns:', addOns);
   console.log('🔍 ServiceDetailsStep - formData:', formData);
+  console.log('🔍 ServiceDetailsStep - frequencyEnabled:', selectedService?.frequencyEnabled);
+  console.log('🔍 ServiceDetailsStep - frequencyMultipliers:', config.frequencyMultipliers);
+  console.log('🔍 ServiceDetailsStep - frequencyMultipliers length:', config.frequencyMultipliers?.length);
   
   // Add error handling
   if (!service) {
@@ -343,7 +347,15 @@ const ServiceDetailsStep = ({ onNext, onBack, formData, setFormData, config }) =
       )}
       
       {/* Frequency Selection */}
-      {selectedService.frequencyEnabled !== false && config.frequencyMultipliers && config.frequencyMultipliers.length > 0 && (
+      {(() => {
+        const shouldShowFrequency = selectedService.frequencyEnabled !== false && config.frequencyMultipliers && config.frequencyMultipliers.length > 0;
+        console.log('🔍 Frequency condition check:');
+        console.log('  - selectedService.frequencyEnabled !== false:', selectedService.frequencyEnabled !== false);
+        console.log('  - config.frequencyMultipliers exists:', !!config.frequencyMultipliers);
+        console.log('  - config.frequencyMultipliers.length > 0:', config.frequencyMultipliers?.length > 0);
+        console.log('  - shouldShowFrequency:', shouldShowFrequency);
+        return shouldShowFrequency;
+      })() && (
         <div className="mb-4">
           <label className="block font-semibold mb-1">Frekvens</label>
           <select
@@ -624,8 +636,62 @@ const PriceCard = ({ originalPrice, finalPrice, rutApplied, selectedService, for
   const customFeesTotal = hasServiceData && selectedService?.customFees ? 
     selectedService.customFees.reduce((total, fee) => total + (fee.amount || 0), 0) : 0;
 
-  // Calculate base price (service price without add-ons and custom fees)
-  const basePrice = Math.max(0, originalPrice - addOnsTotal - customFeesTotal);
+  // Calculate base price from service data instead of subtracting from total
+  let basePrice = 0;
+  if (hasServiceData && selectedService) {
+    if (selectedService.pricingModel === 'window') {
+      const windowTypes = selectedService.windowTypes || [];
+      windowTypes.forEach((windowType, index) => {
+        const quantity = formData[`window_${index}`] || 0;
+        basePrice += quantity * (windowType.price || 0);
+      });
+    } else if (selectedService.pricingModel === 'per-room') {
+      const roomTypes = selectedService.perRoomRates || [];
+      roomTypes.forEach((roomType, index) => {
+        const quantity = formData[`room_${index}`] || 0;
+        basePrice += quantity * (roomType.price || 0);
+      });
+    } else if (selectedService.pricingModel === 'universal') {
+      const area = formData.area || 0;
+      basePrice = area * (selectedService.universalRate || 50);
+    } else if (selectedService.pricingModel === 'fixed-tier') {
+      const area = formData.area || 0;
+      const tier = selectedService.tiers?.find(t => area >= t.min && area <= t.max);
+      basePrice = tier?.price || selectedService.minPrice || 1000;
+    } else if (selectedService.pricingModel === 'tiered-multiplier') {
+      const area = formData.area || 0;
+      const tier = selectedService.tiers?.find(t => area >= t.min && area <= t.max);
+      if (tier) {
+        basePrice = area * (tier.multiplier || tier.price || 50);
+      } else {
+        basePrice = selectedService.minPrice || 1000;
+      }
+    } else if (selectedService.pricingModel === 'hourly') {
+      const area = formData.area || 0;
+      const hourlyTier = selectedService.hourlyTiers?.find(t => area >= t.min && area <= t.max);
+      const hours = hourlyTier?.hours || 3;
+      basePrice = hours * (selectedService.hourlyRate || 400);
+    } else {
+      // Default pricing
+      const area = formData.area || 0;
+      basePrice = area * (selectedService.pricePerSqm || 50);
+    }
+
+    // Apply minimum price if applicable
+    if (hasServiceData && selectedService.minPrice) {
+      basePrice = Math.max(basePrice, selectedService.minPrice);
+    }
+
+    // Apply frequency multiplier if selected
+    if (formData.frequency && config.frequencyMultipliers) {
+      const selectedFrequency = config.frequencyMultipliers.find(freq => 
+        (freq.key || freq.label) === formData.frequency
+      );
+      if (selectedFrequency && selectedFrequency.multiplier && selectedFrequency.multiplier !== 1) {
+        basePrice = Math.round(basePrice * selectedFrequency.multiplier);
+      }
+    }
+  }
 
   // Debug logging
   console.log('💰 PriceCard - originalPrice:', originalPrice);
@@ -735,7 +801,7 @@ const PriceCard = ({ originalPrice, finalPrice, rutApplied, selectedService, for
         )}
         <div className="flex justify-between items-center">
           <span className="text-lg font-bold text-gray-900">
-            {selectedService ? (rutApplied ? finalPrice : originalPrice) : 0} kr
+            {hasServiceData ? (rutApplied ? finalPrice : originalPrice) : 0} kr
             {rutApplied && <span className="text-xs text-gray-500 ml-1">*</span>}
           </span>
         </div>

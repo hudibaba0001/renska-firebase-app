@@ -75,9 +75,11 @@ const formatDate = (dateValue) => {
   }
 };
 
-const formatTime = (dateValue, bookingId = 'unknown') => {
+const formatTime = (dateValue) => {
   try {
-    if (!dateValue) return 'Ingen tid';
+    if (!dateValue || dateValue === '' || dateValue === 'No date') {
+      return 'Ingen tid';
+    }
     
     // Handle Firestore Timestamp
     if (dateValue && typeof dateValue.toDate === 'function') {
@@ -90,7 +92,7 @@ const formatTime = (dateValue, bookingId = 'unknown') => {
     }
     
     // Handle string dates
-    if (typeof dateValue === 'string') {
+    if (typeof dateValue === 'string' && dateValue.trim() !== '') {
       const parsedDate = new Date(dateValue);
       if (!isNaN(parsedDate.getTime())) {
         return parsedDate.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
@@ -98,44 +100,40 @@ const formatTime = (dateValue, bookingId = 'unknown') => {
     }
     
     // Handle timestamp numbers
-    if (typeof dateValue === 'number') {
+    if (typeof dateValue === 'number' && dateValue > 0) {
       const jsDate = new Date(dateValue);
       if (!isNaN(jsDate.getTime())) {
         return jsDate.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
       }
     }
     
-    console.warn(`Time formatting failed for ${bookingId}:`, dateValue);
-    return 'Ogiltig tid';
-  } catch (error) {
-    console.error(`Time error for ${bookingId}:`, error);
-    return 'Fel i tid';
+    return 'Ingen tid';
+  } catch {
+    return 'Ingen tid';
   }
 };
 
-const formatCurrency = (amount, bookingId = 'unknown') => {
+const formatCurrency = (amount) => {
   try {
-    if (amount === null || amount === undefined || amount === 0) {
+    if (amount === null || amount === undefined) {
       return '0 kr';
     }
     
     // Handle string numbers
     if (typeof amount === 'string') {
       const numAmount = parseFloat(amount);
-      if (!isNaN(numAmount) && numAmount > 0) {
+      if (!isNaN(numAmount)) {
         return `${numAmount.toLocaleString('sv-SE')} kr`;
       }
     }
     
     // Handle numbers
-    if (typeof amount === 'number' && !isNaN(amount) && amount > 0) {
+    if (typeof amount === 'number' && !isNaN(amount)) {
       return `${amount.toLocaleString('sv-SE')} kr`;
     }
     
-    console.warn(`Currency formatting failed for ${bookingId}:`, amount);
     return '0 kr';
-  } catch (error) {
-    console.error(`Currency error for ${bookingId}:`, error);
+  } catch {
     return '0 kr';
   }
 };
@@ -191,11 +189,11 @@ const BookingDetailsModal = ({ booking, isOpen, onClose, onStatusUpdate, onConta
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <p className="text-sm text-gray-600">Datum</p>
-                <p className="font-medium">{formatDate(booking.bookingDate, booking.id)}</p>
+                <p className="font-medium">{formatDate(booking.bookingDate)}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-600">Tid</p>
-                <p className="font-medium">{formatTime(booking.bookingDate, booking.id)}</p>
+                <p className="font-medium">{formatTime(booking.bookingDate)}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-600">Tjänst</p>
@@ -203,7 +201,7 @@ const BookingDetailsModal = ({ booking, isOpen, onClose, onStatusUpdate, onConta
               </div>
               <div>
                 <p className="text-sm text-gray-600">Belopp</p>
-                <p className="font-medium">{formatCurrency(booking.totalAmount, booking.id)}</p>
+                <p className="font-medium">{formatCurrency(booking.totalAmount)}</p>
               </div>
             </div>
           </div>
@@ -453,10 +451,10 @@ const BookingTable = ({
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
-                        {formatDate(booking.bookingDate, booking.id)}
+                        {formatDate(booking.bookingDate)}
                       </div>
                       <div className="text-sm text-gray-500">
-                        {formatTime(booking.bookingDate, booking.id)}
+                        {formatTime(booking.bookingDate)}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -466,7 +464,7 @@ const BookingTable = ({
                       <StatusBadge status={booking.status} />
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {formatCurrency(booking.totalAmount, booking.id)}
+                      {formatCurrency(booking.totalAmount)}
                     </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex items-center gap-2">

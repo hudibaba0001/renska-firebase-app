@@ -23,7 +23,7 @@ import {
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
-import BookingTable from '../components/BookingTable';
+import BookingTable from '../components/BookingTableSimple';
 import BookingService from '../services/bookingService';
 
 const BookingManagementPage = () => {
