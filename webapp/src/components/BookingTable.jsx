@@ -36,9 +36,12 @@ const StatusBadge = ({ status }) => {
 };
 
 // Simplified Utility Functions
-const formatDate = (dateValue, bookingId = 'unknown') => {
+const formatDate = (dateValue) => {
   try {
-    if (!dateValue) return 'Inget datum';
+    // Handle null, undefined, or empty values
+    if (!dateValue || dateValue === '' || dateValue === 'No date') {
+      return 'Inget datum';
+    }
     
     // Handle Firestore Timestamp
     if (dateValue && typeof dateValue.toDate === 'function') {
@@ -51,7 +54,7 @@ const formatDate = (dateValue, bookingId = 'unknown') => {
     }
     
     // Handle string dates
-    if (typeof dateValue === 'string') {
+    if (typeof dateValue === 'string' && dateValue.trim() !== '') {
       const parsedDate = new Date(dateValue);
       if (!isNaN(parsedDate.getTime())) {
         return parsedDate.toLocaleDateString('sv-SE');
@@ -59,18 +62,16 @@ const formatDate = (dateValue, bookingId = 'unknown') => {
     }
     
     // Handle timestamp numbers
-    if (typeof dateValue === 'number') {
+    if (typeof dateValue === 'number' && dateValue > 0) {
       const jsDate = new Date(dateValue);
       if (!isNaN(jsDate.getTime())) {
         return jsDate.toLocaleDateString('sv-SE');
       }
     }
     
-    console.warn(`Date formatting failed for ${bookingId}:`, dateValue);
-    return 'Ogiltigt datum';
-  } catch (error) {
-    console.error(`Date error for ${bookingId}:`, error);
-    return 'Fel i datum';
+    return 'Inget datum';
+  } catch {
+    return 'Inget datum';
   }
 };
 
