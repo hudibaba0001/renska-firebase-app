@@ -9,7 +9,7 @@ import {
   UsersIcon,
   CurrencyDollarIcon
 } from '@heroicons/react/24/outline';
-import { Button, Modal, TextInput, Select, Checkbox, Label } from 'flowbite-react';
+import { Button } from 'flowbite-react';
 import { db } from '../firebase/init';
 import { 
   collection, 
@@ -279,444 +279,92 @@ export default function AdminCouponsPage() {
         )}
       </div>
 
-      {/* Create Coupon Modal */}
-      <Modal show={showCreateModal} onClose={() => setShowCreateModal(false)} size="2xl">
-        <Modal.Header>Create Coupon</Modal.Header>
-        <Modal.Body>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Coupon Code */}
-            <div>
-              <Label htmlFor="code">Coupon code</Label>
-              <div className="flex gap-2">
-                <TextInput
-                  id="code"
-                  value={formData.code}
-                  onChange={(e) => setFormData(prev => ({ ...prev, code: e.target.value }))}
-                  placeholder="Enter coupon code"
-                  required
-                  className="flex-1"
-                />
-                <Button 
-                  type="button" 
-                  color="light"
-                  onClick={generateCouponCode}
-                >
-                  Autogenerate code
-                </Button>
-              </div>
-              <p className="text-sm text-gray-500 mt-1">Customers will enter this code when booking online</p>
+      {/* Create Coupon Modal - Simplified */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl mx-4">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">Create Coupon</h2>
+              <button 
+                onClick={() => setShowCreateModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                ✕
+              </button>
             </div>
+            
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Coupon Code */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Coupon code
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={formData.code}
+                    onChange={(e) => setFormData(prev => ({ ...prev, code: e.target.value }))}
+                    placeholder="Enter coupon code"
+                    required
+                    className="flex-1 border border-gray-300 rounded-md px-3 py-2"
+                  />
+                  <button 
+                    type="button" 
+                    onClick={generateCouponCode}
+                    className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+                  >
+                    Generate
+                  </button>
+                </div>
+              </div>
 
-            {/* Discount */}
-            <div>
-              <Label>Discount</Label>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Select
+              {/* Discount */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Discount
+                </label>
+                <div className="grid grid-cols-2 gap-4">
+                  <select
                     value={formData.discountType}
                     onChange={(e) => setFormData(prev => ({ ...prev, discountType: e.target.value }))}
                     required
+                    className="border border-gray-300 rounded-md px-3 py-2"
                   >
                     <option value="amount">Fixed Amount</option>
                     <option value="percentage">Percentage</option>
-                  </Select>
-                </div>
-                <div>
-                  <TextInput
+                  </select>
+                  <input
                     type="number"
                     value={formData.discountAmount}
                     onChange={(e) => setFormData(prev => ({ ...prev, discountAmount: e.target.value }))}
-                    placeholder={formData.discountType === 'percentage' ? '25' : '25'}
+                    placeholder="25"
                     required
-                    addon={formData.discountType === 'percentage' ? '%' : '$'}
+                    className="border border-gray-300 rounded-md px-3 py-2"
                   />
                 </div>
               </div>
-            </div>
 
-            {/* Applies to */}
-            <div>
-              <Label>Applies to</Label>
-              <p className="text-sm text-gray-500 mb-3">Select the services that this coupon can be applied to</p>
-              
-              <div className="space-y-3">
-                <div className="flex items-center">
-                  <input
-                    type="radio"
-                    id="all-services"
-                    name="appliesTo"
-                    value="all"
-                    checked={formData.appliesTo === 'all'}
-                    onChange={(e) => setFormData(prev => ({ ...prev, appliesTo: e.target.value }))}
-                    className="mr-2"
-                  />
-                  <Label htmlFor="all-services">All services</Label>
-                </div>
-                
-                <div className="flex items-center">
-                  <input
-                    type="radio"
-                    id="specific-services"
-                    name="appliesTo"
-                    value="specific"
-                    checked={formData.appliesTo === 'specific'}
-                    onChange={(e) => setFormData(prev => ({ ...prev, appliesTo: e.target.value }))}
-                    className="mr-2"
-                  />
-                  <Label htmlFor="specific-services">Specific services</Label>
-                </div>
-                
-                {formData.appliesTo === 'specific' && (
-                  <div className="ml-6 space-y-2">
-                    {services.map((service) => (
-                      <div key={service.id} className="flex items-center">
-                        <input
-                          type="checkbox"
-                          id={`service-${service.id}`}
-                          checked={formData.selectedServices.includes(service.id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setFormData(prev => ({
-                                ...prev,
-                                selectedServices: [...prev.selectedServices, service.id]
-                              }));
-                            } else {
-                              setFormData(prev => ({
-                                ...prev,
-                                selectedServices: prev.selectedServices.filter(id => id !== service.id)
-                              }));
-                            }
-                          }}
-                          className="mr-2"
-                        />
-                        <Label htmlFor={`service-${service.id}`}>{service.name}</Label>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Expiration Date */}
-            <div>
-              <Label>Expiration date</Label>
-              <div className="space-y-3">
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="doesnt-expire"
-                    checked={formData.doesntExpire}
-                    onChange={(e) => setFormData(prev => ({ ...prev, doesntExpire: e.target.checked }))}
-                    className="mr-2"
-                  />
-                  <Label htmlFor="doesnt-expire">Doesn't expire</Label>
-                </div>
-                
-                {!formData.doesntExpire && (
-                  <div>
-                    <TextInput
-                      type="date"
-                      value={formData.expiresAt}
-                      onChange={(e) => setFormData(prev => ({ ...prev, expiresAt: e.target.value }))}
-                      required={!formData.doesntExpire}
-                    />
-                  </div>
-                )}
-                
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="restrict-expiration"
-                    checked={formData.restrictToExpirationDate}
-                    onChange={(e) => setFormData(prev => ({ ...prev, restrictToExpirationDate: e.target.checked }))}
-                    className="mr-2"
-                  />
-                  <Label htmlFor="restrict-expiration">Restrict coupon to appointments on or before expiration date</Label>
-                </div>
-              </div>
-            </div>
-
-            {/* Usage Limits */}
-            <div>
-              <Label>Usage limits</Label>
-              <div className="space-y-3">
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="limit-usage"
-                    checked={formData.limitUsage}
-                    onChange={(e) => setFormData(prev => ({ ...prev, limitUsage: e.target.checked }))}
-                    className="mr-2"
-                  />
-                  <Label htmlFor="limit-usage">Limit the total number of times this coupon can be redeemed</Label>
-                </div>
-                
-                {formData.limitUsage && (
-                  <div>
-                    <TextInput
-                      type="number"
-                      value={formData.usageLimit}
-                      onChange={(e) => setFormData(prev => ({ ...prev, usageLimit: e.target.value }))}
-                      placeholder="100"
-                      required={formData.limitUsage}
-                    />
-                  </div>
-                )}
-                
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="combine-recurring"
-                    checked={formData.canCombineWithRecurring}
-                    onChange={(e) => setFormData(prev => ({ ...prev, canCombineWithRecurring: e.target.checked }))}
-                    className="mr-2"
-                  />
-                  <Label htmlFor="combine-recurring">This coupon can be combined with recurring booking discounts</Label>
-                </div>
-                
-                <div>
-                  <Label>For recurring bookings, apply coupon to...</Label>
-                  <Select
-                    value={formData.applyToRecurring}
-                    onChange={(e) => setFormData(prev => ({ ...prev, applyToRecurring: e.target.value }))}
-                  >
-                    <option value="all">All jobs in recurring series</option>
-                    <option value="first">First job only</option>
-                  </Select>
-                </div>
-              </div>
-            </div>
-          </form>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button color="light" onClick={() => setShowCreateModal(false)}>
-            Discard
-          </Button>
-          <Button onClick={handleSubmit} disabled={!formData.code || !formData.discountAmount}>
-            Create Coupon
-          </Button>
-        </Modal.Footer>
-      </Modal>
-
-      {/* Edit Coupon Modal */}
-      <Modal show={showEditModal} onClose={() => setShowEditModal(false)} size="2xl">
-        <Modal.Header>Edit Coupon</Modal.Header>
-        <Modal.Body>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Same form fields as create modal */}
-            {/* Coupon Code */}
-            <div>
-              <Label htmlFor="edit-code">Coupon code</Label>
-              <div className="flex gap-2">
-                <TextInput
-                  id="edit-code"
-                  value={formData.code}
-                  onChange={(e) => setFormData(prev => ({ ...prev, code: e.target.value }))}
-                  placeholder="Enter coupon code"
-                  required
-                  className="flex-1"
-                />
-                <Button 
-                  type="button" 
-                  color="light"
-                  onClick={generateCouponCode}
+              {/* Submit Buttons */}
+              <div className="flex justify-end gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  className="px-4 py-2 text-gray-600 hover:text-gray-800"
                 >
-                  Autogenerate code
-                </Button>
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!formData.code || !formData.discountAmount}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                >
+                  Create Coupon
+                </button>
               </div>
-              <p className="text-sm text-gray-500 mt-1">Customers will enter this code when booking online</p>
-            </div>
-
-            {/* Discount */}
-            <div>
-              <Label>Discount</Label>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Select
-                    value={formData.discountType}
-                    onChange={(e) => setFormData(prev => ({ ...prev, discountType: e.target.value }))}
-                    required
-                  >
-                    <option value="amount">Fixed Amount</option>
-                    <option value="percentage">Percentage</option>
-                  </Select>
-                </div>
-                <div>
-                  <TextInput
-                    type="number"
-                    value={formData.discountAmount}
-                    onChange={(e) => setFormData(prev => ({ ...prev, discountAmount: e.target.value }))}
-                    placeholder={formData.discountType === 'percentage' ? '25' : '25'}
-                    required
-                    addon={formData.discountType === 'percentage' ? '%' : '$'}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Applies to */}
-            <div>
-              <Label>Applies to</Label>
-              <p className="text-sm text-gray-500 mb-3">Select the services that this coupon can be applied to</p>
-              
-              <div className="space-y-3">
-                <div className="flex items-center">
-                  <input
-                    type="radio"
-                    id="edit-all-services"
-                    name="edit-appliesTo"
-                    value="all"
-                    checked={formData.appliesTo === 'all'}
-                    onChange={(e) => setFormData(prev => ({ ...prev, appliesTo: e.target.value }))}
-                    className="mr-2"
-                  />
-                  <Label htmlFor="edit-all-services">All services</Label>
-                </div>
-                
-                <div className="flex items-center">
-                  <input
-                    type="radio"
-                    id="edit-specific-services"
-                    name="edit-appliesTo"
-                    value="specific"
-                    checked={formData.appliesTo === 'specific'}
-                    onChange={(e) => setFormData(prev => ({ ...prev, appliesTo: e.target.value }))}
-                    className="mr-2"
-                  />
-                  <Label htmlFor="edit-specific-services">Specific services</Label>
-                </div>
-                
-                {formData.appliesTo === 'specific' && (
-                  <div className="ml-6 space-y-2">
-                    {services.map((service) => (
-                      <div key={service.id} className="flex items-center">
-                        <input
-                          type="checkbox"
-                          id={`edit-service-${service.id}`}
-                          checked={formData.selectedServices.includes(service.id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setFormData(prev => ({
-                                ...prev,
-                                selectedServices: [...prev.selectedServices, service.id]
-                              }));
-                            } else {
-                              setFormData(prev => ({
-                                ...prev,
-                                selectedServices: prev.selectedServices.filter(id => id !== service.id)
-                              }));
-                            }
-                          }}
-                          className="mr-2"
-                        />
-                        <Label htmlFor={`edit-service-${service.id}`}>{service.name}</Label>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Expiration Date */}
-            <div>
-              <Label>Expiration date</Label>
-              <div className="space-y-3">
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="edit-doesnt-expire"
-                    checked={formData.doesntExpire}
-                    onChange={(e) => setFormData(prev => ({ ...prev, doesntExpire: e.target.checked }))}
-                    className="mr-2"
-                  />
-                  <Label htmlFor="edit-doesnt-expire">Doesn't expire</Label>
-                </div>
-                
-                {!formData.doesntExpire && (
-                  <div>
-                    <TextInput
-                      type="date"
-                      value={formData.expiresAt}
-                      onChange={(e) => setFormData(prev => ({ ...prev, expiresAt: e.target.value }))}
-                      required={!formData.doesntExpire}
-                    />
-                  </div>
-                )}
-                
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="edit-restrict-expiration"
-                    checked={formData.restrictToExpirationDate}
-                    onChange={(e) => setFormData(prev => ({ ...prev, restrictToExpirationDate: e.target.checked }))}
-                    className="mr-2"
-                  />
-                  <Label htmlFor="edit-restrict-expiration">Restrict coupon to appointments on or before expiration date</Label>
-                </div>
-              </div>
-            </div>
-
-            {/* Usage Limits */}
-            <div>
-              <Label>Usage limits</Label>
-              <div className="space-y-3">
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="edit-limit-usage"
-                    checked={formData.limitUsage}
-                    onChange={(e) => setFormData(prev => ({ ...prev, limitUsage: e.target.checked }))}
-                    className="mr-2"
-                  />
-                  <Label htmlFor="edit-limit-usage">Limit the total number of times this coupon can be redeemed</Label>
-                </div>
-                
-                {formData.limitUsage && (
-                  <div>
-                    <TextInput
-                      type="number"
-                      value={formData.usageLimit}
-                      onChange={(e) => setFormData(prev => ({ ...prev, usageLimit: e.target.value }))}
-                      placeholder="100"
-                      required={formData.limitUsage}
-                    />
-                  </div>
-                )}
-                
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="edit-combine-recurring"
-                    checked={formData.canCombineWithRecurring}
-                    onChange={(e) => setFormData(prev => ({ ...prev, canCombineWithRecurring: e.target.checked }))}
-                    className="mr-2"
-                  />
-                  <Label htmlFor="edit-combine-recurring">This coupon can be combined with recurring booking discounts</Label>
-                </div>
-                
-                <div>
-                  <Label>For recurring bookings, apply coupon to...</Label>
-                  <Select
-                    value={formData.applyToRecurring}
-                    onChange={(e) => setFormData(prev => ({ ...prev, applyToRecurring: e.target.value }))}
-                  >
-                    <option value="all">All jobs in recurring series</option>
-                    <option value="first">First job only</option>
-                  </Select>
-                </div>
-              </div>
-            </div>
-          </form>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button color="light" onClick={() => setShowEditModal(false)}>
-            Cancel
-          </Button>
-          <Button onClick={handleSubmit} disabled={!formData.code || !formData.discountAmount}>
-            Update Coupon
-          </Button>
-        </Modal.Footer>
-      </Modal>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 } 
