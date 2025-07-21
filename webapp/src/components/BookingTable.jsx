@@ -282,7 +282,7 @@ const BookingDetailsModal = ({ booking, isOpen, onClose, onStatusUpdate, onConta
 // Main BookingTable Component
 const BookingTable = ({ 
   bookings = [], 
-  loading = false,
+  loading = false, 
   onBookingUpdate,
   onContactCustomer,
   className
@@ -381,17 +381,17 @@ const BookingTable = ({
     <th 
       className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
       onClick={() => handleSort(column)}
-    >
-      <div className="flex items-center gap-1">
-        {children}
+      >
+        <div className="flex items-center gap-1">
+          {children}
         {sortBy === column && (
           sortDirection === 'asc' ? 
             <ChevronUpIcon className="w-4 h-4" /> : 
             <ChevronDownIcon className="w-4 h-4" />
-        )}
-      </div>
+          )}
+        </div>
     </th>
-  );
+    );
 
   // Loading state
   if (loading) {
@@ -437,22 +437,22 @@ const BookingTable = ({
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {sortedBookings.map((booking) => (
+            {sortedBookings.map((booking) => (
                   <tr key={booking.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div>
+                  <div>
                         <div className="text-sm font-medium text-gray-900">
                           {booking.customerName || 'Okänd kund'}
                         </div>
                         <div className="text-sm text-gray-500">
                           {booking.customerEmail || 'Ingen e-post'}
                         </div>
-                      </div>
+                    </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
                         {formatDate(booking.bookingDate)}
-                      </div>
+                    </div>
                       <div className="text-sm text-gray-500">
                         {formatTime(booking.bookingDate)}
                       </div>
@@ -467,22 +467,22 @@ const BookingTable = ({
                       {formatCurrency(booking.totalAmount)}
                     </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex items-center gap-2">
-                      <Button
-                        size="xs"
-                        color="gray"
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="xs"
+                      color="gray"
                         onClick={() => handleViewBooking(booking)}
-                      >
+                    >
                         <EyeIcon className="w-4 h-4 mr-1" />
-                        Visa
-                      </Button>
+                      Visa
+                    </Button>
                       <Button
                         size="xs"
                         color="blue"
                         onClick={() => handleContactCustomer(booking, 'phone')}
                       >
                         <PhoneIcon className="w-4 h-4" />
-                      </Button>
+                        </Button>
                       <Button
                         size="xs"
                         color="green"
@@ -490,10 +490,10 @@ const BookingTable = ({
                       >
                         <EnvelopeIcon className="w-4 h-4" />
                       </Button>
-                    </div>
+                  </div>
                   </td>
                 </tr>
-              ))}
+            ))}
             </tbody>
           </table>
         </div>
@@ -501,7 +501,7 @@ const BookingTable = ({
 
       {/* Booking Details Modal */}
       <BookingDetailsModal
-        booking={selectedBooking}
+                  booking={selectedBooking}
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         onStatusUpdate={handleStatusUpdate}

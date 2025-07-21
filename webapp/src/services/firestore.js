@@ -1,6 +1,6 @@
 // webapp/src/services/firestore.js
 
-import { collection, query, getDocs, orderBy, addDoc, deleteDoc, doc, where, updateDoc, getDoc } from "firebase/firestore";
+import { collection, query, getDocs, orderBy, addDoc, deleteDoc, doc, where, updateDoc, getDoc, limit } from "firebase/firestore";
 import { db } from "../firebase/init";
 import { serverTimestamp } from "firebase/firestore";
 
@@ -257,5 +257,119 @@ export const debugListAllCompanies = async () => {
   } catch (error) {
     console.error('Error in debug listing companies:', error);
     return [];
+  }
+};
+
+// Customer-related functions
+export const createCustomer = async (companyId, customerData) => {
+  try {
+    const customersRef = collection(db, 'companies', companyId, 'customers');
+    const docRef = await addDoc(customersRef, {
+      ...customerData,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+    return docRef.id;
+  } catch (error) {
+    console.error('Error creating customer:', error);
+    throw error;
+  }
+};
+
+export const getCustomersForCompany = async (companyId, options = {}) => {
+  try {
+    const customersRef = collection(db, 'companies', companyId, 'customers');
+    let q = query(customersRef);
+    
+    // Apply filters
+    if (options.status && options.status !== 'all') {
+      q = query(q, where('status', '==', options.status));
+    }
+    
+    if (options.customerType && options.customerType !== 'all') {
+      q = query(q, where('customerType', '==', options.customerType));
+    }
+    
+    // Apply sorting
+    const sortField = options.sortBy || 'createdAt';
+    const sortDirection = options.sortDirection || 'desc';
+    q = query(q, orderBy(sortField, sortDirection));
+    
+    // Apply limit
+    if (options.limit) {
+      q = query(q, limit(options.limit));
+    }
+    
+    const snapshot = await getDocs(q);
+    const customers = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    
+    return customers;
+  } catch (error) {
+    console.error('Error fetching customers:', error);
+    throw error;
+  }
+};
+
+export const updateCustomer = async (companyId, customerId, updates) => {
+  try {
+    const customerRef = doc(db, 'companies', companyId, 'customers', customerId);
+    await updateDoc(customerRef, {
+      ...updates,
+      updatedAt: serverTimestamp()
+    });
+    return true;
+  } catch (error) {
+    console.error('Error updating customer:', error);
+    throw error;
+  }
+};
+
+export const deleteCustomer = async (companyId, customerId) => {
+  try {
+    const customerRef = doc(db, 'companies', companyId, 'customers', customerId);
+    await deleteDoc(customerRef);
+    return true;
+  } catch (error) {
+    console.error('Error deleting customer:', error);
+    throw error;
+  }
+};
+
+export const getCustomerStats = async (companyId) => {
+  try {
+    const customers = await getCustomersForCompany(companyId);
+    
+    const stats = {
+      total: customers.length,
+      byStatus: {
+        lead: customers.filter(c => c.status === 'lead').length,
+        active: customers.filter(c => c.status === 'active').length,
+        inactive: customers.filter(c => c.status === 'inactive').length,
+        prospect: customers.filter(c => c.status === 'prospect').length
+      },
+      byType: {
+        private: customers.filter(c => c.customerType === 'private').length,
+        business: customers.filter(c => c.customerType === 'business').length
+      },
+      bySource: {},
+      totalRevenue: customers.reduce((sum, c) => sum + (c.totalSpent || 0), 0),
+      averageOrderValue: customers.length > 0 
+        ? customers.reduce((sum, c) => sum + (c.totalSpent || 0), 0) / customers.length 
+        : 0
+    };
+    
+    // Calculate source distribution
+    customers.forEach(customer => {
+      const source = customer.source || 'unknown';
+      stats.bySource[source] = (stats.bySource[source] || 0) + 1;
+    });
+    
+    return stats;
+  } catch (error) {
+    console.error('Error getting customer stats:', error);
+    throw error;
   }
 };

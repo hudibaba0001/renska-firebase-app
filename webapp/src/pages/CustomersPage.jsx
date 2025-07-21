@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Button, Card, TextInput, Select } from 'flowbite-react';
+import { Button, Card, TextInput, Select, Badge, Tabs, Tab } from 'flowbite-react';
 import toast from 'react-hot-toast';
 import {
   UserPlusIcon,
@@ -9,9 +9,12 @@ import {
   ChartBarIcon,
   StarIcon,
   CurrencyEuroIcon,
-  ArrowDownTrayIcon
+  ArrowDownTrayIcon,
+  FunnelIcon,
+  TagIcon
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../hooks/useAuth';
+import CustomerService from '../services/customerService';
 import BookingService from '../services/bookingService';
 import CustomersTable from '../components/CustomersTable';
 import { AddCustomerModal, ViewCustomerModal } from '../components/CustomerModals';
@@ -21,32 +24,50 @@ const CustomersPage = () => {
   const [customers, setCustomers] = useState([]);
   const [filteredCustomers, setFilteredCustomers] = useState([]);
   const [loading, setLoadingState] = useState(true);
+  const [customerStats, setCustomerStats] = useState({
+    total: 0,
+    byStatus: { lead: 0, active: 0, inactive: 0, prospect: 0 },
+    byType: { private: 0, business: 0 },
+    bySource: {},
+    totalRevenue: 0,
+    averageOrderValue: 0
+  });
   
   // Debug wrapper for setLoading
   const setLoading = (value) => {
     console.log('🔄 setLoading called:', value, 'from:', new Error().stack.split('\n')[2]);
     setLoadingState(value);
   };
+  
   const [showAddModal, setShowAddModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [customerBookings, setCustomerBookings] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
-  const [sortBy, setSortBy] = useState('name');
-  const [sortDirection, setSortDirection] = useState('asc');
+  const [filterType, setFilterType] = useState('all');
+  const [sortBy, setSortBy] = useState('createdAt');
+  const [sortDirection] = useState('desc');
 
   // New customer form state
   const [newCustomer, setNewCustomer] = useState({
     name: '',
     email: '',
     phone: '',
-    address: '',
-    city: '',
-    postalCode: '',
-    notes: '',
     customerType: 'private',
-    source: 'manual'
+    status: 'lead',
+    source: 'manual',
+    addresses: [],
+    preferences: {
+      preferredContactMethod: 'email',
+      preferredTime: 'morning',
+      specialInstructions: '',
+      allergies: '',
+      pets: false,
+      accessInstructions: ''
+    },
+    tags: [],
+    notes: []
   });
 
   const loadCustomers = useCallback(async () => {
@@ -61,19 +82,24 @@ const CustomersPage = () => {
         return;
       }
       
-      console.log('📊 Loading bookings for company:', currentUser.companyId);
+      console.log('📊 Loading customers for company:', currentUser.companyId);
       
       try {
-        // Load bookings and extract customers
-        const bookingsData = await BookingService.getBookingsForCompany(currentUser.companyId);
-        console.log('📋 Bookings loaded:', bookingsData?.length || 0, 'bookings');
+        // Load customers using the new CustomerService
+        const customersData = await CustomerService.getCustomersForCompany(currentUser.companyId, {
+          sortBy,
+          sortDirection
+        });
+        console.log('👥 Customers loaded:', customersData?.length || 0, 'customers');
         
-        const extractedCustomers = extractCustomersFromBookings(bookingsData || []);
-        console.log('👥 Extracted customers:', extractedCustomers?.length || 0, 'customers');
+        setCustomers(customersData || []);
         
-        setCustomers(extractedCustomers);
-      } catch (bookingError) {
-        console.warn('⚠️ Booking service failed, using test data:', bookingError);
+        // Load customer statistics
+        const stats = await CustomerService.getCustomerStats(currentUser.companyId);
+        setCustomerStats(stats);
+        
+      } catch (customerError) {
+        console.warn('⚠️ Customer service failed, using test data:', customerError);
         
         // Fallback: Show test customer data to demonstrate CRM interface
         const testCustomers = [
@@ -87,7 +113,38 @@ const CustomersPage = () => {
             lastBooking: new Date('2024-01-15'),
             status: 'active',
             customerType: 'private',
-            source: 'booking'
+            source: 'booking',
+            addresses: [
+              {
+                id: 'addr_1',
+                type: 'primary',
+                street: 'Storgatan 123',
+                city: 'Stockholm',
+                postalCode: '123 45',
+                country: 'Sweden',
+                isDefault: true
+              }
+            ],
+            preferences: {
+              preferredContactMethod: 'email',
+              preferredTime: 'morning',
+              specialInstructions: 'Ring på dörren',
+              allergies: '',
+              pets: false,
+              accessInstructions: ''
+            },
+            tags: ['VIP', 'Regelbunden'],
+            notes: [
+              {
+                id: 'note_1',
+                content: 'Mycket nöjd kund, föredrar morgonstädning',
+                type: 'preference',
+                createdBy: 'system',
+                createdAt: new Date('2024-01-10')
+              }
+            ],
+            createdAt: new Date('2024-01-01'),
+            updatedAt: new Date('2024-01-15')
           },
           {
             id: 'test-2', 
@@ -99,12 +156,45 @@ const CustomersPage = () => {
             lastBooking: new Date('2024-01-10'),
             status: 'active',
             customerType: 'business',
-            source: 'booking'
+            source: 'booking',
+            addresses: [
+              {
+                id: 'addr_2',
+                type: 'primary',
+                street: 'Företagsgatan 456',
+                city: 'Göteborg',
+                postalCode: '456 78',
+                country: 'Sweden',
+                isDefault: true
+              }
+            ],
+            preferences: {
+              preferredContactMethod: 'phone',
+              preferredTime: 'afternoon',
+              specialInstructions: '',
+              allergies: '',
+              pets: false,
+              accessInstructions: 'Kod: 1234'
+            },
+            tags: ['Företag', 'Ny kund'],
+            notes: [],
+            createdAt: new Date('2024-01-05'),
+            updatedAt: new Date('2024-01-10')
           }
         ];
         
         console.log('🧪 Using test customers:', testCustomers.length);
         setCustomers(testCustomers);
+        
+        // Set test stats
+        setCustomerStats({
+          total: testCustomers.length,
+          byStatus: { lead: 0, active: 2, inactive: 0, prospect: 0 },
+          byType: { private: 1, business: 1 },
+          bySource: { booking: 2 },
+          totalRevenue: 3600,
+          averageOrderValue: 1800
+        });
       }
     } catch (error) {
       console.error('Error loading customers:', error);
@@ -121,61 +211,7 @@ const CustomersPage = () => {
       console.log('✅ loadCustomers completed');
       setLoading(false);
     }
-  }, [currentUser?.companyId]);
-
-  const extractCustomersFromBookings = (bookings) => {
-    const customerMap = new Map();
-
-    // Extract customers from bookings
-    bookings.forEach(booking => {
-      const email = (booking.customerEmail || booking.email || '').toLowerCase();
-      const phone = booking.customerPhone || booking.phone || booking.phoneNumber || '';
-      
-      if (email && !customerMap.has(email)) {
-        const customer = {
-          id: `auto_${email.replace(/[^a-zA-Z0-9]/g, '_')}`,
-          name: booking.customerName || booking.name || 'Okänd kund',
-          email: booking.customerEmail || booking.email || '',
-          phone: phone,
-          address: booking.address || booking.customerAddress || booking.location || booking.serviceAddress || '',
-          city: '',
-          postalCode: '',
-          notes: '',
-          customerType: 'private',
-          source: 'online',
-          createdAt: booking.createdAt || new Date(),
-          updatedAt: new Date(),
-          totalBookings: 0,
-          totalSpent: 0,
-          lastBooking: null,
-          status: 'active'
-        };
-        customerMap.set(email, customer);
-      }
-    });
-
-    // Calculate customer statistics
-    const customers = Array.from(customerMap.values());
-    customers.forEach(customer => {
-      const customerBookings = bookings.filter(booking => 
-        (booking.customerEmail || booking.email || '').toLowerCase() === customer.email.toLowerCase()
-      );
-      
-      customer.totalBookings = customerBookings.length;
-      customer.totalSpent = customerBookings.reduce((sum, booking) => {
-        const amount = booking.totalPrice || booking.totalAmount || booking.amount || booking.price || 0;
-        return sum + (typeof amount === 'string' ? parseFloat(amount) : amount);
-      }, 0);
-      
-      if (customerBookings.length > 0) {
-        customer.lastBooking = customerBookings.sort((a, b) => 
-          new Date(b.createdAt) - new Date(a.createdAt)
-        )[0].createdAt;
-      }
-    });
-
-    return customers;
-  };
+  }, [currentUser?.companyId, sortBy, sortDirection]);
 
   const filterAndSortCustomers = useCallback(() => {
     let filtered = [...customers];
@@ -186,13 +222,22 @@ const CustomersPage = () => {
         customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
         customer.phone.includes(searchTerm) ||
-        customer.address.toLowerCase().includes(searchTerm.toLowerCase())
+        customer.tags?.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        customer.addresses?.some(addr => 
+          addr.street?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          addr.city?.toLowerCase().includes(searchTerm.toLowerCase())
+        )
       );
     }
 
     // Status filter
     if (filterStatus !== 'all') {
       filtered = filtered.filter(customer => customer.status === filterStatus);
+    }
+
+    // Type filter
+    if (filterType !== 'all') {
+      filtered = filtered.filter(customer => customer.customerType === filterType);
     }
 
     // Sort
@@ -203,7 +248,7 @@ const CustomersPage = () => {
       if (sortBy === 'totalSpent' || sortBy === 'totalBookings') {
         aValue = aValue || 0;
         bValue = bValue || 0;
-      } else if (sortBy === 'lastBooking') {
+      } else if (sortBy === 'lastBooking' || sortBy === 'createdAt' || sortBy === 'updatedAt') {
         aValue = aValue ? new Date(aValue) : new Date(0);
         bValue = bValue ? new Date(bValue) : new Date(0);
       } else {
@@ -217,7 +262,7 @@ const CustomersPage = () => {
     });
 
     setFilteredCustomers(filtered);
-  }, [customers, searchTerm, filterStatus, sortBy, sortDirection]);
+  }, [customers, searchTerm, filterStatus, filterType, sortBy, sortDirection]);
 
   // useEffect hooks - must come after useCallback definitions
   useEffect(() => {
@@ -238,212 +283,268 @@ const CustomersPage = () => {
     }
   }, [customers, loading]);
 
-  // Timeout fallback - never stay loading for more than 10 seconds
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      if (loading) {
-        console.log('⏰ Timeout: Forcing loading to false after 10 seconds');
-        setLoading(false);
-      }
-    }, 10000);
-
-    return () => clearTimeout(timeout);
-  }, [loading]);
-
   const handleAddCustomer = async () => {
-    console.log('📝 Adding customer:', newCustomer);
     try {
+      console.log('🔄 Adding customer:', newCustomer);
+      
       if (!newCustomer.name || !newCustomer.email) {
         toast.error('Namn och e-post är obligatoriska');
         return;
       }
 
-      const customerData = {
-        ...newCustomer,
-        id: `manual_${Date.now()}`,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        totalBookings: 0,
-        totalSpent: 0,
-        lastBooking: null,
-        status: 'active',
-        companyId: currentUser?.companyId || 'test-company'
-      };
+      const createdCustomer = await CustomerService.createCustomer(
+        currentUser.companyId,
+        newCustomer,
+        currentUser.email || 'system'
+      );
 
-      setCustomers(prev => [...prev, customerData]);
-      setShowAddModal(false);
+      // Add to local state
+      setCustomers(prev => [createdCustomer, ...prev]);
+      
+      // Reset form
       setNewCustomer({
         name: '',
         email: '',
         phone: '',
-        address: '',
-        city: '',
-        postalCode: '',
-        notes: '',
         customerType: 'private',
-        source: 'manual'
+        status: 'lead',
+        source: 'manual',
+        addresses: [],
+        preferences: {
+          preferredContactMethod: 'email',
+          preferredTime: 'morning',
+          specialInstructions: '',
+          allergies: '',
+          pets: false,
+          accessInstructions: ''
+        },
+        tags: [],
+        notes: []
       });
-      
-      toast.success('Kund tillagd framgångsrikt');
+
+      console.log('✅ Customer added successfully');
     } catch (error) {
-      console.error('Error adding customer:', error);
-      toast.error('Kunde inte lägga till kund');
+      console.error('❌ Error adding customer:', error);
+      toast.error('Kunde inte skapa kund: ' + (error.message || 'Okänt fel'));
     }
   };
 
   const handleViewCustomer = async (customer) => {
     try {
+      console.log('🔄 Viewing customer:', customer.id);
       setSelectedCustomer(customer);
-      setShowViewModal(true);
       
-      // Load customer's booking history (skip if no currentUser for testing)
-      if (currentUser?.companyId) {
-        const bookings = await BookingService.getBookingsForCompany(currentUser.companyId);
-        const customerBookings = bookings.filter(booking => 
-          (booking.customerEmail || booking.email || '').toLowerCase() === customer.email.toLowerCase()
-        );
-        setCustomerBookings(customerBookings);
-      } else {
-        // Use mock booking data for testing
-        console.log('🧪 Using mock booking data for customer view');
-        setCustomerBookings([
-          {
-            id: 'mock-1',
-            service: 'Hemstädning',
-            bookingDate: new Date('2024-01-15'),
-            totalPrice: 800,
-            status: 'completed'
-          },
-          {
-            id: 'mock-2', 
-            service: 'Fönsterputsning',
-            bookingDate: new Date('2024-01-10'),
-            totalPrice: 600,
-            status: 'completed'
-          }
-        ]);
-      }
+      // Load customer bookings
+      const bookings = await BookingService.getBookingsForCustomer(customer.email);
+      setCustomerBookings(bookings || []);
+      
+      setShowViewModal(true);
     } catch (error) {
-      console.error('Error loading customer bookings:', error);
-      // Don't show error toast during testing
-      if (currentUser) {
-        toast.error('Kunde inte ladda kundens bokningar');
-      }
+      console.error('❌ Error loading customer details:', error);
+      toast.error('Kunde inte ladda kunddetaljer');
     }
   };
 
-  const formatCurrency = (amount) => {
-    if (!amount) return '0 kr';
-    return `${amount.toLocaleString('sv-SE')} kr`;
+  const handleUpdateCustomer = async (customerId, updates) => {
+    try {
+      await CustomerService.updateCustomer(
+        currentUser.companyId,
+        customerId,
+        updates,
+        currentUser.email || 'system'
+      );
+      
+      // Update local state
+      setCustomers(prev => prev.map(c => 
+        c.id === customerId ? { ...c, ...updates } : c
+      ));
+      
+      toast.success('Kund uppdaterad');
+    } catch (error) {
+      console.error('❌ Error updating customer:', error);
+      toast.error('Kunde inte uppdatera kund');
+    }
   };
 
-  const formatDate = (date) => {
-    if (!date) return '—';
-    return new Date(date).toLocaleDateString('sv-SE');
+  const handleAddNote = async (customerId, noteData) => {
+    try {
+      const newNote = await CustomerService.addCustomerNote(
+        currentUser.companyId,
+        customerId,
+        noteData,
+        currentUser.email || 'system'
+      );
+      
+      // Update local state
+      setCustomers(prev => prev.map(c => 
+        c.id === customerId 
+          ? { ...c, notes: [...(c.notes || []), newNote] }
+          : c
+      ));
+      
+      // Update selected customer if viewing
+      if (selectedCustomer?.id === customerId) {
+        setSelectedCustomer(prev => ({
+          ...prev,
+          notes: [...(prev.notes || []), newNote]
+        }));
+      }
+      
+      toast.success('Anteckning tillagd');
+    } catch (error) {
+      console.error('❌ Error adding note:', error);
+      toast.error('Kunde inte lägga till anteckning');
+    }
   };
 
+  const handleUpdateStatus = async (customerId, newStatus) => {
+    try {
+      await CustomerService.updateCustomerStatus(
+        currentUser.companyId,
+        customerId,
+        newStatus,
+        currentUser.email || 'system'
+      );
+      
+      // Update local state
+      setCustomers(prev => prev.map(c => 
+        c.id === customerId ? { ...c, status: newStatus } : c
+      ));
+      
+      // Update selected customer if viewing
+      if (selectedCustomer?.id === customerId) {
+        setSelectedCustomer(prev => ({ ...prev, status: newStatus }));
+      }
+      
+      toast.success('Status uppdaterad');
+    } catch (error) {
+      console.error('❌ Error updating status:', error);
+      toast.error('Kunde inte uppdatera status');
+    }
+  };
 
+  const handleAddTag = async (customerId, tag) => {
+    try {
+      await CustomerService.addCustomerTag(
+        currentUser.companyId,
+        customerId,
+        tag,
+        currentUser.email || 'system'
+      );
+      
+      // Update local state
+      setCustomers(prev => prev.map(c => 
+        c.id === customerId 
+          ? { ...c, tags: [...(c.tags || []), tag] }
+          : c
+      ));
+      
+      // Update selected customer if viewing
+      if (selectedCustomer?.id === customerId) {
+        setSelectedCustomer(prev => ({
+          ...prev,
+          tags: [...(prev.tags || []), tag]
+        }));
+      }
+      
+      toast.success('Tagg tillagd');
+    } catch (error) {
+      console.error('❌ Error adding tag:', error);
+      toast.error('Kunde inte lägga till tagg');
+    }
+  };
+
+  const handleRemoveTag = async (customerId, tag) => {
+    try {
+      await CustomerService.removeCustomerTag(
+        currentUser.companyId,
+        customerId,
+        tag,
+        currentUser.email || 'system'
+      );
+      
+      // Update local state
+      setCustomers(prev => prev.map(c => 
+        c.id === customerId 
+          ? { ...c, tags: (c.tags || []).filter(t => t !== tag) }
+          : c
+      ));
+      
+      // Update selected customer if viewing
+      if (selectedCustomer?.id === customerId) {
+        setSelectedCustomer(prev => ({
+          ...prev,
+          tags: (prev.tags || []).filter(t => t !== tag)
+        }));
+      }
+      
+      toast.success('Tagg borttagen');
+    } catch (error) {
+      console.error('❌ Error removing tag:', error);
+      toast.error('Kunde inte ta bort tagg');
+    }
+  };
 
   const handleDeleteCustomer = async (customerId) => {
-    if (!window.confirm('Är du säker på att du vill ta bort denna kund?')) {
+    if (!window.confirm('Är du säker på att du vill radera denna kund?')) {
       return;
     }
 
     try {
+      await CustomerService.deleteCustomer(currentUser.companyId, customerId);
+      
+      // Remove from local state
       setCustomers(prev => prev.filter(c => c.id !== customerId));
-      toast.success('Kund borttagen');
+      
+      toast.success('Kund raderad');
     } catch (error) {
-      console.error('Error deleting customer:', error);
-      toast.error('Kunde inte ta bort kund');
+      console.error('❌ Error deleting customer:', error);
+      toast.error('Kunde inte radera kund');
     }
+  };
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('sv-SE', {
+      style: 'currency',
+      currency: 'SEK'
+    }).format(amount || 0);
+  };
+
+  const formatDate = (date) => {
+    if (!date) return 'Aldrig';
+    const dateObj = date instanceof Date ? date : new Date(date);
+    return dateObj.toLocaleDateString('sv-SE');
   };
 
   const exportCustomers = () => {
     const csvContent = [
-      ['Namn', 'E-post', 'Telefon', 'Adress', 'Typ', 'Källa', 'Totala bokningar', 'Totalt spenderat', 'Senaste bokning', 'Status'],
+      ['Namn', 'E-post', 'Telefon', 'Status', 'Typ', 'Källa', 'Totalt bokningar', 'Totalt spenderat', 'Senaste bokning'],
       ...filteredCustomers.map(customer => [
         customer.name,
         customer.email,
-        customer.phone,
-        customer.address,
-        customer.customerType === 'private' ? 'Privat' : 'Företag',
-        customer.source === 'manual' ? 'Manuell' : customer.source === 'online' ? 'Online' : 'Referral',
-        customer.totalBookings,
-        customer.totalSpent,
-        formatDate(customer.lastBooking),
-        customer.status === 'active' ? 'Aktiv' : customer.status === 'inactive' ? 'Inaktiv' : 'Blockerad'
+        customer.phone || '',
+        customer.status,
+        customer.customerType,
+        customer.source,
+        customer.totalBookings || 0,
+        customer.totalSpent || 0,
+        customer.lastBooking ? formatDate(customer.lastBooking) : 'Aldrig'
       ])
     ].map(row => row.join(',')).join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `kunder_${new Date().toISOString().split('T')[0]}.csv`;
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `kunder_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
     link.click();
+    document.body.removeChild(link);
   };
 
-  // Debug authentication and state values
-  console.log('🔍 Auth & State check:', {
-    hasCurrentUser: !!currentUser,
-    currentUser: currentUser,
-    currentUserCompanyId: currentUser?.companyId,
-    loading,
-    customersCount: customers.length,
-    filteredCustomersCount: filteredCustomers.length
-  });
+  const shouldShowInterface = currentUser && !loading;
 
-  // Force show interface if we have customers but no currentUser (auth issue)
-  // Also add a 5-second timeout to bypass auth issues for testing
-  const [authTimeout, setAuthTimeout] = useState(false);
-  
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (!currentUser) {
-        console.log('⚠️ Auth timeout - bypassing for testing');
-        setAuthTimeout(true);
-        
-        // Also load test customers if we don't have any
-        if (customers.length === 0) {
-          console.log('🧪 Loading test customers due to auth timeout');
-          const testCustomers = [
-            {
-              id: 'test-1',
-              name: 'Anna Andersson',
-              email: 'anna@example.com',
-              phone: '+46 70 123 4567',
-              totalBookings: 3,
-              totalSpent: 2400,
-              lastBooking: new Date('2024-01-15'),
-              status: 'active',
-              customerType: 'private',
-              source: 'booking'
-            },
-            {
-              id: 'test-2', 
-              name: 'Erik Eriksson',
-              email: 'erik@company.se',
-              phone: '+46 70 987 6543',
-              totalBookings: 1,
-              totalSpent: 1200,
-              lastBooking: new Date('2024-01-10'),
-              status: 'active',
-              customerType: 'business',
-              source: 'booking'
-            }
-          ];
-          setCustomers(testCustomers);
-        }
-      }
-    }, 5000);
-    
-    return () => clearTimeout(timer);
-  }, [currentUser, customers.length]);
-  
-  const shouldShowInterface = currentUser || (customers.length > 0 && !loading) || authTimeout;
-  
-  console.log('🔑 Should show interface:', shouldShowInterface);
-
-  // Show loading only if we truly don't have data ready
   if (!shouldShowInterface) {
     console.log('⏳ Still loading:', { hasCurrentUser: !!currentUser, loading, shouldShowInterface });
     return (
@@ -467,125 +568,135 @@ const CustomersPage = () => {
           <h1 className="text-2xl font-light text-gray-900">Kunder</h1>
           <p className="text-gray-600 mt-1">Hantera dina kunder och se deras bokningshistorik</p>
         </div>
-        <Button
-          onClick={() => {
-            console.log('👥 Opening Add Customer modal');
-            setShowAddModal(true);
-          }}
-          className="flex items-center gap-2"
-        >
-          <UserPlusIcon className="w-4 h-4" />
-          Lägg till kund
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button
+            onClick={exportCustomers}
+            color="gray"
+            className="flex items-center gap-2"
+          >
+            <ArrowDownTrayIcon className="w-4 h-4" />
+            Exportera
+          </Button>
+          <Button
+            onClick={() => {
+              console.log('👥 Opening Add Customer modal');
+              setShowAddModal(true);
+            }}
+            className="flex items-center gap-2"
+          >
+            <UserPlusIcon className="w-4 h-4" />
+            Lägg till kund
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Totala kunder</p>
-              <p className="text-2xl font-bold text-gray-900">{customers.length}</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card>
+          <div className="flex items-center">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <UserGroupIcon className="w-6 h-6 text-blue-600" />
             </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-              <UserIcon className="w-6 h-6 text-blue-600" />
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Aktiva kunder</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {customers.filter(c => c.status === 'active').length}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-              <ChartBarIcon className="w-6 h-6 text-green-600" />
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">Totalt kunder</p>
+              <p className="text-2xl font-semibold text-gray-900">{customerStats.total}</p>
             </div>
           </div>
         </Card>
-
-        <Card className="p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Återkommande kunder</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {customers.filter(c => c.totalBookings > 1).length}
-              </p>
+        
+        <Card>
+          <div className="flex items-center">
+            <div className="p-2 bg-green-100 rounded-lg">
+              <CurrencyEuroIcon className="w-6 h-6 text-green-600" />
             </div>
-            <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">Total intäkt</p>
+              <p className="text-2xl font-semibold text-gray-900">{formatCurrency(customerStats.totalRevenue)}</p>
+            </div>
+          </div>
+        </Card>
+        
+        <Card>
+          <div className="flex items-center">
+            <div className="p-2 bg-purple-100 rounded-lg">
               <StarIcon className="w-6 h-6 text-purple-600" />
             </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">Genomsnittlig order</p>
+              <p className="text-2xl font-semibold text-gray-900">{formatCurrency(customerStats.averageOrderValue)}</p>
+            </div>
           </div>
         </Card>
-
-        <Card className="p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Total intäkt</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {formatCurrency(customers.reduce((sum, c) => sum + (c.totalSpent || 0), 0))}
-              </p>
+        
+        <Card>
+          <div className="flex items-center">
+            <div className="p-2 bg-orange-100 rounded-lg">
+              <ChartBarIcon className="w-6 h-6 text-orange-600" />
             </div>
-            <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-              <CurrencyEuroIcon className="w-6 h-6 text-yellow-600" />
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">Aktiva kunder</p>
+              <p className="text-2xl font-semibold text-gray-900">{customerStats.byStatus.active}</p>
             </div>
           </div>
         </Card>
       </div>
 
       {/* Filters and Search */}
-      <Card className="p-6">
-        <div className="flex flex-col md:flex-row gap-4">
+      <Card>
+        <div className="flex flex-col lg:flex-row gap-4">
           <div className="flex-1">
-            <TextInput
-              icon={MagnifyingGlassIcon}
-              placeholder="Sök kunder..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+            <div className="relative">
+              <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <TextInput
+                type="text"
+                placeholder="Sök kunder..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
           </div>
-          <div className="flex gap-4">
+          
+          <div className="flex gap-3">
             <Select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
+              className="w-40"
             >
-              <option value="all">Alla status</option>
+              <option value="all">Alla statusar</option>
+              <option value="lead">Leads</option>
+              <option value="prospect">Prospekter</option>
               <option value="active">Aktiva</option>
               <option value="inactive">Inaktiva</option>
-              <option value="blocked">Blockerade</option>
             </Select>
+            
+            <Select
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value)}
+              className="w-40"
+            >
+              <option value="all">Alla typer</option>
+              <option value="private">Privata</option>
+              <option value="business">Företag</option>
+            </Select>
+            
             <Select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
+              className="w-40"
             >
-              <option value="name">Sortera efter namn</option>
-              <option value="totalBookings">Sortera efter bokningar</option>
-              <option value="totalSpent">Sortera efter spenderat</option>
-              <option value="lastBooking">Sortera efter senaste bokning</option>
+              <option value="createdAt">Skapad</option>
+              <option value="name">Namn</option>
+              <option value="totalBookings">Bokningar</option>
+              <option value="totalSpent">Intäkt</option>
+              <option value="lastBooking">Senaste bokning</option>
             </Select>
-            <Button
-              color="light"
-              onClick={() => setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')}
-            >
-              {sortDirection === 'asc' ? '↑' : '↓'}
-            </Button>
-            <Button
-              color="light"
-              onClick={exportCustomers}
-              className="flex items-center gap-2"
-            >
-              <ArrowDownTrayIcon className="w-4 h-4" />
-              Export
-            </Button>
           </div>
         </div>
       </Card>
 
       {/* Customers Table */}
-      {filteredCustomers.length > 0 ? (
+      <Card>
         <CustomersTable
           customers={filteredCustomers}
           onViewCustomer={handleViewCustomer}
@@ -593,25 +704,9 @@ const CustomersPage = () => {
           formatCurrency={formatCurrency}
           formatDate={formatDate}
         />
-      ) : (
-        <Card className="p-8 text-center">
-          <div className="text-gray-500">
-            <UserGroupIcon className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-            <h3 className="text-lg font-medium mb-2">Inga kunder hittades</h3>
-            <p className="text-sm mb-4">
-              {customers.length === 0 
-                ? 'Du har inga kunder ännu. Lägg till din första kund eller vänta på bokningar.'
-                : 'Inga kunder matchar dina sökkriterier. Prova att ändra filtren.'}
-            </p>
-            <Button onClick={() => setShowAddModal(true)} className="mt-2">
-              <UserPlusIcon className="h-4 w-4 mr-2" />
-              Lägg till kund
-            </Button>
-          </div>
-        </Card>
-      )}
+      </Card>
 
-      {/* Add Customer Modal */}
+      {/* Modals */}
       <AddCustomerModal
         show={showAddModal}
         onClose={() => setShowAddModal(false)}
@@ -620,7 +715,6 @@ const CustomersPage = () => {
         onAddCustomer={handleAddCustomer}
       />
 
-      {/* View Customer Modal */}
       <ViewCustomerModal
         show={showViewModal}
         onClose={() => setShowViewModal(false)}
@@ -628,23 +722,25 @@ const CustomersPage = () => {
         bookings={customerBookings}
         formatCurrency={formatCurrency}
         formatDate={formatDate}
+        onAddNote={handleAddNote}
+        onUpdateStatus={handleUpdateStatus}
+        onAddTag={handleAddTag}
+        onRemoveTag={handleRemoveTag}
       />
     </div>
     );
   } catch (error) {
-    console.error('❌ CustomersPage render error:', error);
+    console.error('❌ Error rendering CRM interface:', error);
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="text-red-600 text-xl mb-2">⚠️</div>
-          <div className="text-gray-600">Ett fel uppstod vid laddning av kundsidan</div>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-          >
-            Ladda om sidan
-          </button>
-        </div>
+      <div className="text-center py-12">
+        <div className="text-red-600 text-lg font-medium mb-2">Ett fel uppstod</div>
+        <p className="text-gray-600">Kunde inte ladda kundgränssnittet</p>
+        <Button
+          onClick={() => window.location.reload()}
+          className="mt-4"
+        >
+          Ladda om sidan
+        </Button>
       </div>
     );
   }
