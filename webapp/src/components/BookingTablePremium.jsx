@@ -4,14 +4,14 @@ import {
   EyeIcon, 
   PhoneIcon, 
   EnvelopeIcon,
-  CalendarDaysIcon,
-  ClockIcon,
-  CurrencyEuroIcon,
-  UserIcon,
-  BuildingOfficeIcon,
   ChevronUpIcon,
   ChevronDownIcon,
-  XMarkIcon
+  XMarkIcon,
+  UserIcon,
+  CalendarDaysIcon,
+  BuildingOfficeIcon,
+  CurrencyEuroIcon,
+  ClockIcon
 } from '@heroicons/react/24/outline';
 
 // Get service name from booking data
@@ -36,49 +36,145 @@ const getServiceName = (booking) => {
 // Get service type from booking data
 const getServiceType = (booking) => {
   const serviceName = getServiceName(booking).toLowerCase();
+  
+  // First check if there are window fields in the booking data
+  const hasWindowFields = Object.keys(booking).some(key => key.startsWith('window_') && booking[key] > 0);
+  if (hasWindowFields) {
+    return 'windows';
+  }
+  
+  // Then check service name
   if (serviceName.includes('fönster') || serviceName.includes('window')) return 'windows';
   if (serviceName.includes('flyttstäd') || serviceName.includes('move')) return 'moveout';
   if (serviceName.includes('städ') || serviceName.includes('clean')) return 'cleaning';
   return 'generic';
 };
 
+// Enhanced utility functions with better field detection
+const getDateTimeValue = (booking) => {
+  // Check multiple possible field names for date/time
+  const possibleFields = [
+    'bookingDate', 'date', 'appointmentDate', 'scheduledDate',
+    'serviceDate', 'selectedDate', 'datetime', 'timestamp',
+    'createdAt', 'updatedAt'
+  ];
+  
+  console.log('🕐 Checking date fields in booking:', Object.keys(booking));
+  
+  for (const field of possibleFields) {
+    if (booking[field]) {
+      console.log(`✅ Found date in field '${field}':`, booking[field]);
+      return booking[field];
+    }
+  }
+  
+  // Check nested objects
+  if (booking.serviceData?.date) return booking.serviceData.date;
+  if (booking.formData?.date) return booking.formData.date;
+  if (booking.selections?.date) return booking.selections.date;
+  
+  console.log('❌ No date field found in booking');
+  return null;
+};
+
+const getAmountValue = (booking) => {
+  // Try multiple possible amount fields
+  const amount = 
+    booking.totalPrice ||
+    booking.totalAmount ||
+    booking.amount ||
+    booking.price ||
+    booking.cost ||
+    booking.fee ||
+    booking.total ||
+    0;
+    
+  console.log('🔍 Amount value found:', amount, 'from booking:', booking);
+  return formatCurrency(amount);
+};
+
+// Render service-specific details based on service type
+const renderServiceDetails = (booking) => {
+  const serviceType = getServiceType(booking);
+  const serviceData = booking.serviceData || booking.formData || booking.selections || booking;
+  
+  console.log('🔍 Service type:', serviceType, 'Service data:', serviceData);
+  
+  if (serviceType === 'windows') {
+    return renderWindowsService(booking);
+  } else if (serviceType === 'moveout') {
+    return renderMoveOutService(serviceData);
+  } else if (serviceType === 'cleaning') {
+    return renderCleaningService(serviceData);
+  } else {
+    return renderGenericService(serviceData);
+  }
+};
+
 // Windows service details
-const renderWindowsService = (serviceData) => (
-  <div className="bg-gray-50 rounded-xl p-6">
-    <h5 className="text-sm font-medium text-gray-900 mb-4">Fönsterputsning Detaljer</h5>
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <div className="space-y-3">
-        <div className="flex justify-between">
-          <span className="text-sm text-gray-600">Typ av fönster:</span>
-          <span className="text-sm font-medium">{serviceData.windowType || serviceData.type || '—'}</span>
+const renderWindowsService = (booking) => {
+  // Extract window data from booking object
+  const windowFields = Object.keys(booking).filter(key => key.startsWith('window_'));
+  const windowData = windowFields.map(key => ({
+    index: key.replace('window_', ''),
+    quantity: booking[key]
+  })).filter(item => item.quantity > 0);
+
+  // Window type names based on index
+  const windowTypeNames = {
+    '0': 'Utan ramar - två sidor',
+    '1': 'Utan ramar - fyra sidor', 
+    '2': 'Med ramar - två sidor',
+    '3': 'Med ramar - fyra sidor',
+    '4': 'Balkongfönster - två sidor',
+    '5': 'Balkongfönster - fyra sidor',
+    '6': 'Terrassdörrar - två sidor',
+    '7': 'Terrassdörrar - fyra sidor'
+  };
+
+  return (
+    <div className="bg-gray-50 rounded-xl p-6">
+      <h5 className="text-sm font-medium text-gray-900 mb-4">Fönsterputsning Detaljer</h5>
+      
+      {windowData.length > 0 ? (
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 gap-3">
+            {windowData.map((item) => (
+              <div key={item.index} className="flex justify-between items-center p-3 bg-white rounded-lg border border-gray-200">
+                <span className="text-sm text-gray-700">
+                  {windowTypeNames[item.index] || `Fönster typ ${item.index}`}
+                </span>
+                <span className="text-sm font-semibold text-blue-600">
+                  {item.quantity} st
+                </span>
+              </div>
+            ))}
+          </div>
+          
+          <div className="pt-4 border-t border-gray-200">
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium text-gray-900">Totalt antal fönster:</span>
+              <span className="text-lg font-bold text-blue-600">
+                {windowData.reduce((sum, item) => sum + item.quantity, 0)} st
+              </span>
+            </div>
+          </div>
         </div>
-        <div className="flex justify-between">
-          <span className="text-sm text-gray-600">Antal fönster:</span>
-          <span className="text-sm font-medium">{serviceData.windowCount || serviceData.quantity || '—'}</span>
+      ) : (
+        <div className="text-center py-6">
+          <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+            <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
+            </svg>
+          </div>
+          <p className="text-sm text-gray-500">Inga fönster valda</p>
         </div>
-        <div className="flex justify-between">
-          <span className="text-sm text-gray-600">Storlek:</span>
-          <span className="text-sm font-medium">{serviceData.windowSize || serviceData.size || '—'}</span>
-        </div>
-      </div>
-      <div className="space-y-3">
-        <div className="flex justify-between">
-          <span className="text-sm text-gray-600">Innanför/utanför:</span>
-          <span className="text-sm font-medium">{serviceData.windowSide || serviceData.side || '—'}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-sm text-gray-600">Våning:</span>
-          <span className="text-sm font-medium">{serviceData.floor || serviceData.level || '—'}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-sm text-gray-600">Tillgänglighet:</span>
-          <span className="text-sm font-medium">{serviceData.accessibility || '—'}</span>
-        </div>
-      </div>
+      )}
+      
+      {renderAddons(booking)}
     </div>
-    {renderAddons(serviceData)}
-  </div>
-);
+  );
+};
 
 // Move out service details
 const renderMoveOutService = (serviceData) => (
@@ -129,26 +225,26 @@ const renderCleaningService = (serviceData) => (
           <span className="text-sm font-medium">{serviceData.cleaningType || serviceData.type || '—'}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-sm text-gray-600">Frekvens:</span>
-          <span className="text-sm font-medium">{serviceData.frequency || '—'}</span>
+          <span className="text-sm text-gray-600">Storlek (kvm):</span>
+          <span className="text-sm font-medium">{serviceData.squareMeters || serviceData.size || serviceData.sqm || '—'} kvm</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-sm text-gray-600">Storlek (kvm):</span>
-          <span className="text-sm font-medium">{serviceData.squareMeters || serviceData.size || '—'} kvm</span>
+          <span className="text-sm text-gray-600">Antal rum:</span>
+          <span className="text-sm font-medium">{serviceData.rooms || serviceData.roomCount || '—'}</span>
         </div>
       </div>
       <div className="space-y-3">
         <div className="flex justify-between">
-          <span className="text-sm text-gray-600">Antal rum:</span>
-          <span className="text-sm font-medium">{serviceData.rooms || '—'}</span>
-        </div>
-        <div className="flex justify-between">
           <span className="text-sm text-gray-600">Badrum:</span>
-          <span className="text-sm font-medium">{serviceData.bathrooms || '—'}</span>
+          <span className="text-sm font-medium">{serviceData.bathrooms || serviceData.bathroomCount || '—'}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-sm text-gray-600">Estimerad tid:</span>
-          <span className="text-sm font-medium">{serviceData.estimatedTime || serviceData.duration || '—'}</span>
+          <span className="text-sm text-gray-600">Kök:</span>
+          <span className="text-sm font-medium">{serviceData.kitchen ? 'Ja' : 'Nej'}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-sm text-gray-600">Frekvens:</span>
+          <span className="text-sm font-medium">{serviceData.frequency || 'En gång'}</span>
         </div>
       </div>
     </div>
@@ -160,34 +256,36 @@ const renderCleaningService = (serviceData) => (
 const renderGenericService = (serviceData) => (
   <div className="bg-gray-50 rounded-xl p-6">
     <h5 className="text-sm font-medium text-gray-900 mb-4">Tjänstdetaljer</h5>
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {Object.entries(serviceData).map(([key, value]) => {
-        if (key === 'addons' || key === 'extras') return null;
-        return (
-          <div key={key} className="flex justify-between">
-            <span className="text-sm text-gray-600 capitalize">{key.replace(/([A-Z])/g, ' $1')}:</span>
-            <span className="text-sm font-medium">{String(value) || '—'}</span>
-          </div>
-        );
-      })}
+    <div className="space-y-3">
+      <div className="flex justify-between">
+        <span className="text-sm text-gray-600">Tjänst:</span>
+        <span className="text-sm font-medium">{serviceData.service || serviceData.type || '—'}</span>
+      </div>
+      <div className="flex justify-between">
+        <span className="text-sm text-gray-600">Beskrivning:</span>
+        <span className="text-sm font-medium">{serviceData.description || '—'}</span>
+      </div>
     </div>
     {renderAddons(serviceData)}
   </div>
 );
 
-// Render addons/extras
+// Render add-ons section
 const renderAddons = (serviceData) => {
-  const addons = serviceData.addons || serviceData.extras || serviceData.additional || [];
-  if (!addons || addons.length === 0) return null;
+  const addons = Object.entries(serviceData).filter(([key]) => 
+    key.startsWith('addon_') && serviceData[key] === true
+  );
+  
+  if (addons.length === 0) return null;
   
   return (
-    <div className="mt-6 pt-4 border-t border-gray-200">
-      <h6 className="text-sm font-medium text-gray-900 mb-3">Tilläggstjänster</h6>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-        {addons.map((addon, index) => (
-          <div key={index} className="flex justify-between items-center py-1">
-            <span className="text-sm text-gray-600">{addon.name || addon.title || addon}</span>
-            <span className="text-sm font-medium">{addon.price ? formatCurrency(addon.price) : '—'}</span>
+    <div className="mt-6 pt-6 border-t border-gray-200">
+      <h6 className="text-sm font-medium text-gray-900 mb-3">Tillägg</h6>
+      <div className="space-y-2">
+        {addons.map(([key]) => (
+          <div key={key} className="flex justify-between">
+            <span className="text-sm text-gray-600">{key.replace('addon_', '').replace(/_/g, ' ')}</span>
+            <span className="text-sm font-medium text-green-600">✓</span>
           </div>
         ))}
       </div>
@@ -195,65 +293,184 @@ const renderAddons = (serviceData) => {
   );
 };
 
-// Render price breakdown
+// Render detailed price breakdown like in calculator
 const renderPriceBreakdown = (booking) => {
-  const pricing = booking.pricing || booking.priceBreakdown || booking.calculation || {};
-  const serviceData = booking.serviceData || booking.formData || {};
-  
+  // Extract window data and calculate window pricing
+  const windowFields = Object.keys(booking).filter(key => key.startsWith('window_'));
+  const windowData = windowFields.map(key => ({
+    index: key.replace('window_', ''),
+    quantity: booking[key]
+  })).filter(item => item.quantity > 0);
+
+  // Window type names and prices (matching the calculator)
+  const windowTypeNames = {
+    '0': 'Utan ramar - två sidor',
+    '1': 'Utan ramar - fyra sidor', 
+    '2': 'Med ramar - två sidor',
+    '3': 'Med ramar - fyra sidor',
+    '4': 'Balkongfönster - två sidor',
+    '5': 'Balkongfönster - fyra sidor',
+    '6': 'Terrassdörrar - två sidor',
+    '7': 'Terrassdörrar - fyra sidor'
+  };
+
+  // Window prices (matching the calculator pricing)
+  const windowPrices = {
+    '0': 90,  // Utan ramar - två sidor
+    '1': 90,  // Utan ramar - fyra sidor
+    '2': 120, // Med ramar - två sidor
+    '3': 120, // Med ramar - fyra sidor
+    '4': 150, // Balkongfönster - två sidor
+    '5': 150, // Balkongfönster - fyra sidor
+    '6': 200, // Terrassdörrar - två sidor
+    '7': 250  // Terrassdörrar - fyra sidor
+  };
+
+  // Calculate window pricing
+  let windowSubtotal = 0;
+  let regularWindowCount = 0;
+  windowData.forEach(item => {
+    const price = windowPrices[item.index] || 0;
+    const itemTotal = price * item.quantity;
+    windowSubtotal += itemTotal;
+    
+    // Count regular windows (types 0-5) for minimum price calculation
+    if (parseInt(item.index) < 6) {
+      regularWindowCount += item.quantity;
+    }
+  });
+
+  // Apply minimum price if needed (900 kr for regular windows)
+  const minimumPrice = 900;
+  const finalWindowPrice = (regularWindowCount > 0 && windowSubtotal < minimumPrice) ? minimumPrice : windowSubtotal;
+
+  // Extract add-ons
+  const addonFields = Object.keys(booking).filter(key => key.startsWith('addon_'));
+  const addons = addonFields.map(key => {
+    const addonName = key.replace('addon_', '').replace(/_/g, ' ');
+    return {
+      name: addonName,
+      price: 500, // Standard add-on price
+      key: key // Store the original key for filtering
+    };
+  }).filter(addon => booking[addon.key] === true);
+
+  const addonsTotal = addons.reduce((sum, addon) => sum + addon.price, 0);
+
+  // Calculate base service price (total - addons - window price)
+  const totalPrice = booking.totalPrice || 0;
+  const baseServicePrice = totalPrice - addonsTotal - finalWindowPrice;
+
+  // Check if RUT was applied
+  const rutApplied = booking.rutApplied === true;
+  const rutDiscount = rutApplied ? Math.round(totalPrice * 0.3) : 0;
+
   return (
-    <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl p-6">
+    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-100">
+      <h5 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+        <CurrencyEuroIcon className="w-5 h-5 text-blue-600" />
+        Detaljerad Prisuppdelning
+      </h5>
+      
       <div className="space-y-4">
-        {/* Base Service Price */}
-        <div className="flex justify-between items-center py-2 border-b border-yellow-200">
-          <span className="text-sm font-medium text-gray-900">Bastjänst</span>
-          <span className="text-sm font-medium">{formatCurrency(pricing.basePrice || pricing.service || 0)}</span>
+        {/* Base Service */}
+        <div className="bg-white rounded-lg p-4 border border-gray-200">
+          <h6 className="text-sm font-medium text-gray-900 mb-3">Bastjänst</h6>
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-gray-600">Fönsterputsning</span>
+            <span className="text-sm font-medium">{formatCurrency(baseServicePrice)}</span>
+          </div>
         </div>
-        
-        {/* Addons */}
-        {serviceData.addons && serviceData.addons.length > 0 && (
-          <div className="space-y-2">
-            <h6 className="text-sm font-medium text-gray-900">Tilläggstjänster:</h6>
-            {serviceData.addons.map((addon, index) => (
-              <div key={index} className="flex justify-between items-center py-1">
-                <span className="text-sm text-gray-600 pl-4">{addon.name || addon.title}</span>
-                <span className="text-sm">{formatCurrency(addon.price || 0)}</span>
+
+        {/* Window Details */}
+        {windowData.length > 0 && (
+          <div className="bg-white rounded-lg p-4 border border-gray-200">
+            <h6 className="text-sm font-medium text-gray-900 mb-3">Fönster Detaljer</h6>
+            <div className="space-y-2">
+              {windowData.map((item) => {
+                const price = windowPrices[item.index] || 0;
+                const itemTotal = price * item.quantity;
+                return (
+                  <div key={item.index} className="flex justify-between items-center text-sm">
+                    <div className="flex-1">
+                      <span className="text-gray-700">{windowTypeNames[item.index]}</span>
+                      <span className="text-gray-500 ml-2">({item.quantity} × {formatCurrency(price)})</span>
+                    </div>
+                    <span className="font-medium">{formatCurrency(itemTotal)}</span>
+                  </div>
+                );
+              })}
+              
+              {regularWindowCount > 0 && windowSubtotal < minimumPrice && (
+                <div className="flex justify-between items-center text-sm pt-2 border-t border-gray-100">
+                  <span className="text-amber-600 font-medium">Minimumpris tillämpat</span>
+                  <span className="text-amber-600 font-medium">{formatCurrency(minimumPrice)}</span>
+                </div>
+              )}
+              
+              <div className="flex justify-between items-center pt-2 border-t border-gray-200 font-medium">
+                <span>Fönster Subtotal</span>
+                <span>{formatCurrency(finalWindowPrice)}</span>
               </div>
-            ))}
+            </div>
           </div>
         )}
-        
-        {/* Discounts */}
-        {pricing.discount && (
-          <div className="flex justify-between items-center py-1">
-            <span className="text-sm text-gray-600">Rabatt</span>
-            <span className="text-sm text-red-600">-{formatCurrency(pricing.discount)}</span>
+
+        {/* Add-ons */}
+        {addons.length > 0 && (
+          <div className="bg-white rounded-lg p-4 border border-gray-200">
+            <h6 className="text-sm font-medium text-gray-900 mb-3">Tilläggstjänster</h6>
+            <div className="space-y-2">
+              {addons.map((addon, index) => (
+                <div key={index} className="flex justify-between items-center text-sm">
+                  <span className="text-gray-700 capitalize">{addon.name}</span>
+                  <span className="font-medium">+{formatCurrency(addon.price)}</span>
+                </div>
+              ))}
+              <div className="flex justify-between items-center pt-2 border-t border-gray-200 font-medium">
+                <span>Tillägg Subtotal</span>
+                <span>+{formatCurrency(addonsTotal)}</span>
+              </div>
+            </div>
           </div>
         )}
-        
-        {/* Tax */}
-        {pricing.tax && (
-          <div className="flex justify-between items-center py-1">
-            <span className="text-sm text-gray-600">Moms (25%)</span>
-            <span className="text-sm">{formatCurrency(pricing.tax)}</span>
+
+        {/* RUT Discount */}
+        {rutApplied && (
+          <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+            <h6 className="text-sm font-medium text-green-800 mb-2">RUT Avdrag</h6>
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-green-700">RUT-avdrag (30%)</span>
+              <span className="text-green-700 font-medium">-{formatCurrency(rutDiscount)}</span>
+            </div>
           </div>
         )}
-        
+
         {/* Total */}
-        <div className="flex justify-between items-center py-3 border-t-2 border-yellow-300">
-          <span className="text-lg font-semibold text-gray-900">Totalt</span>
-          <span className="text-lg font-bold text-gray-900">{getAmountValue(booking)}</span>
+        <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg p-4 text-white">
+          <div className="flex justify-between items-center">
+            <span className="text-lg font-semibold">Totalt att betala</span>
+            <span className="text-xl font-bold">{formatCurrency(totalPrice)}</span>
+          </div>
+          {rutApplied && (
+            <div className="text-blue-100 text-sm mt-1">
+              Sparat: {formatCurrency(rutDiscount)} med RUT-avdrag
+            </div>
+          )}
         </div>
-        
+
         {/* Payment Status */}
-        <div className="flex justify-between items-center py-1">
-          <span className="text-sm text-gray-600">Betalningsstatus</span>
-          <span className={`text-sm font-medium ${
-            booking.paymentStatus === 'paid' ? 'text-green-600' : 
-            booking.paymentStatus === 'pending' ? 'text-yellow-600' : 'text-red-600'
-          }`}>
-            {booking.paymentStatus === 'paid' ? 'Betald' : 
-             booking.paymentStatus === 'pending' ? 'Väntande' : 'Obetald'}
-          </span>
+        <div className="bg-gray-50 rounded-lg p-3">
+          <div className="flex justify-between items-center text-sm">
+            <span className="text-gray-600">Betalningsstatus</span>
+            <span className={`font-medium ${
+              booking.paymentStatus === 'paid' ? 'text-green-600' : 
+              booking.paymentStatus === 'pending' ? 'text-yellow-600' : 'text-red-600'
+            }`}>
+              {booking.paymentStatus === 'paid' ? 'Betald' : 
+               booking.paymentStatus === 'pending' ? 'Väntande' : 'Obetald'}
+            </span>
+          </div>
         </div>
       </div>
     </div>
@@ -498,48 +715,6 @@ const BookingTablePremium = ({ bookings = [], loading = false, onBookingUpdate }
     }
   };
   
-  // Enhanced utility functions with better field detection
-const getDateTimeValue = (booking) => {
-  // Check multiple possible field names for date/time
-  const possibleFields = [
-    'bookingDate', 'date', 'appointmentDate', 'scheduledDate',
-    'serviceDate', 'selectedDate', 'datetime', 'timestamp',
-    'createdAt', 'updatedAt'
-  ];
-  
-  console.log('🕐 Checking date fields in booking:', Object.keys(booking));
-  
-  for (const field of possibleFields) {
-    if (booking[field]) {
-      console.log(`✅ Found date in field '${field}':`, booking[field]);
-      return booking[field];
-    }
-  }
-  
-  // Check nested objects
-  if (booking.serviceData?.date) return booking.serviceData.date;
-  if (booking.formData?.date) return booking.formData.date;
-  if (booking.selections?.date) return booking.selections.date;
-  
-  console.log('❌ No date field found in booking');
-  return null;
-};
-
-const getAmountValue = (booking) => {
-  // Try multiple possible amount fields
-  const amount = 
-    booking.totalAmount ||
-    booking.amount ||
-    booking.price ||
-    booking.cost ||
-    booking.fee ||
-    booking.total ||
-    0;
-    
-  console.log('🔍 Amount value found:', amount, 'from booking:', booking);
-  return formatCurrency(amount);
-};
-
   const SortableHeader = ({ column, children, icon: Icon }) => (
     <th 
       className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors duration-200"
@@ -681,7 +856,7 @@ const getAmountValue = (booking) => {
                 <td className="px-6 py-4">
                   <div className="text-sm font-bold text-gray-900 flex items-center gap-1">
                     <CurrencyEuroIcon className="w-4 h-4 text-green-500" />
-                    {formatCurrency(booking.totalAmount)}
+                    {getAmountValue(booking)}
                   </div>
                 </td>
                 <td className="px-6 py-4">

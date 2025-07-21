@@ -327,6 +327,51 @@ class BookingService {
       throw error;
     }
   }
+
+  /**
+   * Get all customers for a company (placeholder - customers are extracted from bookings)
+   */
+  static async getCustomersForCompany(companyId) {
+    try {
+      console.log('Loading customers for company:', companyId);
+      // For now, return empty array since we extract customers from bookings
+      // In the future, this could query a dedicated customers collection
+      return [];
+    } catch (error) {
+      console.error('Error loading customers:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create a new customer (placeholder for future implementation)
+   */
+  static async createCustomer(customerData) {
+    try {
+      // For now, just return the customer data
+      // In the future, this would save to a customers collection
+      console.log('Creating customer:', customerData);
+      return customerData;
+    } catch (error) {
+      console.error('Error creating customer:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete a customer (placeholder for future implementation)
+   */
+  static async deleteCustomer(customerId) {
+    try {
+      // For now, just log the deletion
+      // In the future, this would delete from customers collection
+      console.log('Deleting customer:', customerId);
+      return true;
+    } catch (error) {
+      console.error('Error deleting customer:', error);
+      throw error;
+    }
+  }
 }
 
 export default BookingService;

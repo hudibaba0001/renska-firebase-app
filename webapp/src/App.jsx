@@ -26,6 +26,7 @@ import PaymentPage from './pages/PaymentPage';
 import SuperAdminDashboardPage from './pages/SuperAdminDashboardPage';
 import UnauthorizedPage from './pages/UnauthorizedPage';
 import AdminCouponsPage from './pages/AdminCouponsPage';
+import CustomersPage from './pages/CustomersPage';
 
 // Import Layout and Auth Components
 import AdminLayout from './components/AdminLayout';
@@ -83,7 +84,7 @@ export default function App() {
             <Route path="billing" element={<AdminBillingPage />} />
           <Route path="bookings" element={<BookingManagementPage />} />
             <Route path="analytics" element={<AdminAnalyticsPage />} />
-            <Route path="customers" element={<AdminCustomersPage />} />
+            <Route path="customers" element={<CustomersPage />} />
           <Route path="payment-settings" element={<AdminPaymentSettings />} /> {/* CORRECTED ROUTE */}
           <Route path="coupons" element={<AdminCouponsPage />} />
           </Route>
@@ -194,4 +195,4 @@ function AuditLogsPage() { return <div className="text-center p-8"><h2 className
 function UserManagementPage() { return <div className="text-center p-8"><h2 className="text-xl font-bold">User Management (Coming Soon)</h2></div>; }
 
 function AdminAnalyticsPage() { return <div className="text-center p-8"><h2 className="text-xl font-bold">Analytics (Placeholder)</h2></div>; }
-function AdminCustomersPage() { return <div className="text-center p-8"><h2 className="text-xl font-bold">Customers (Placeholder)</h2></div>; }
+function AdminCustomersPage() { return <CustomersPage />; }
