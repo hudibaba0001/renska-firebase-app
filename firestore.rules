@@ -106,6 +106,13 @@ service cloud.firestore {
                        isSuperAdmin() || isCompanyAdmin(companyId);
         allow create, update, delete: if isSuperAdmin() || isCompanyAdmin(companyId);
       }
+      
+      // --- NESTED: COUPONS SUBCOLLECTION ---
+      match /coupons/{couponId} {
+        allow read: if get(/databases/$(database)/documents/companies/$(companyId)).data.isPublic == true || 
+                       isSuperAdmin() || isCompanyAdmin(companyId);
+        allow create, update, delete: if isSuperAdmin() || isCompanyAdmin(companyId);
+      }
     }
     
     // ============================================================================

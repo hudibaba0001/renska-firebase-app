@@ -10,42 +10,314 @@ import {
   UserIcon,
   BuildingOfficeIcon,
   ChevronUpIcon,
-  ChevronDownIcon
+  ChevronDownIcon,
+  XMarkIcon
 } from '@heroicons/react/24/outline';
 
-// Enhanced utility functions
+// Enhanced utility functions with better field detection
+const getDateTimeValue = (booking) => {
+  // Check multiple possible field names for date/time
+  const possibleFields = [
+    'bookingDate', 'date', 'appointmentDate', 'scheduledDate',
+    'serviceDate', 'selectedDate', 'datetime', 'timestamp',
+    'createdAt', 'updatedAt'
+  ];
+  
+  console.log('🕐 Checking date fields in booking:', Object.keys(booking));
+  
+  for (const field of possibleFields) {
+    if (booking[field]) {
+      console.log(`✅ Found date in field '${field}':`, booking[field]);
+      return booking[field];
+    }
+  }
+  
+  // Check nested objects
+  if (booking.serviceData?.date) return booking.serviceData.date;
+  if (booking.formData?.date) return booking.formData.date;
+  if (booking.selections?.date) return booking.selections.date;
+  
+  console.log('❌ No date field found in booking');
+  return null;
+};
+
+const getAmountValue = (booking) => {
+  // Try multiple possible amount fields
+  const amount = 
+    booking.totalAmount ||
+    booking.amount ||
+    booking.price ||
+    booking.cost ||
+    booking.fee ||
+    booking.total ||
+    0;
+    
+  console.log('🔍 Amount value found:', amount, 'from booking:', booking);
+  return formatCurrency(amount);
+};
+
+// Render service-specific details based on service type
+const renderServiceDetails = (booking) => {
+  const serviceType = getServiceType(booking);
+  const serviceData = booking.serviceData || booking.formData || booking.selections || {};
+  
+  console.log('🔍 Service type:', serviceType, 'Service data:', serviceData);
+  
+  if (serviceType === 'windows') {
+    return renderWindowsService(serviceData);
+  } else if (serviceType === 'moveout') {
+    return renderMoveOutService(serviceData);
+  } else if (serviceType === 'cleaning') {
+    return renderCleaningService(serviceData);
+  } else {
+    return renderGenericService(serviceData);
+  }
+};
+
+// Get service type from booking data
+const getServiceType = (booking) => {
+  const serviceName = getServiceName(booking).toLowerCase();
+  if (serviceName.includes('fönster') || serviceName.includes('window')) return 'windows';
+  if (serviceName.includes('flyttstäd') || serviceName.includes('move')) return 'moveout';
+  if (serviceName.includes('städ') || serviceName.includes('clean')) return 'cleaning';
+  return 'generic';
+};
+
+// Windows service details
+const renderWindowsService = (serviceData) => (
+  <div className="bg-gray-50 rounded-xl p-6">
+    <h5 className="text-sm font-medium text-gray-900 mb-4">Fönsterputsning Detaljer</h5>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="space-y-3">
+        <div className="flex justify-between">
+          <span className="text-sm text-gray-600">Typ av fönster:</span>
+          <span className="text-sm font-medium">{serviceData.windowType || serviceData.type || '—'}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-sm text-gray-600">Antal fönster:</span>
+          <span className="text-sm font-medium">{serviceData.windowCount || serviceData.quantity || '—'}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-sm text-gray-600">Storlek:</span>
+          <span className="text-sm font-medium">{serviceData.windowSize || serviceData.size || '—'}</span>
+        </div>
+      </div>
+      <div className="space-y-3">
+        <div className="flex justify-between">
+          <span className="text-sm text-gray-600">Innanför/utanför:</span>
+          <span className="text-sm font-medium">{serviceData.windowSide || serviceData.side || '—'}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-sm text-gray-600">Våning:</span>
+          <span className="text-sm font-medium">{serviceData.floor || serviceData.level || '—'}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-sm text-gray-600">Tillgänglighet:</span>
+          <span className="text-sm font-medium">{serviceData.accessibility || '—'}</span>
+        </div>
+      </div>
+    </div>
+    {renderAddons(serviceData)}
+  </div>
+);
+
+// Move out service details
+const renderMoveOutService = (serviceData) => (
+  <div className="bg-gray-50 rounded-xl p-6">
+    <h5 className="text-sm font-medium text-gray-900 mb-4">Flyttstädning Detaljer</h5>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="space-y-3">
+        <div className="flex justify-between">
+          <span className="text-sm text-gray-600">Bostadstyp:</span>
+          <span className="text-sm font-medium">{serviceData.propertyType || serviceData.type || '—'}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-sm text-gray-600">Storlek (kvm):</span>
+          <span className="text-sm font-medium">{serviceData.squareMeters || serviceData.size || serviceData.sqm || '—'} kvm</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-sm text-gray-600">Antal rum:</span>
+          <span className="text-sm font-medium">{serviceData.rooms || serviceData.roomCount || '—'}</span>
+        </div>
+      </div>
+      <div className="space-y-3">
+        <div className="flex justify-between">
+          <span className="text-sm text-gray-600">Badrum:</span>
+          <span className="text-sm font-medium">{serviceData.bathrooms || serviceData.bathroomCount || '—'}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-sm text-gray-600">Kök:</span>
+          <span className="text-sm font-medium">{serviceData.kitchen ? 'Ja' : 'Nej'}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-sm text-gray-600">Balkong/Terrass:</span>
+          <span className="text-sm font-medium">{serviceData.balcony ? 'Ja' : 'Nej'}</span>
+        </div>
+      </div>
+    </div>
+    {renderAddons(serviceData)}
+  </div>
+);
+
+// Regular cleaning service details
+const renderCleaningService = (serviceData) => (
+  <div className="bg-gray-50 rounded-xl p-6">
+    <h5 className="text-sm font-medium text-gray-900 mb-4">Städning Detaljer</h5>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="space-y-3">
+        <div className="flex justify-between">
+          <span className="text-sm text-gray-600">Typ av städning:</span>
+          <span className="text-sm font-medium">{serviceData.cleaningType || serviceData.type || '—'}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-sm text-gray-600">Frekvens:</span>
+          <span className="text-sm font-medium">{serviceData.frequency || '—'}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-sm text-gray-600">Storlek (kvm):</span>
+          <span className="text-sm font-medium">{serviceData.squareMeters || serviceData.size || '—'} kvm</span>
+        </div>
+      </div>
+      <div className="space-y-3">
+        <div className="flex justify-between">
+          <span className="text-sm text-gray-600">Antal rum:</span>
+          <span className="text-sm font-medium">{serviceData.rooms || '—'}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-sm text-gray-600">Badrum:</span>
+          <span className="text-sm font-medium">{serviceData.bathrooms || '—'}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-sm text-gray-600">Estimerad tid:</span>
+          <span className="text-sm font-medium">{serviceData.estimatedTime || serviceData.duration || '—'}</span>
+        </div>
+      </div>
+    </div>
+    {renderAddons(serviceData)}
+  </div>
+);
+
+// Generic service details
+const renderGenericService = (serviceData) => (
+  <div className="bg-gray-50 rounded-xl p-6">
+    <h5 className="text-sm font-medium text-gray-900 mb-4">Tjänstdetaljer</h5>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {Object.entries(serviceData).map(([key, value]) => {
+        if (key === 'addons' || key === 'extras') return null;
+        return (
+          <div key={key} className="flex justify-between">
+            <span className="text-sm text-gray-600 capitalize">{key.replace(/([A-Z])/g, ' $1')}:</span>
+            <span className="text-sm font-medium">{String(value) || '—'}</span>
+          </div>
+        );
+      })}
+    </div>
+    {renderAddons(serviceData)}
+  </div>
+);
+
+// Render addons/extras
+const renderAddons = (serviceData) => {
+  const addons = serviceData.addons || serviceData.extras || serviceData.additional || [];
+  if (!addons || addons.length === 0) return null;
+  
+  return (
+    <div className="mt-6 pt-4 border-t border-gray-200">
+      <h6 className="text-sm font-medium text-gray-900 mb-3">Tilläggstjänster</h6>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+        {addons.map((addon, index) => (
+          <div key={index} className="flex justify-between items-center py-1">
+            <span className="text-sm text-gray-600">{addon.name || addon.title || addon}</span>
+            <span className="text-sm font-medium">{addon.price ? formatCurrency(addon.price) : '—'}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// Render price breakdown
+const renderPriceBreakdown = (booking) => {
+  const pricing = booking.pricing || booking.priceBreakdown || booking.calculation || {};
+  const serviceData = booking.serviceData || booking.formData || {};
+  
+  return (
+    <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl p-6">
+      <div className="space-y-4">
+        {/* Base Service Price */}
+        <div className="flex justify-between items-center py-2 border-b border-yellow-200">
+          <span className="text-sm font-medium text-gray-900">Bastjänst</span>
+          <span className="text-sm font-medium">{formatCurrency(pricing.basePrice || pricing.service || 0)}</span>
+        </div>
+        
+        {/* Addons */}
+        {serviceData.addons && serviceData.addons.length > 0 && (
+          <div className="space-y-2">
+            <h6 className="text-sm font-medium text-gray-900">Tilläggstjänster:</h6>
+            {serviceData.addons.map((addon, index) => (
+              <div key={index} className="flex justify-between items-center py-1">
+                <span className="text-sm text-gray-600 pl-4">{addon.name || addon.title}</span>
+                <span className="text-sm">{formatCurrency(addon.price || 0)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        
+        {/* Discounts */}
+        {pricing.discount && (
+          <div className="flex justify-between items-center py-1">
+            <span className="text-sm text-gray-600">Rabatt</span>
+            <span className="text-sm text-red-600">-{formatCurrency(pricing.discount)}</span>
+          </div>
+        )}
+        
+        {/* Tax */}
+        {pricing.tax && (
+          <div className="flex justify-between items-center py-1">
+            <span className="text-sm text-gray-600">Moms (25%)</span>
+            <span className="text-sm">{formatCurrency(pricing.tax)}</span>
+          </div>
+        )}
+        
+        {/* Total */}
+        <div className="flex justify-between items-center py-3 border-t-2 border-yellow-300">
+          <span className="text-lg font-semibold text-gray-900">Totalt</span>
+          <span className="text-lg font-bold text-gray-900">{getAmountValue(booking)}</span>
+        </div>
+        
+        {/* Payment Status */}
+        <div className="flex justify-between items-center py-1">
+          <span className="text-sm text-gray-600">Betalningsstatus</span>
+          <span className={`text-sm font-medium ${
+            booking.paymentStatus === 'paid' ? 'text-green-600' : 
+            booking.paymentStatus === 'pending' ? 'text-yellow-600' : 'text-red-600'
+          }`}>
+            {booking.paymentStatus === 'paid' ? 'Betald' : 
+             booking.paymentStatus === 'pending' ? 'Väntande' : 'Obetald'}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const formatDate = (dateValue) => {
   if (!dateValue) return 'Inget datum';
   try {
     if (dateValue && typeof dateValue.toDate === 'function') {
-      return dateValue.toDate().toLocaleDateString('sv-SE', { 
-        weekday: 'short', 
-        year: 'numeric', 
-        month: 'short', 
-        day: 'numeric' 
-      });
+      return dateValue.toDate().toLocaleDateString('sv-SE');
     }
     if (dateValue instanceof Date) {
-      return dateValue.toLocaleDateString('sv-SE', { 
-        weekday: 'short', 
-        year: 'numeric', 
-        month: 'short', 
-        day: 'numeric' 
-      });
+      return dateValue.toLocaleDateString('sv-SE');
     }
-    if (typeof dateValue === 'string') {
+    if (typeof dateValue === 'string' || typeof dateValue === 'number') {
       const date = new Date(dateValue);
       if (!isNaN(date.getTime())) {
-        return date.toLocaleDateString('sv-SE', { 
-          weekday: 'short', 
-          year: 'numeric', 
-          month: 'short', 
-          day: 'numeric' 
-        });
+        return date.toLocaleDateString('sv-SE');
       }
     }
   } catch (error) {
-    console.warn('Date formatting error:', error);
+    console.error('Error formatting date:', error, dateValue);
   }
   return 'Inget datum';
 };
@@ -59,14 +331,14 @@ const formatTime = (dateValue) => {
     if (dateValue instanceof Date) {
       return dateValue.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
     }
-    if (typeof dateValue === 'string') {
+    if (typeof dateValue === 'string' || typeof dateValue === 'number') {
       const date = new Date(dateValue);
       if (!isNaN(date.getTime())) {
         return date.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
       }
     }
   } catch (error) {
-    console.warn('Time formatting error:', error);
+    console.error('Error formatting time:', error, dateValue);
   }
   return 'Ingen tid';
 };
@@ -134,11 +406,13 @@ const StatusBadge = ({ status }) => {
   );
 };
 
-const BookingTablePremium = ({ bookings = [], loading = false }) => {
+const BookingTablePremium = ({ bookings = [], loading = false, onBookingUpdate }) => {
   const [sortBy, setSortBy] = useState('bookingDate');
   const [sortDirection, setSortDirection] = useState('desc');
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   console.log('📋 BookingTablePremium rendering with', bookings.length, 'bookings');
   
@@ -171,8 +445,86 @@ const BookingTablePremium = ({ bookings = [], loading = false }) => {
   });
   
   const handleViewBooking = (booking) => {
+    console.log('🔍 === FULL BOOKING DEBUG ===');
+    console.log('🔍 Complete booking object:', JSON.stringify(booking, null, 2));
+    console.log('🔍 Available fields:', Object.keys(booking));
+    console.log('🔍 Field values:');
+    Object.keys(booking).forEach(key => {
+      console.log(`  ${key}:`, booking[key]);
+    });
+    
+    console.log('🔍 === DATE/TIME FIELDS ===');
+    console.log('🔍 bookingDate:', booking.bookingDate);
+    console.log('🔍 date:', booking.date);
+    console.log('🔍 scheduledDate:', booking.scheduledDate);
+    console.log('🔍 time:', booking.time);
+    console.log('🔍 createdAt:', booking.createdAt);
+    console.log('🔍 updatedAt:', booking.updatedAt);
+    
+    console.log('🔍 === SERVICE FIELDS ===');
+    console.log('🔍 serviceName:', booking.serviceName);
+    console.log('🔍 service:', booking.service);
+    console.log('🔍 serviceType:', booking.serviceType);
+    console.log('🔍 title:', booking.title);
+    console.log('🔍 name:', booking.name);
+    
+    console.log('🔍 === AMOUNT FIELDS ===');
+    console.log('🔍 totalAmount:', booking.totalAmount);
+    console.log('🔍 amount:', booking.amount);
+    console.log('🔍 price:', booking.price);
+    console.log('🔍 cost:', booking.cost);
+    
+    console.log('🔍 === ADDRESS FIELDS ===');
+    console.log('🔍 address:', booking.address);
+    console.log('🔍 customerAddress:', booking.customerAddress);
+    console.log('🔍 location:', booking.location);
+    console.log('🔍 serviceAddress:', booking.serviceAddress);
+    
     setSelectedBooking(booking);
+    setPendingStatus(null);
+    setHasUnsavedChanges(false);
     setShowModal(true);
+  };
+  
+  // Handle status selection (first step)
+  const handleStatusSelect = (newStatus) => {
+    console.log('🔄 Status selected:', newStatus);
+    setPendingStatus(newStatus);
+    setHasUnsavedChanges(true);
+  };
+  
+  // Handle status save (second step)
+  const handleStatusSave = async () => {
+    if (!pendingStatus || !selectedBooking) return;
+    
+    console.log('🔄 Saving status:', selectedBooking.id, pendingStatus);
+    
+    try {
+      // Update the selected booking in modal
+      setSelectedBooking(prev => ({ ...prev, status: pendingStatus }));
+      
+      // Call parent component's update function if available
+      if (onBookingUpdate) {
+        await onBookingUpdate(selectedBooking.id, { status: pendingStatus });
+        console.log('✅ Status updated successfully');
+      }
+      
+      // Reset pending status
+      setPendingStatus(null);
+      setHasUnsavedChanges(false);
+      
+      // Success message is now handled by BookingService toast
+      
+    } catch (error) {
+      console.error('❌ Status update failed:', error);
+      // Error message is now handled by BookingService toast
+    }
+  };
+  
+  // Handle cancel changes
+  const handleStatusCancel = () => {
+    setPendingStatus(null);
+    setHasUnsavedChanges(false);
   };
   
   const handleContactCustomer = (booking, method) => {
@@ -189,12 +541,36 @@ const BookingTablePremium = ({ bookings = [], loading = false }) => {
   
   // Get the correct service name from booking data
   const getServiceName = (booking) => {
-    const serviceName = booking.serviceType || booking.service || booking.serviceName || booking.type;
-    // If it's an encoded ID, show a friendly name
-    if (serviceName && serviceName.includes('eSAd41JyQKSkmzSJTy')) {
-      return 'Premium Städning';
+    console.log('🔍 Getting service name for:', booking);
+    
+    // Try multiple possible service name fields
+    let serviceName = 
+      booking.serviceName ||
+      booking.service?.name ||
+      booking.service ||
+      booking.serviceType ||
+      booking.title ||
+      booking.name ||
+      booking.description ||
+      booking.type;
+    
+    // If we have a service ID (like zSakk35jCjCRkmrS1t7r), try to get a friendly name
+    if (serviceName && typeof serviceName === 'string') {
+      // Check if it looks like a service ID (long alphanumeric string)
+      if (serviceName.length > 15 && /^[a-zA-Z0-9]+$/.test(serviceName)) {
+        // Map common service IDs to friendly names
+        const serviceIdMap = {
+          'zSakk35jCjCRkmrS1t7r': 'Premium Städning',
+          'eSAd41JyQKSkmzSJTy': 'Standard Städning',
+          // Add more mappings as needed
+        };
+        serviceName = serviceIdMap[serviceName] || 'Städtjänst';
+      }
     }
-    return serviceName || 'Standard Städning';
+    
+    const result = serviceName || 'Okänd tjänst';
+    console.log('🔍 Service name result:', result);
+    return result;
   };
 
   const SortableHeader = ({ column, children, icon: Icon }) => (
@@ -375,125 +751,214 @@ const BookingTablePremium = ({ bookings = [], loading = false }) => {
       {/* Modal */}
       {selectedBooking && showModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            {/* Modal Header */}
-            <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-6 rounded-t-2xl">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto">
+            {/* Modal Header - Scandinavian Elegant */}
+            <div className="bg-white border-b border-gray-100 px-8 py-6">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                    <UserIcon className="w-6 h-6 text-white" />
-                  </div>
+                <div className="flex items-center gap-4">
+                  <div className="w-3 h-3 bg-blue-600 rounded-full"></div>
                   <div>
-                    <h3 className="text-xl font-bold text-white">
-                      {selectedBooking.customerName}
-                    </h3>
-                    <p className="text-blue-100">Bokningsdetaljer</p>
+                    <h3 className="text-2xl font-light text-gray-900 tracking-wide">Bokningsdetaljer</h3>
+                    <p className="text-gray-500 text-sm font-light mt-1">#{selectedBooking.id?.slice(-8) || 'N/A'}</p>
                   </div>
                 </div>
                 <button
                   onClick={() => setShowModal(false)}
-                  className="text-white/80 hover:text-white p-2 hover:bg-white/20 rounded-lg transition-colors"
+                  className="w-10 h-10 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-all duration-200"
                 >
-                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  <XMarkIcon className="w-6 h-6" />
                 </button>
               </div>
             </div>
 
             {/* Modal Body */}
-            <div className="p-6 space-y-6">
+            <div className="px-8 py-6 space-y-8">
               {/* Customer Information */}
-              <div className="bg-gradient-to-r from-gray-50 to-gray-100 p-6 rounded-xl">
-                <h4 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <UserIcon className="w-5 h-5 text-blue-600" />
-                  Kundinformation
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Namn</p>
-                    <p className="font-semibold text-gray-900">{selectedBooking.customerName || 'N/A'}</p>
+              <div className="">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-1 h-6 bg-blue-600 rounded-full"></div>
+                  <h4 className="text-lg font-light text-gray-900 tracking-wide">Kundinformation</h4>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Namn</p>
+                    <p className="text-base font-light text-gray-900">{selectedBooking.customerName || selectedBooking.name || '—'}</p>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">E-post</p>
-                    <p className="font-semibold text-gray-900">{selectedBooking.customerEmail || 'N/A'}</p>
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">E-post</p>
+                    <p className="text-base font-light text-gray-900">{selectedBooking.customerEmail || selectedBooking.email || '—'}</p>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Telefon</p>
-                    <p className="font-semibold text-gray-900">{selectedBooking.customerPhone || 'N/A'}</p>
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Telefon</p>
+                    <p className="text-base font-light text-gray-900">{selectedBooking.customerPhone || selectedBooking.phone || selectedBooking.phoneNumber || '—'}</p>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Adress</p>
-                    <p className="font-semibold text-gray-900">{selectedBooking.address || 'N/A'}</p>
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Adress</p>
+                    <p className="text-base font-light text-gray-900">{selectedBooking.address || selectedBooking.customerAddress || selectedBooking.location || selectedBooking.serviceAddress || '—'}</p>
                   </div>
                 </div>
               </div>
 
+              {/* Service Details - Dynamic based on service type */}
+              <div className="border-t border-gray-100 pt-8">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-1 h-6 bg-green-600 rounded-full"></div>
+                  <h4 className="text-lg font-light text-gray-900 tracking-wide">Tjänstdetaljer</h4>
+                </div>
+                {renderServiceDetails(selectedBooking)}
+              </div>
+
               {/* Booking Information */}
-              <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-6 rounded-xl">
-                <h4 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <CalendarDaysIcon className="w-5 h-5 text-blue-600" />
-                  Bokningsinformation
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Datum</p>
-                    <p className="font-semibold text-gray-900">{formatDate(selectedBooking.bookingDate)}</p>
+              <div className="border-t border-gray-100 pt-8">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-1 h-6 bg-purple-600 rounded-full"></div>
+                  <h4 className="text-lg font-light text-gray-900 tracking-wide">Bokningsinformation</h4>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Datum</p>
+                    <p className="text-base font-light text-gray-900">{formatDate(getDateTimeValue(selectedBooking))}</p>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Tid</p>
-                    <p className="font-semibold text-gray-900">{formatTime(selectedBooking.bookingDate)}</p>
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Tid</p>
+                    <p className="text-base font-light text-gray-900">{formatTime(getDateTimeValue(selectedBooking))}</p>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Tjänst</p>
-                    <p className="font-semibold text-gray-900">{getServiceName(selectedBooking)}</p>
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Boknings-ID</p>
+                    <p className="text-base font-light text-gray-900">#{selectedBooking.id?.slice(-8) || '—'}</p>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Belopp</p>
-                    <p className="font-semibold text-gray-900">{formatCurrency(selectedBooking.totalAmount)}</p>
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Skapad</p>
+                    <p className="text-base font-light text-gray-900">{formatDate(selectedBooking.createdAt)}</p>
                   </div>
-                  <div className="md:col-span-2">
-                    <p className="text-sm font-medium text-gray-600">Status</p>
-                    <div className="mt-1">
-                      <StatusBadge status={selectedBooking.status} />
+                </div>
+              </div>
+
+              {/* Price Breakdown */}
+              <div className="border-t border-gray-100 pt-8">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-1 h-6 bg-yellow-600 rounded-full"></div>
+                  <h4 className="text-lg font-light text-gray-900 tracking-wide">Prisuppdelning</h4>
+                </div>
+                {renderPriceBreakdown(selectedBooking)}
+              </div>
+
+              {/* Status Management */}
+              <div className="border-t border-gray-100 pt-8">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-1 h-6 bg-orange-600 rounded-full"></div>
+                  <h4 className="text-lg font-light text-gray-900 tracking-wide">Statushantering</h4>
+                </div>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="space-y-1">
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Nuvarande Status</p>
+                        <StatusBadge status={selectedBooking.status} />
+                      </div>
+                      {pendingStatus && (
+                        <div className="space-y-1">
+                          <p className="text-xs font-medium text-orange-500 uppercase tracking-wider">Ny Status (Osparad)</p>
+                          <StatusBadge status={pendingStatus} />
+                        </div>
+                      )}
                     </div>
                   </div>
+                  
+                  {/* Status Selection Buttons */}
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => handleStatusSelect('confirmed')}
+                      className={`px-4 py-2 text-sm font-light border rounded-lg transition-all duration-200 ${
+                        pendingStatus === 'confirmed'
+                          ? 'bg-blue-100 text-blue-800 border-blue-300'
+                          : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
+                      }`}
+                    >
+                      Bekräfta
+                    </button>
+                    <button
+                      onClick={() => handleStatusSelect('completed')}
+                      className={`px-4 py-2 text-sm font-light border rounded-lg transition-all duration-200 ${
+                        pendingStatus === 'completed'
+                          ? 'bg-green-100 text-green-800 border-green-300'
+                          : 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'
+                      }`}
+                    >
+                      Slutför
+                    </button>
+                    <button
+                      onClick={() => handleStatusSelect('cancelled')}
+                      className={`px-4 py-2 text-sm font-light border rounded-lg transition-all duration-200 ${
+                        pendingStatus === 'cancelled'
+                          ? 'bg-red-100 text-red-800 border-red-300'
+                          : 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100'
+                      }`}
+                    >
+                      Avboka
+                    </button>
+                  </div>
+                  
+                  {/* Save/Cancel Buttons */}
+                  {hasUnsavedChanges && (
+                    <div className="flex items-center gap-3 pt-2 border-t border-gray-100">
+                      <button
+                        onClick={handleStatusSave}
+                        className="px-6 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200"
+                      >
+                        Spara
+                      </button>
+                      <button
+                        onClick={handleStatusCancel}
+                        className="px-4 py-2 text-sm font-light text-gray-600 hover:text-gray-900 transition-colors"
+                      >
+                        Ångra
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
 
               {/* Notes */}
               {selectedBooking.notes && (
-                <div className="bg-gradient-to-r from-green-50 to-green-100 p-6 rounded-xl">
-                  <h4 className="font-bold text-gray-900 mb-2">Anteckningar</h4>
-                  <p className="text-gray-700">{selectedBooking.notes}</p>
+                <div className="border-t border-gray-100 pt-8">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-1 h-6 bg-gray-600 rounded-full"></div>
+                    <h4 className="text-lg font-light text-gray-900 tracking-wide">Anteckningar</h4>
+                  </div>
+                  <div className="bg-gradient-to-r from-green-50 to-green-100 p-6 rounded-xl">
+                    <p className="text-gray-700">{selectedBooking.notes}</p>
+                  </div>
                 </div>
               )}
             </div>
 
             {/* Modal Footer */}
-            <div className="bg-gray-50 px-6 py-4 rounded-b-2xl flex justify-between items-center">
-              <div className="flex gap-3">
+            <div className="bg-gray-50 px-8 py-6 rounded-b-2xl">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={() => handleContactCustomer(selectedBooking, 'phone')}
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-light bg-white text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition-all duration-200"
+                  >
+                    <PhoneIcon className="w-4 h-4" />
+                    Ring
+                  </button>
+                  <button
+                    onClick={() => handleContactCustomer(selectedBooking, 'email')}
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-light bg-white text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition-all duration-200"
+                  >
+                    <EnvelopeIcon className="w-4 h-4" />
+                    E-post
+                  </button>
+                </div>
                 <button
-                  onClick={() => handleContactCustomer(selectedBooking, 'phone')}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                  onClick={() => setShowModal(false)}
+                  className="px-6 py-2 text-sm font-light text-gray-600 hover:text-gray-900 transition-colors"
                 >
-                  <PhoneIcon className="w-4 h-4" />
-                  Ring
-                </button>
-                <button
-                  onClick={() => handleContactCustomer(selectedBooking, 'email')}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors"
-                >
-                  <EnvelopeIcon className="w-4 h-4" />
-                  E-post
+                  Stäng
                 </button>
               </div>
-              <button
-                onClick={() => setShowModal(false)}
-                className="px-6 py-2 bg-gray-200 text-gray-800 font-medium rounded-lg hover:bg-gray-300 transition-colors"
-              >
-                Stäng
-              </button>
             </div>
           </div>
         </div>

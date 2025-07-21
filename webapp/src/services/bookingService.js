@@ -289,6 +289,44 @@ class BookingService {
       return false;
     }
   }
+
+  /**
+   * Update a booking (e.g., status, notes, etc.)
+   */
+  static async updateBooking(companyId, bookingId, updates) {
+    try {
+      console.log('🔄 BookingService: Updating booking', bookingId, updates);
+      
+      const bookingRef = doc(db, 'companies', companyId, 'bookings', bookingId);
+      
+      // Add timestamp for when the update occurred
+      const updateData = {
+        ...updates,
+        updatedAt: serverTimestamp()
+      };
+      
+      await updateDoc(bookingRef, updateData);
+      
+      console.log('✅ BookingService: Booking updated successfully');
+      
+      // Show success toast for status updates
+      if (updates.status) {
+        const statusText = {
+          'pending': 'Väntande',
+          'confirmed': 'Bekräftad',
+          'completed': 'Slutförd',
+          'cancelled': 'Avbokad'
+        };
+        toast.success(`Status uppdaterad till: ${statusText[updates.status] || updates.status}`);
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('❌ BookingService: Error updating booking:', error);
+      toast.error('Kunde inte uppdatera bokning. Försök igen.');
+      throw error;
+    }
+  }
 }
 
 export default BookingService;

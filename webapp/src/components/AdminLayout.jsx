@@ -31,9 +31,19 @@ import {
   ArrowRightOnRectangleIcon,
   UserIcon,
   BuildingOfficeIcon,
-  QuestionMarkCircleIcon
+  QuestionMarkCircleIcon,
+  ClipboardDocumentListIcon, 
+  CalendarIcon, 
+  BriefcaseIcon, 
+  ArrowPathIcon, 
+  UsersIcon, 
+  WrenchScrewdriverIcon,
+  TagIcon,
+  MapPinIcon,
+  GlobeAltIcon,
+  Cog6ToothIcon
 } from '@heroicons/react/24/outline'
-import { AnimatePresence } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import AdminHeader from './AdminHeader'
 import toast, { Toaster } from 'react-hot-toast'
 
@@ -213,6 +223,13 @@ export default function AdminLayout() {
       icon: CreditCardIcon,
       badge: null,
       description: 'Subscription and payments'
+    },
+    {
+      label: 'Coupons',
+      href: `/admin/${companyId}/coupons`,
+      icon: TagIcon,
+      badge: null,
+      description: 'Manage promotional coupons'
     }
   ]
 

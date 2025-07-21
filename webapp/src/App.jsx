@@ -25,6 +25,7 @@ import TenantDetailPage from './pages/TenantDetailPage';
 import PaymentPage from './pages/PaymentPage';
 import SuperAdminDashboardPage from './pages/SuperAdminDashboardPage';
 import UnauthorizedPage from './pages/UnauthorizedPage';
+import AdminCouponsPage from './pages/AdminCouponsPage';
 
 // Import Layout and Auth Components
 import AdminLayout from './components/AdminLayout';
@@ -84,6 +85,7 @@ export default function App() {
             <Route path="analytics" element={<AdminAnalyticsPage />} />
             <Route path="customers" element={<AdminCustomersPage />} />
           <Route path="payment-settings" element={<AdminPaymentSettings />} /> {/* CORRECTED ROUTE */}
+          <Route path="coupons" element={<AdminCouponsPage />} />
           </Route>
 
           {/* Legacy Admin Routes */}

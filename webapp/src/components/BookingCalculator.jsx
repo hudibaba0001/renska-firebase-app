@@ -380,6 +380,12 @@ const ServiceDetailsStep = ({ onNext, onBack, formData, setFormData, config }) =
             const serviceFrequencyMultipliers = selectedService?.frequencyMultipliers;
             const frequencyMultipliers = serviceFrequencyMultipliers || companyFrequencyMultipliers;
             
+            console.log('🔍 Frequency Selection Debug:');
+            console.log('  - companyFrequencyMultipliers:', companyFrequencyMultipliers);
+            console.log('  - serviceFrequencyMultipliers:', serviceFrequencyMultipliers);
+            console.log('  - frequencyMultipliers (final):', frequencyMultipliers);
+            console.log('  - selectedService.frequencyEnabled:', selectedService.frequencyEnabled);
+            
             return selectedService.frequencyEnabled !== false && frequencyMultipliers && frequencyMultipliers.length > 0;
           })() && (
             <div className="mb-4">
@@ -392,6 +398,10 @@ const ServiceDetailsStep = ({ onNext, onBack, formData, setFormData, config }) =
                 <option value="">Välj frekvens</option>
                 {(selectedService?.frequencyMultipliers || config.frequencyMultipliers || []).map((freq, index) => {
                   console.log('🔍 Frequency option:', freq);
+                  console.log('  - freq.key:', freq.key);
+                  console.log('  - freq.label:', freq.label);
+                  console.log('  - freq.multiplier:', freq.multiplier);
+                  console.log('  - option value will be:', freq.key || freq.label);
                   return (
                     <option key={index} value={freq.key || freq.label}>
                       {freq.label} {freq.multiplier !== 1 ? `(${freq.multiplier}x)` : ''}
@@ -794,26 +804,30 @@ const PriceCard = ({ originalPrice, finalPrice, rutApplied, selectedService, for
     }
 
     // Apply frequency multiplier if selected
-    if (formData.frequency && config.frequencyMultipliers) {
+    if (formData.frequency) {
       console.log('🔍 Frequency multiplier check:');
       console.log('  - formData.frequency:', formData.frequency);
+      console.log('  - selectedService.frequencyMultipliers:', selectedService.frequencyMultipliers);
       console.log('  - config.frequencyMultipliers:', config.frequencyMultipliers);
       
+      // Use service frequency multipliers first, fallback to company
+      const frequencyMultipliers = selectedService.frequencyMultipliers || config.frequencyMultipliers;
+      
       // Try multiple matching strategies
-      let selectedFrequency = config.frequencyMultipliers.find(freq => 
+      let selectedFrequency = frequencyMultipliers.find(freq => 
         (freq.key || freq.label) === formData.frequency
       );
       
       // If not found, try case-insensitive matching
       if (!selectedFrequency) {
-        selectedFrequency = config.frequencyMultipliers.find(freq => 
+        selectedFrequency = frequencyMultipliers.find(freq => 
           (freq.key || freq.label)?.toLowerCase() === formData.frequency?.toLowerCase()
         );
       }
       
       // If still not found, try partial matching
       if (!selectedFrequency) {
-        selectedFrequency = config.frequencyMultipliers.find(freq => 
+        selectedFrequency = frequencyMultipliers.find(freq => 
           (freq.key || freq.label)?.toLowerCase().includes(formData.frequency?.toLowerCase()) ||
           formData.frequency?.toLowerCase().includes((freq.key || freq.label)?.toLowerCase())
         );
@@ -831,7 +845,7 @@ const PriceCard = ({ originalPrice, finalPrice, rutApplied, selectedService, for
         console.log('  - No frequency multiplier applied (multiplier is 1 or not found)');
       }
     } else {
-      console.log('🔍 No frequency selected or no frequencyMultipliers configured');
+      console.log('🔍 No frequency selected');
     }
     
     // Apply pet surcharge if selected
@@ -1254,26 +1268,30 @@ export default function BookingCalculator({ config: propConfig, companyId: propC
       }
       
       // Apply frequency multiplier if selected
-      if (formData.frequency && config.frequencyMultipliers) {
+      if (formData.frequency) {
         console.log('🔍 Frequency multiplier check (calculation):');
         console.log('  - formData.frequency:', formData.frequency);
+        console.log('  - selectedService.frequencyMultipliers:', selectedService.frequencyMultipliers);
         console.log('  - config.frequencyMultipliers:', config.frequencyMultipliers);
         
+        // Use service frequency multipliers first, fallback to company
+        const frequencyMultipliers = selectedService.frequencyMultipliers || config.frequencyMultipliers;
+        
         // Try multiple matching strategies
-        let selectedFrequency = config.frequencyMultipliers.find(freq => 
+        let selectedFrequency = frequencyMultipliers.find(freq => 
           (freq.key || freq.label) === formData.frequency
         );
         
         // If not found, try case-insensitive matching
         if (!selectedFrequency) {
-          selectedFrequency = config.frequencyMultipliers.find(freq => 
+          selectedFrequency = frequencyMultipliers.find(freq => 
             (freq.key || freq.label)?.toLowerCase() === formData.frequency?.toLowerCase()
           );
         }
         
         // If still not found, try partial matching
         if (!selectedFrequency) {
-          selectedFrequency = config.frequencyMultipliers.find(freq => 
+          selectedFrequency = frequencyMultipliers.find(freq => 
             (freq.key || freq.label)?.toLowerCase().includes(formData.frequency?.toLowerCase()) ||
             formData.frequency?.toLowerCase().includes((freq.key || freq.label)?.toLowerCase())
           );
@@ -1463,10 +1481,16 @@ export default function BookingCalculator({ config: propConfig, companyId: propC
         )}
         {step === 3 && (
           <>
-            {console.log('🎯 Step 3 - ServiceDetailsStep active')}
-            {console.log('🎯 Step 3 - formData:', formData)}
-            {console.log('🎯 Step 3 - config:', config)}
-            {console.log('🎯 Step 3 - selectedService:', formServices.find(s => s.id === formData.service))}
+            {(() => {
+              console.log('🎯 Step 3 - ServiceDetailsStep active');
+              console.log('🎯 Step 3 - formData:', formData);
+              console.log('🎯 Step 3 - config:', config);
+              console.log('🎯 Step 3 - selectedService:', formServices.find(s => s.id === formData.service));
+              console.log('🔍 Config frequencyMultipliers:', config.frequencyMultipliers);
+              console.log('🔍 Config frequencyMultipliers type:', typeof config.frequencyMultipliers);
+              console.log('🔍 Config frequencyMultipliers length:', config.frequencyMultipliers?.length);
+              return null;
+            })()}
             <ServiceDetailsStep
               onNext={() => {
                 console.log('🎯 Step 3 - Next button clicked, moving to step 4');
