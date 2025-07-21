@@ -1,726 +1,411 @@
 /**
- * SwedPrime Advanced Pricing Engine
- * Comprehensive pricing calculation system with multiple models, validation, and rules engine
+ * Centralized Pricing Engine for SwedPrime
+ * Handles all pricing calculations for Swedish cleaning services
  */
 
-// Pricing Models
+import { logger } from './logger.js';
+import { errorHandler, ERROR_TYPES, ERROR_SEVERITY } from './errorHandler.js';
+
+// ============================================================================
+// PRICING MODELS
+// ============================================================================
+
 export const PRICING_MODELS = {
-  FLAT_RATE: 'flat_rate',
-  PER_SQM_TIERED: 'per_sqm_tiered',
-  PER_ROOM: 'per_room',
-  HOURLY_BY_SIZE: 'hourly_by_size',
-  WINDOW_BASED: 'window_based',
-  FLAT_RANGE: 'flat_range',
-  BULK_DISCOUNT: 'bulk_discount',
-  DYNAMIC_PRICING: 'dynamic_pricing'
+  WINDOW: 'window',
+  PER_SQM: 'per-sqm',
+  PER_ROOM: 'per-room',
+  FIXED: 'fixed',
+  HOURLY: 'hourly'
 };
 
-// Validation Rules
-export const VALIDATION_RULES = {
-  area: {
-    min: 1,
-    max: 1000,
-    required: true,
-    type: 'number'
-  },
-  rooms: {
-    min: 1,
-    max: 50,
-    required: false,
-    type: 'number'
-  },
-  frequency: {
-    required: true,
-    type: 'string',
-    allowedValues: ['weekly', 'biweekly', 'monthly', 'quarterly', 'yearly']
-  },
-  zipCode: {
-    required: false,
-    type: 'string',
-    pattern: /^\d{5}$/
-  }
+// ============================================================================
+// WINDOW TYPES (Swedish Industry Standard)
+// ============================================================================
+
+export const WINDOW_TYPES = {
+  0: { name: 'Utan ramar - två sidor', price: 90 },
+  1: { name: 'Utan ramar - fyra sidor', price: 90 },
+  2: { name: 'Med ramar - två sidor', price: 120 },
+  3: { name: 'Med ramar - fyra sidor', price: 120 },
+  4: { name: 'Balkongfönster - två sidor', price: 150 },
+  5: { name: 'Balkongfönster - fyra sidor', price: 150 },
+  6: { name: 'Terrassdörrar - två sidor', price: 200 },
+  7: { name: 'Terrassdörrar - fyra sidor', price: 250 }
 };
 
-// Error Types
-export const PRICING_ERRORS = {
-  INVALID_INPUT: 'INVALID_INPUT',
-  MISSING_REQUIRED: 'MISSING_REQUIRED',
-  OUT_OF_RANGE: 'OUT_OF_RANGE',
-  INVALID_SERVICE: 'INVALID_SERVICE',
-  CALCULATION_ERROR: 'CALCULATION_ERROR',
-  VALIDATION_ERROR: 'VALIDATION_ERROR'
+// ============================================================================
+// ADD-ON PRICES (Swedish Industry Standard)
+// ============================================================================
+
+export const ADDON_PRICES = {
+  'Ladder needed': 500,
+  'Clean window frames': 500,
+  'Karmtvätt': 500,
+  'Stege behövs': 500
 };
 
-/**
- * Enhanced Pricing Calculator Class
- */
+// ============================================================================
+// RUT CONFIGURATION
+// ============================================================================
+
+export const RUT_CONFIG = {
+  PERCENTAGE: 0.30, // 30% RUT deduction
+  MIN_AMOUNT: 0,
+  MAX_AMOUNT: 50000 // Annual limit
+};
+
+// ============================================================================
+// PRICING ENGINE CLASS
+// ============================================================================
+
 export class PricingEngine {
-  constructor(config = {}) {
-    this.config = config;
+  constructor() {
     this.cache = new Map();
-    this.validationRules = { ...VALIDATION_RULES, ...config.validationRules };
-    this.debug = config.debug || false;
-    
-    // ----------------------------------------------------------------------
-    // Extension processors pipeline (Phase-1: no-op)
-    // Array of async functions that receive (priceObject, inputData) and must
-    // return either the same object or a modified clone.  This scaffolding
-    // lets us plug in future promo / surge / loyalty processors without
-    // modifying core logic.
-    this.extensionProcessors = [];
-    // ----------------------------------------------------------------------
-    
-    // Initialize pricing models
-    this.pricingModels = {
-      [PRICING_MODELS.FLAT_RATE]: this.calculateFlatRate.bind(this),
-      [PRICING_MODELS.PER_SQM_TIERED]: this.calculateTieredPricing.bind(this),
-      [PRICING_MODELS.PER_ROOM]: this.calculatePerRoom.bind(this),
-      [PRICING_MODELS.HOURLY_BY_SIZE]: this.calculateHourlyBySize.bind(this),
-      [PRICING_MODELS.WINDOW_BASED]: this.calculateWindowBased.bind(this),
-      [PRICING_MODELS.FLAT_RANGE]: this.calculateFlatRange.bind(this),
-      [PRICING_MODELS.BULK_DISCOUNT]: this.calculateBulkDiscount.bind(this),
-      [PRICING_MODELS.DYNAMIC_PRICING]: this.calculateDynamicPricing.bind(this)
-    };
+    this.cacheTimeout = 5 * 60 * 1000; // 5 minutes
   }
 
   /**
-   * Register an extension processor (Phase-2: promo, holiday, etc.)
-   * @param {string} type - A label for the processor (for debugging)
-   * @param {function} fn - Async function (result, inputData) => result
+   * Calculate total price for a booking
    */
-  registerProcessor(type, fn) {
-    this.extensionProcessors.push({ type, fn });
-  }
-
-  /**
-   * Main calculation method
-   */
-  async calculatePrice(inputData) {
+  calculateBookingPrice(bookingData, serviceConfig) {
     try {
-      // Generate cache key
-      const cacheKey = this.generateCacheKey(inputData);
-      
-      // Check cache first
-      if (this.cache.has(cacheKey)) {
-        this.log('Cache hit for calculation');
-        return this.cache.get(cacheKey);
-      }
+      logger.debug('Starting price calculation', { 
+        serviceType: serviceConfig.pricingModel,
+        hasWindows: this.hasWindowData(bookingData),
+        hasAddons: this.hasAddonData(bookingData)
+      });
 
-      // Validate input data
-      const validation = this.validateInput(inputData);
-      if (!validation.isValid) {
-        throw new PricingError(PRICING_ERRORS.VALIDATION_ERROR, validation.errors);
-      }
+      let basePrice = 0;
+      let breakdown = {};
 
-      // Normalize input data
-      const normalizedData = this.normalizeInput(inputData);
-      
-      // Calculate base price
-      const basePrice = await this.calculateBasePrice(normalizedData);
-      
-      // Apply modifiers (frequency, add-ons, discounts, etc.)
-      const modifiedPrice = await this.applyModifiers(basePrice, normalizedData);
-      
-      // Apply rules engine
-      const finalPrice = await this.applyPricingRules(modifiedPrice, normalizedData);
-      
-      // Apply minimum price if set
-      if (normalizedData.service?.minPrice && finalPrice.amount < normalizedData.service.minPrice) {
-        finalPrice.amount = normalizedData.service.minPrice;
-        finalPrice.breakdown = finalPrice.breakdown || {};
-        finalPrice.breakdown.minimumFeeApplied = true;
-        finalPrice.breakdown.originalCalculatedPrice = modifiedPrice.amount;
-      }
-      
-      // Create result object
-      const result = {
-        basePrice: basePrice.amount,
-        totalPrice: finalPrice.amount,
-        breakdown: finalPrice.breakdown,
-        discounts: finalPrice.discounts || [],
-        addOns: finalPrice.addOns || [],
-        taxes: finalPrice.taxes || [],
-        metadata: {
-          calculatedAt: new Date().toISOString(),
-          cacheKey,
-          inputData: normalizedData,
-          pricingModel: normalizedData.service?.pricingModel
+      // Calculate base service price
+      switch (serviceConfig.pricingModel) {
+        case PRICING_MODELS.WINDOW: {
+          const windowResult = this.calculateWindowPrice(bookingData);
+          basePrice = windowResult.total;
+          breakdown.windows = windowResult;
+          break;
         }
+
+        case PRICING_MODELS.PER_SQM:
+          basePrice = this.calculatePerSqmPrice(bookingData, serviceConfig);
+          breakdown.area = bookingData.area;
+          breakdown.pricePerSqm = serviceConfig.pricePerSqm || 50;
+          break;
+
+        case PRICING_MODELS.PER_ROOM:
+          basePrice = this.calculatePerRoomPrice(bookingData, serviceConfig);
+          breakdown.rooms = bookingData.rooms;
+          breakdown.pricePerRoom = serviceConfig.pricePerRoom || 300;
+          break;
+
+        case PRICING_MODELS.FIXED:
+          basePrice = serviceConfig.fixedPrice || 0;
+          breakdown.fixedPrice = basePrice;
+          break;
+
+        case PRICING_MODELS.HOURLY:
+          basePrice = this.calculateHourlyPrice(bookingData, serviceConfig);
+          breakdown.hours = serviceConfig.hours || 3;
+          breakdown.hourlyRate = serviceConfig.hourlyRate || 400;
+          break;
+
+        default:
+          throw new Error(`Unsupported pricing model: ${serviceConfig.pricingModel}`);
+      }
+
+      // Apply minimum price if configured
+      if (serviceConfig.minPrice && basePrice < serviceConfig.minPrice) {
+        breakdown.minimumPriceApplied = true;
+        breakdown.originalPrice = basePrice;
+        basePrice = serviceConfig.minPrice;
+      }
+
+      // Calculate add-ons
+      const addonsResult = this.calculateAddonsPrice(bookingData);
+      const addonsPrice = addonsResult.total;
+      breakdown.addons = addonsResult;
+
+      // Calculate subtotal
+      const subtotal = basePrice + addonsPrice;
+      breakdown.subtotal = subtotal;
+
+      // Apply RUT discount if eligible
+      let rutDiscount = 0;
+      let finalPrice = subtotal;
+
+      if (bookingData.rutApplied && this.isRutEligible(bookingData)) {
+        rutDiscount = this.calculateRutDiscount(subtotal);
+        finalPrice = subtotal - rutDiscount;
+        breakdown.rutDiscount = rutDiscount;
+      }
+
+      // Apply custom fees if any
+      const customFees = this.calculateCustomFees(serviceConfig);
+      const customFeesTotal = customFees.total;
+      finalPrice += customFeesTotal;
+      breakdown.customFees = customFees;
+
+      // Apply frequency multiplier if applicable
+      if (bookingData.frequency && serviceConfig.frequencyMultipliers) {
+        const multiplier = serviceConfig.frequencyMultipliers[bookingData.frequency] || 1;
+        if (multiplier !== 1) {
+          const frequencyAdjustment = finalPrice * (multiplier - 1);
+          finalPrice += frequencyAdjustment;
+          breakdown.frequency = {
+            type: bookingData.frequency,
+            multiplier,
+            adjustment: frequencyAdjustment
+          };
+        }
+      }
+
+      // Apply coupons if any
+      let couponDiscount = 0;
+      if (bookingData.couponCode) {
+        couponDiscount = this.calculateCouponDiscount(finalPrice, bookingData.couponCode);
+        finalPrice -= couponDiscount;
+        breakdown.couponDiscount = couponDiscount;
+      }
+
+      const result = {
+        basePrice,
+        addonsPrice,
+        subtotal,
+        rutDiscount,
+        customFeesTotal,
+        couponDiscount,
+        finalPrice: Math.round(finalPrice),
+        breakdown
       };
 
-      // Cache the result
-      this.cache.set(cacheKey, result);
-      
-      this.log('Price calculation completed:', result);
+      logger.debug('Price calculation completed', { 
+        finalPrice: result.finalPrice,
+        breakdown: Object.keys(breakdown)
+      });
 
-      // ----------------------------------------------------------------------
-      // Extension processors pipeline (Phase-1: no-op)
-      // Each processor can modify the result (e.g. promo, holiday, loyalty)
-      let processedResult = result;
-      for (const { type, fn } of this.extensionProcessors) {
-        this.log(`Running extension processor: ${type}`);
-        processedResult = await fn(processedResult, inputData);
-      }
-      // ----------------------------------------------------------------------
-      return processedResult;
+      return result;
 
     } catch (error) {
-      this.log('Price calculation error:', error);
+      errorHandler.handleError(error, {
+        bookingData,
+        serviceConfig
+      }, {
+        type: ERROR_TYPES.PRICING_ERROR,
+        severity: ERROR_SEVERITY.HIGH
+      });
       throw error;
     }
   }
 
   /**
-   * Input validation
+   * Calculate window cleaning price
    */
-  validateInput(inputData) {
-    const errors = [];
-    
-    // Check required fields
-    if (!inputData.service) {
-      errors.push({ field: 'service', message: 'Service is required' });
-    }
-    
-    if (!inputData.area || inputData.area <= 0) {
-      errors.push({ field: 'area', message: 'Valid area is required' });
-    }
-    
-    // Validate area range
-    if (inputData.area && (inputData.area < this.validationRules.area.min || inputData.area > this.validationRules.area.max)) {
-      errors.push({ 
-        field: 'area', 
-        message: `Area must be between ${this.validationRules.area.min} and ${this.validationRules.area.max}` 
-      });
-    }
-    
-    // Validate frequency
-    if (inputData.frequency && !this.validationRules.frequency.allowedValues.includes(inputData.frequency)) {
-      errors.push({ 
-        field: 'frequency', 
-        message: `Invalid frequency. Allowed values: ${this.validationRules.frequency.allowedValues.join(', ')}` 
-      });
-    }
-    
-    // Validate ZIP code if provided
-    if (inputData.zipCode && !this.validationRules.zipCode.pattern.test(inputData.zipCode)) {
-      errors.push({ 
-        field: 'zipCode', 
-        message: 'Invalid ZIP code format' 
-      });
-    }
-    
-    return {
-      isValid: errors.length === 0,
-      errors
-    };
-  }
-
-  /**
-   * Normalize input data
-   */
-  normalizeInput(inputData) {
-    return {
-      service: inputData.service,
-      area: Number(inputData.area),
-      rooms: Number(inputData.rooms) || null,
-      frequency: inputData.frequency || 'monthly',
-      zipCode: inputData.zipCode || null,
-      addOns: inputData.addOns || [],
-      windowCleaning: inputData.windowCleaning || null,
-      useRut: Boolean(inputData.useRut),
-      customFields: inputData.customFields || {},
-      date: inputData.date || new Date().toISOString()
-    };
-  }
-
-  /**
-   * Calculate base price using the service's pricing model
-   */
-  async calculateBasePrice(inputData) {
-    const { service } = inputData;
-    
-    if (!service || !service.pricingModel) {
-      throw new PricingError(PRICING_ERRORS.INVALID_SERVICE, 'Service or pricing model not specified');
-    }
-    
-    const calculator = this.pricingModels[service.pricingModel];
-    if (!calculator) {
-      throw new PricingError(PRICING_ERRORS.INVALID_SERVICE, `Unsupported pricing model: ${service.pricingModel}`);
-    }
-    
-    const result = await calculator(inputData);
-    let basePrice, breakdown;
-    
-    // Handle if the calculator returns an object with breakdown
-    if (typeof result === 'object' && result.amount !== undefined) {
-      basePrice = result.amount;
-      breakdown = result.breakdown || {};
-    } else {
-      basePrice = result;
-      breakdown = {
-        base: basePrice,
-        area: inputData.area,
-        rooms: inputData.rooms
-      };
-    }
-    
-    return {
-      amount: basePrice,
-      model: service.pricingModel,
-      breakdown
-    };
-  }
-
-  /**
-   * Flat rate pricing model
-   */
-  calculateFlatRate(inputData) {
-    const { service, area } = inputData;
-    const pricePerSqm = service.pricingConfig?.pricePerSqm || service.pricePerSqm || 0;
-    
-    return Math.round(area * pricePerSqm);
-  }
-
-  /**
-   * Tiered pricing model
-   */
-  calculateTieredPricing(inputData) {
-    const { service, area } = inputData;
-    const tiers = service.pricingConfig?.tiers || [];
-    
-    if (!tiers.length) {
-      throw new PricingError(PRICING_ERRORS.INVALID_SERVICE, 'No pricing tiers configured');
-    }
-    
-    // Find the appropriate tier
-    const tier = tiers.find(t => area >= t.minArea && area <= t.maxArea);
-    
-    if (!tier) {
-      throw new PricingError(PRICING_ERRORS.OUT_OF_RANGE, `No pricing tier found for area ${area} sqm`);
-    }
-    
-    // Calculate price based on tier type
-    if (tier.type === 'per_sqm') {
-      return Math.round(area * tier.pricePerSqm);
-    } else if (tier.type === 'flat_rate') {
-      return tier.price;
-    } else {
-      // Default to flat rate
-      return tier.price || Math.round(area * (tier.pricePerSqm || 0));
-    }
-  }
-
-  /**
-   * Per room pricing model
-   */
-  calculatePerRoom(inputData) {
-    const { service, rooms, area } = inputData;
-    const roomTypes = service.pricingConfig?.roomTypes || {};
-    
-    // If specific room types are provided, use them
-    if (inputData.roomBreakdown && Object.keys(inputData.roomBreakdown).length > 0) {
-      let total = 0;
-      for (const [roomType, count] of Object.entries(inputData.roomBreakdown)) {
-        const roomPrice = roomTypes[roomType]?.price || 0;
-        total += roomPrice * count;
-      }
-      return Math.round(total);
-    }
-    
-    // Otherwise, use room count or estimate from area
-    const roomCount = rooms || Math.max(1, Math.floor(area / 25)); // Estimate: 25 sqm per room
-    const pricePerRoom = service.pricingConfig?.pricePerRoom || 300;
-    
-    return Math.round(roomCount * pricePerRoom);
-  }
-
-  /**
-   * Hourly by size pricing model
-   */
-  calculateHourlyBySize(inputData) {
-    const { service, area } = inputData;
-    
-    // Get hourly tiers and rate from service config
-    const hourlyTiers = service.hourlyTiers || [];
-    const hourlyRate = service.hourlyRate || 400; // Default hourly rate if not specified
-    
-    if (!hourlyTiers.length) {
-      throw new PricingError(PRICING_ERRORS.INVALID_SERVICE, 'No hourly tiers configured');
-    }
-    
-    // Find the appropriate tier for the area
-    const tier = hourlyTiers.find(t => area >= t.min && area <= t.max);
-    
-    if (!tier) {
-      throw new PricingError(PRICING_ERRORS.OUT_OF_RANGE, `No hourly tier found for area ${area} sqm`);
-    }
-    
-    // Calculate price based on hours required and hourly rate
-    const price = tier.hours * hourlyRate;
-    
-    // Return price with breakdown details
-    return {
-      amount: Math.round(price),
-      breakdown: {
-        base: Math.round(price),
-        area,
-        hourlyDetails: {
-          hours: tier.hours,
-          rate: hourlyRate,
-          minArea: tier.min,
-          maxArea: tier.max
-        }
-      }
-    };
-  }
-
-  /**
-   * Window-based pricing model
-   */
-  calculateWindowBased(inputData) {
-    const { service, windowCleaning } = inputData;
-    
-    if (!windowCleaning) {
-      return 0;
-    }
-    
-    const windowPrices = service.pricingConfig?.windowPrices || {};
+  calculateWindowPrice(bookingData) {
+    const windowData = {};
     let total = 0;
-    
-    // Calculate based on window quantities
-    for (const [windowType, quantity] of Object.entries(windowCleaning)) {
-      const price = windowPrices[windowType] || 0;
-      total += price * quantity;
-    }
-    
-    // Apply minimum charge if configured
-    const minimumCharge = service.pricingConfig?.minimumCharge || 0;
-    
-    return Math.round(Math.max(total, minimumCharge));
-  }
+    let regularWindowCount = 0;
 
-  /**
-   * Flat range pricing model
-   */
-  calculateFlatRange(inputData) {
-    const { service, area } = inputData;
-    const ranges = service.pricingConfig?.ranges || [];
-    
-    if (!ranges.length) {
-      throw new PricingError(PRICING_ERRORS.INVALID_SERVICE, 'No pricing ranges configured');
-    }
-    
-    // Find the appropriate range
-    const range = ranges.find(r => area >= r.minArea && area <= r.maxArea);
-    
-    if (!range) {
-      throw new PricingError(PRICING_ERRORS.OUT_OF_RANGE, `No pricing range found for area ${area} sqm`);
-    }
-    
-    return range.price;
-  }
+    // Calculate price for each window type
+    for (let i = 0; i <= 7; i++) {
+      const quantity = bookingData[`window_${i}`] || 0;
+      if (quantity > 0) {
+        const windowType = WINDOW_TYPES[i];
+        const price = windowType.price * quantity;
+        total += price;
+        
+        // Count regular windows (types 0-5) for minimum price calculation
+        if (i < 6) {
+          regularWindowCount += quantity;
+        }
 
-  /**
-   * Bulk discount pricing model
-   */
-  calculateBulkDiscount(inputData) {
-    const { service, area } = inputData;
-    const basePrice = area * (service.pricingConfig?.basePrice || 10);
-    const discounts = service.pricingConfig?.bulkDiscounts || [];
-    
-    // Find applicable discount
-    const discount = discounts
-      .filter(d => area >= d.minArea)
-      .sort((a, b) => b.minArea - a.minArea)[0]; // Get the highest applicable discount
-    
-    if (discount) {
-      const discountAmount = basePrice * (discount.percentage / 100);
-      return Math.round(basePrice - discountAmount);
-    }
-    
-    return Math.round(basePrice);
-  }
-
-  /**
-   * Dynamic pricing model (time-based, demand-based, etc.)
-   */
-  calculateDynamicPricing(inputData) {
-    const { service, date } = inputData;
-    const basePrice = this.calculateFlatRate(inputData);
-    const dynamicConfig = service.pricingConfig?.dynamicPricing || {};
-    
-    let multiplier = 1;
-    
-    // Time-based pricing
-    if (dynamicConfig.timeBasedPricing) {
-      const hour = new Date(date).getHours();
-      const timeMultiplier = dynamicConfig.timeBasedPricing.find(
-        t => hour >= t.startHour && hour <= t.endHour
-      )?.multiplier || 1;
-      multiplier *= timeMultiplier;
-    }
-    
-    // Seasonal pricing
-    if (dynamicConfig.seasonalPricing) {
-      const month = new Date(date).getMonth() + 1;
-      const seasonMultiplier = dynamicConfig.seasonalPricing.find(
-        s => s.months.includes(month)
-      )?.multiplier || 1;
-      multiplier *= seasonMultiplier;
-    }
-    
-    // Demand-based pricing (would require real-time data)
-    if (dynamicConfig.demandBasedPricing) {
-      // This would integrate with booking data to adjust prices based on demand
-      // For now, we'll use a simple random multiplier as a placeholder
-      multiplier *= dynamicConfig.demandBasedPricing.baseMultiplier || 1;
-    }
-    
-    return Math.round(basePrice * multiplier);
-  }
-
-  /**
-   * Apply modifiers (frequency, add-ons, etc.)
-   */
-  async applyModifiers(basePrice, inputData) {
-    let total = basePrice.amount;
-    const breakdown = { ...basePrice.breakdown };
-    const addOns = [];
-    const discounts = [];
-    
-    // Apply frequency multiplier
-    if (inputData.frequency) {
-      const frequencyMultiplier = this.config.frequencyMultipliers?.[inputData.frequency] || 1;
-      if (frequencyMultiplier !== 1) {
-        const frequencyAdjustment = total * (frequencyMultiplier - 1);
-        total += frequencyAdjustment;
-        breakdown.frequency = {
-          multiplier: frequencyMultiplier,
-          adjustment: frequencyAdjustment
+        windowData[`window_${i}`] = {
+          type: windowType.name,
+          quantity,
+          price: windowType.price,
+          total: price
         };
       }
     }
-    
-    // Apply add-ons
-    if (inputData.addOns && inputData.addOns.length > 0) {
-      const addOnPrices = this.config.addOnPrices || {};
-      for (const addOn of inputData.addOns) {
-        const addOnCfg = addOnPrices[addOn];
-        let price = 0;
-        let rutEligibleForAddOn = true; // default: eligible unless explicitly false
 
-        if (typeof addOnCfg === 'number') {
-          price = addOnCfg;
-        } else if (addOnCfg && typeof addOnCfg === 'object') {
-          price = addOnCfg.price || 0;
-          rutEligibleForAddOn = addOnCfg.rutEligible !== false; // treat undefined as true
-        }
+    // Apply minimum price for regular windows (Swedish industry standard)
+    const minimumPrice = 900;
+    const finalTotal = (regularWindowCount > 0 && total < minimumPrice) ? minimumPrice : total;
 
-        if (price > 0) {
-          total += price;
-          addOns.push({
-            name: addOn,
-            price,
-            rutEligible: rutEligibleForAddOn
-          });
-          // Track RUT-eligible subtotal
-          if (rutEligibleForAddOn) {
-            if (!breakdown.__rutEligibleSubtotal) breakdown.__rutEligibleSubtotal = 0;
-            breakdown.__rutEligibleSubtotal += price;
-          }
-        }
-      }
-      breakdown.addOns = addOns.reduce((sum, addon) => sum + addon.price, 0);
-    }
-    
-    // Apply window cleaning
-    if (inputData.windowCleaning) {
-      const windowPrice = this.calculateWindowBased(inputData);
-      if (windowPrice > 0) {
-        total += windowPrice;
-        breakdown.windowCleaning = windowPrice;
-        // Assume window cleaning is RUT eligible unless overridden later
-        if (!breakdown.__rutEligibleSubtotal) breakdown.__rutEligibleSubtotal = 0;
-        breakdown.__rutEligibleSubtotal += windowPrice;
-      }
-    }
-
-    // Prepare subtotal of RUT eligible items
-    let rutEligibleSubtotal = 0;
-    // Count base service if it is marked eligible (default true when property missing)
-    const serviceRutEligible = inputData.service?.rutEligible !== false;
-    if (serviceRutEligible) {
-      rutEligibleSubtotal += basePrice.amount;
-    }
-    // Add any add-ons tallied earlier
-    if (breakdown.__rutEligibleSubtotal) {
-      rutEligibleSubtotal += breakdown.__rutEligibleSubtotal;
-    }
-    // TODO: include custom fees eligibility when implemented
-    
-    // Apply RUT discount only on eligible subtotal
-    if (inputData.useRut && inputData.zipCode) {
-      const rutEligibleZip = this.isRutEligible(inputData.zipCode);
-      if (rutEligibleZip && rutEligibleSubtotal > 0) {
-        const rutPercentage = this.config.rutPercentage || 0.3;
-        const rutDiscount = rutEligibleSubtotal * rutPercentage;
-        total -= rutDiscount;
-        discounts.push({
-          type: 'RUT',
-          percentage: rutPercentage * 100,
-          amount: rutDiscount
-        });
-        breakdown.rutDiscount = -rutDiscount;
-      }
-    }
-
-    // Clean up helper property
-    delete breakdown.__rutEligibleSubtotal;
-    
     return {
-      amount: Math.round(total),
-      breakdown,
-      addOns,
-      discounts
+      windowData,
+      subtotal: total,
+      minimumPriceApplied: regularWindowCount > 0 && total < minimumPrice,
+      minimumPrice,
+      regularWindowCount,
+      total: finalTotal
     };
   }
 
   /**
-   * Apply pricing rules engine
+   * Calculate per square meter price
    */
-  async applyPricingRules(price, inputData) {
-    const rules = this.config.pricingRules || [];
-    let finalPrice = { ...price };
-    
-    for (const rule of rules) {
-      if (this.evaluateRule(rule, inputData, finalPrice)) {
-        finalPrice = this.applyRule(rule, finalPrice, inputData);
-      }
-    }
-    
-    return finalPrice;
+  calculatePerSqmPrice(bookingData, serviceConfig) {
+    const area = bookingData.area || 0;
+    const pricePerSqm = serviceConfig.pricePerSqm || 50;
+    return area * pricePerSqm;
   }
 
   /**
-   * Evaluate if a pricing rule should be applied
+   * Calculate per room price
    */
-  evaluateRule(rule, inputData, currentPrice) {
-    const { conditions } = rule;
-    
-    if (!conditions || conditions.length === 0) {
-      return true;
-    }
-    
-    return conditions.every(condition => {
-      const { field, operator, value } = condition;
-      const fieldValue = this.getFieldValue(field, inputData, currentPrice);
-      
-      switch (operator) {
-        case 'equals':
-          return fieldValue === value;
-        case 'not_equals':
-          return fieldValue !== value;
-        case 'greater_than':
-          return fieldValue > value;
-        case 'less_than':
-          return fieldValue < value;
-        case 'greater_than_or_equal':
-          return fieldValue >= value;
-        case 'less_than_or_equal':
-          return fieldValue <= value;
-        case 'contains':
-          return Array.isArray(fieldValue) ? fieldValue.includes(value) : String(fieldValue).includes(value);
-        case 'in':
-          return Array.isArray(value) ? value.includes(fieldValue) : false;
-        default:
-          return false;
+  calculatePerRoomPrice(bookingData, serviceConfig) {
+    const rooms = bookingData.rooms || 0;
+    const pricePerRoom = serviceConfig.pricePerRoom || 300;
+    return rooms * pricePerRoom;
+  }
+
+  /**
+   * Calculate hourly price
+   */
+  calculateHourlyPrice(bookingData, serviceConfig) {
+    const hours = serviceConfig.hours || 3;
+    const hourlyRate = serviceConfig.hourlyRate || 400;
+    return hours * hourlyRate;
+  }
+
+  /**
+   * Calculate add-ons price
+   */
+  calculateAddonsPrice(bookingData) {
+    const addons = {};
+    let total = 0;
+
+    // Check for add-ons in booking data
+    for (const [addonName, price] of Object.entries(ADDON_PRICES)) {
+      const addonKey = `addon_${addonName.replace(/ /g, '_')}`;
+      const isSelected = bookingData[addonKey] === true;
+
+      if (isSelected) {
+        addons[addonName] = {
+          price,
+          rutEligible: true // Most add-ons are RUT eligible
+        };
+        total += price;
       }
+    }
+
+    return {
+      addons,
+      total
+    };
+  }
+
+  /**
+   * Calculate custom fees
+   */
+  calculateCustomFees(serviceConfig) {
+    const fees = {};
+    let total = 0;
+
+    if (serviceConfig.customFees && Array.isArray(serviceConfig.customFees)) {
+      serviceConfig.customFees.forEach(fee => {
+        fees[fee.name] = {
+          amount: fee.amount || 0,
+          rutEligible: fee.rutEligible !== false
+        };
+        total += fee.amount || 0;
+      });
+    }
+
+    return {
+      fees,
+      total
+    };
+  }
+
+  /**
+   * Calculate RUT discount
+   */
+  calculateRutDiscount(amount) {
+    return Math.round(amount * RUT_CONFIG.PERCENTAGE);
+  }
+
+  /**
+   * Calculate coupon discount
+   */
+  calculateCouponDiscount(_amount, _couponCode) {
+    // This would integrate with coupon validation system
+    // For now, return 0
+    return 0;
+  }
+
+  /**
+   * Check if booking has window data
+   */
+  hasWindowData(bookingData) {
+    for (let i = 0; i <= 7; i++) {
+      if (bookingData[`window_${i}`] > 0) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Check if booking has addon data
+   */
+  hasAddonData(bookingData) {
+    for (const addonName of Object.keys(ADDON_PRICES)) {
+      const addonKey = `addon_${addonName.replace(/ /g, '_')}`;
+      if (bookingData[addonKey] === true) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Check if booking is RUT eligible
+   */
+  isRutEligible(bookingData) {
+    // Basic RUT eligibility check
+    // In production, this would check personal number format and other criteria
+    return bookingData.personalNumber && 
+           bookingData.personalNumber.length >= 10 && 
+           bookingData.personalNumber.length <= 12;
+  }
+
+  /**
+   * Get cached price calculation
+   */
+  getCachedPrice(cacheKey) {
+    const cached = this.cache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
+      return cached.result;
+    }
+    return null;
+  }
+
+  /**
+   * Cache price calculation
+   */
+  cachePrice(cacheKey, result) {
+    this.cache.set(cacheKey, {
+      result,
+      timestamp: Date.now()
     });
   }
 
   /**
-   * Apply a pricing rule
+   * Generate cache key for price calculation
    */
-  applyRule(rule, currentPrice, inputData) {
-    // Explicitly mark inputData as intentionally unused to satisfy linter
-    void inputData;
-    const { action } = rule;
-    let newPrice = { ...currentPrice };
-    
-    switch (action.type) {
-      case 'multiply':
-        newPrice.amount = Math.round(newPrice.amount * action.value);
-        break;
-      case 'add':
-        newPrice.amount += action.value;
-        break;
-      case 'subtract':
-        newPrice.amount = Math.max(0, newPrice.amount - action.value);
-        break;
-      case 'set_minimum':
-        newPrice.amount = Math.max(newPrice.amount, action.value);
-        break;
-      case 'set_maximum':
-        newPrice.amount = Math.min(newPrice.amount, action.value);
-        break;
-      case 'discount_percentage': {
-        const discountAmount = newPrice.amount * (action.value / 100);
-        newPrice.amount -= discountAmount;
-        newPrice.discounts = newPrice.discounts || [];
-        newPrice.discounts.push({
-          type: rule.name || 'Rule Discount',
-          percentage: action.value,
-          amount: discountAmount
-        });
-        break;
-      }
-    }
-    
-    return newPrice;
-  }
-
-  /**
-   * Get field value for rule evaluation
-   */
-  getFieldValue(field, inputData, currentPrice) {
-    const fieldPath = field.split('.');
-    let value = fieldPath[0] === 'price' ? currentPrice : inputData;
-    
-    for (const part of fieldPath) {
-      value = value?.[part];
-    }
-    
-    return value;
-  }
-
-  /**
-   * Check if ZIP code is eligible for RUT discount
-   */
-  isRutEligible(zipCode) {
-    const rutEligibleZips = this.config.rutEligibleZips || [];
-    return rutEligibleZips.includes(zipCode);
-  }
-
-  /**
-   * Generate cache key for pricing calculation
-   */
-  generateCacheKey(inputData) {
+  generateCacheKey(bookingData, serviceConfig) {
     const keyData = {
-      service: inputData.service?.id,
-      area: inputData.area,
-      rooms: inputData.rooms,
-      frequency: inputData.frequency,
-      addOns: inputData.addOns?.sort(),
-      zipCode: inputData.zipCode,
-      useRut: inputData.useRut,
-      date: inputData.date ? new Date(inputData.date).toDateString() : null
+      ...bookingData,
+      serviceId: serviceConfig.id,
+      pricingModel: serviceConfig.pricingModel
     };
-    
-    return btoa(JSON.stringify(keyData));
+    return JSON.stringify(keyData);
   }
 
   /**
-   * Clear pricing cache
+   * Clear price cache
    */
   clearCache() {
     this.cache.clear();
@@ -732,75 +417,132 @@ export class PricingEngine {
   getCacheStats() {
     return {
       size: this.cache.size,
-      keys: Array.from(this.cache.keys())
+      timeout: this.cacheTimeout
     };
   }
-
-  /**
-   * Debug logging
-   */
-  log(...args) {
-    if (this.debug) {
-      console.log('[PricingEngine]', ...args);
-    }
-  }
 }
 
+// ============================================================================
+// GLOBAL PRICING ENGINE INSTANCE
+// ============================================================================
+
+export const pricingEngine = new PricingEngine();
+
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
+
 /**
- * Custom error class for pricing errors
+ * Format price in Swedish currency
  */
-export class PricingError extends Error {
-  constructor(type, message, details = {}) {
-    super(message);
-    this.name = 'PricingError';
-    this.type = type;
-    this.details = details;
-  }
+export function formatPrice(amount) {
+  return new Intl.NumberFormat('sv-SE', {
+    style: 'currency',
+    currency: 'SEK',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(amount);
 }
 
 /**
- * Utility functions
+ * Calculate price with RUT discount
+ */
+export function calculatePriceWithRut(price, rutApplied = false) {
+  if (!rutApplied) {
+    return price;
+  }
+  return Math.round(price * (1 - RUT_CONFIG.PERCENTAGE));
+}
+
+/**
+ * Validate pricing configuration
+ */
+export function validatePricingConfig(config) {
+  const errors = [];
+
+  if (!config.pricingModel) {
+    errors.push('Pricing model is required');
+  }
+
+  if (!Object.values(PRICING_MODELS).includes(config.pricingModel)) {
+    errors.push(`Invalid pricing model: ${config.pricingModel}`);
+  }
+
+  if (config.minPrice && config.minPrice < 0) {
+    errors.push('Minimum price cannot be negative');
+  }
+
+  if (config.pricingModel === PRICING_MODELS.PER_SQM && !config.pricePerSqm) {
+    errors.push('Price per square meter is required for per-sqm pricing');
+  }
+
+  if (config.pricingModel === PRICING_MODELS.PER_ROOM && !config.pricePerRoom) {
+    errors.push('Price per room is required for per-room pricing');
+  }
+
+  if (config.pricingModel === PRICING_MODELS.FIXED && !config.fixedPrice) {
+    errors.push('Fixed price is required for fixed pricing');
+  }
+
+  return errors;
+}
+
+/**
+ * Pricing utility functions
  */
 export const PricingUtils = {
+  formatPrice,
+  calculatePriceWithRut,
+  validatePricingConfig,
+  
   /**
-   * Format price for display
+   * Get window type name by ID
    */
-  formatPrice(amount, currency = 'SEK') {
-    return new Intl.NumberFormat('sv-SE', {
-      style: 'currency',
-      currency: currency,
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(amount);
+  getWindowTypeName(windowTypeId) {
+    return WINDOW_TYPES[windowTypeId]?.name || 'Okänd fönstertyp';
   },
-
+  
   /**
-   * Calculate percentage
+   * Get window type price by ID
    */
-  calculatePercentage(amount, percentage) {
-    return Math.round(amount * (percentage / 100));
+  getWindowTypePrice(windowTypeId) {
+    return WINDOW_TYPES[windowTypeId]?.price || 0;
   },
-
+  
   /**
-   * Calculate tax amount
+   * Get addon price by name
    */
-  calculateTax(amount, taxRate) {
-    return Math.round(amount * (taxRate / 100));
+  getAddonPrice(addonName) {
+    return ADDON_PRICES[addonName] || 0;
   },
-
+  
   /**
-   * Round to nearest currency unit
+   * Calculate minimum price enforcement
    */
-  roundPrice(amount, precision = 0) {
-    return Math.round(amount * Math.pow(10, precision)) / Math.pow(10, precision);
+  enforceMinimumPrice(calculatedPrice, minimumPrice) {
+    return Math.max(calculatedPrice, minimumPrice || 0);
+  },
+  
+  /**
+   * Get all available window types
+   */
+  getAvailableWindowTypes() {
+    return Object.entries(WINDOW_TYPES).map(([id, type]) => ({
+      id: parseInt(id),
+      ...type
+    }));
+  },
+  
+  /**
+   * Get all available addons
+   */
+  getAvailableAddons() {
+    return Object.entries(ADDON_PRICES).map(([name, price]) => ({
+      name,
+      price
+    }));
   }
 };
 
-/**
- * Factory function to create pricing engine instance
- */
-export function createPricingEngine(config) {
-  return new PricingEngine(config);
-}
-
-export default PricingEngine; 
+// Export default instance
+export default pricingEngine;
