@@ -9,8 +9,8 @@ import {
   CurrencyEuroIcon,
   ArrowDownTrayIcon
 } from '@heroicons/react/24/outline';
-import { useAuth } from "../context/AuthContext";
-import { BookingService } from '../services/bookingService';
+import { useAuth } from '../hooks/useAuth';
+import BookingService from '../services/bookingService';
 import CustomersTable from '../components/CustomersTable';
 import { AddCustomerModal, ViewCustomerModal } from '../components/CustomerModals';
 import toast from 'react-hot-toast';
@@ -42,27 +42,40 @@ const CustomersPage = () => {
     source: 'manual'
   });
 
-  useEffect(() => {
-    if (currentUser?.companyId) {
-      loadCustomers();
-    }
-  }, [currentUser?.companyId, loadCustomers]);
-
-  useEffect(() => {
-    filterAndSortCustomers();
-  }, [filterAndSortCustomers]);
-
   const loadCustomers = useCallback(async () => {
     try {
+      console.log('🔄 Starting loadCustomers...');
       setLoading(true);
+      
+      // Check if user and companyId exist
+      if (!currentUser?.companyId) {
+        console.warn('❌ No company ID available for loading customers');
+        setLoading(false);
+        return;
+      }
+      
+      console.log('📊 Loading bookings for company:', currentUser.companyId);
       // Load bookings and extract customers
       const bookingsData = await BookingService.getBookingsForCompany(currentUser.companyId);
-      const extractedCustomers = extractCustomersFromBookings(bookingsData);
+      console.log('📋 Bookings loaded:', bookingsData?.length || 0, 'bookings');
+      
+      const extractedCustomers = extractCustomersFromBookings(bookingsData || []);
+      console.log('👥 Extracted customers:', extractedCustomers?.length || 0, 'customers');
+      
       setCustomers(extractedCustomers);
     } catch (error) {
       console.error('Error loading customers:', error);
-      toast.error('Kunde inte ladda kunder');
+      
+      // Handle permission errors gracefully
+      if (error.code === 'permission-denied') {
+        console.warn('Permission denied - showing empty customer list');
+        setCustomers([]);
+        toast.error('Begränsad åtkomst - kontakta administratör för fullständig kunddata');
+      } else {
+        toast.error('Kunde inte ladda kunder: ' + (error.message || 'Okänt fel'));
+      }
     } finally {
+      console.log('✅ loadCustomers completed');
       setLoading(false);
     }
   }, [currentUser?.companyId]);
@@ -162,6 +175,17 @@ const CustomersPage = () => {
 
     setFilteredCustomers(filtered);
   }, [customers, searchTerm, filterStatus, sortBy, sortDirection]);
+
+  // useEffect hooks - must come after useCallback definitions
+  useEffect(() => {
+    if (currentUser?.companyId) {
+      loadCustomers();
+    }
+  }, [currentUser?.companyId, loadCustomers]);
+
+  useEffect(() => {
+    filterAndSortCustomers();
+  }, [filterAndSortCustomers]);
 
   const handleAddCustomer = async () => {
     try {
@@ -271,10 +295,14 @@ const CustomersPage = () => {
     link.click();
   };
 
-  if (loading) {
+  // Show loading if auth is still loading or if we don't have user data
+  if (!currentUser || loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <span className="ml-3 text-gray-600">
+          {!currentUser ? 'Laddar autentisering...' : 'Laddar kunder...'}
+        </span>
       </div>
     );
   }
@@ -402,13 +430,31 @@ const CustomersPage = () => {
       </Card>
 
       {/* Customers Table */}
-      <CustomersTable
-        customers={filteredCustomers}
-        onViewCustomer={handleViewCustomer}
-        onDeleteCustomer={handleDeleteCustomer}
-        formatCurrency={formatCurrency}
-        formatDate={formatDate}
-      />
+      {filteredCustomers.length > 0 ? (
+        <CustomersTable
+          customers={filteredCustomers}
+          onViewCustomer={handleViewCustomer}
+          onDeleteCustomer={handleDeleteCustomer}
+          formatCurrency={formatCurrency}
+          formatDate={formatDate}
+        />
+      ) : (
+        <Card className="p-8 text-center">
+          <div className="text-gray-500">
+            <UserGroupIcon className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+            <h3 className="text-lg font-medium mb-2">Inga kunder hittades</h3>
+            <p className="text-sm mb-4">
+              {customers.length === 0 
+                ? 'Du har inga kunder ännu. Lägg till din första kund eller vänta på bokningar.'
+                : 'Inga kunder matchar dina sökkriterier. Prova att ändra filtren.'}
+            </p>
+            <Button onClick={() => setShowAddModal(true)} className="mt-2">
+              <UserPlusIcon className="h-4 w-4 mr-2" />
+              Lägg till kund
+            </Button>
+          </div>
+        </Card>
+      )}
 
       {/* Add Customer Modal */}
       <AddCustomerModal
