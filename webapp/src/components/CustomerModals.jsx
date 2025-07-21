@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Button, Card, TextInput, Select, Textarea, Modal, Badge, Tabs, Tab } from 'flowbite-react';
+import { Button, Card, TextInput, Select, Textarea, Modal, Badge, Tabs } from 'flowbite-react';
 import {
   PhoneIcon,
   EnvelopeIcon,
@@ -123,7 +123,7 @@ export const AddCustomerModal = ({
     <Modal show={show} onClose={handleClose} size="4xl">
       <Modal.Header>Lägg till ny kund</Modal.Header>
       <Modal.Body>
-        <Tabs.Group style="underline">
+        <Tabs>
           <Tabs.Item active title="Grundläggande" icon={UserIcon}>
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -472,7 +472,7 @@ export const AddCustomerModal = ({
               </div>
             </div>
           </Tabs.Item>
-        </Tabs.Group>
+        </Tabs>
       </Modal.Body>
       <Modal.Footer>
         <Button onClick={handleClose} color="gray">
@@ -573,7 +573,7 @@ export const ViewCustomerModal = ({
         </div>
       </Modal.Header>
       <Modal.Body>
-        <Tabs.Group style="underline">
+        <Tabs>
           <Tabs.Item active title="Översikt" icon={UserIcon}>
             <div className="space-y-6">
               {/* Customer Stats */}
@@ -855,7 +855,7 @@ export const ViewCustomerModal = ({
               </div>
             </div>
           </Tabs.Item>
-        </Tabs.Group>
+        </Tabs>
       </Modal.Body>
       <Modal.Footer>
         <div className="flex items-center justify-between w-full">

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Button, Card, TextInput, Select, Badge, Tabs, Tab } from 'flowbite-react';
+import { Button, Card, TextInput, Select, Badge, Tabs } from 'flowbite-react';
 import toast from 'react-hot-toast';
 import {
   UserPlusIcon,

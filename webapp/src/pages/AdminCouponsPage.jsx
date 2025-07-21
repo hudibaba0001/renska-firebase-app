@@ -18,7 +18,8 @@ import {
   getDocs,
   deleteDoc,
   doc,
-  updateDoc
+  updateDoc,
+  getDoc
 } from 'firebase/firestore';
 import { useAuth } from '../hooks/useAuth';
 
@@ -54,10 +55,41 @@ export default function AdminCouponsPage() {
     loadServices();
   }, [companyId]);
 
+  const checkPermissions = async () => {
+    try {
+      console.log('=== PERMISSION CHECK ===');
+      console.log('Company ID:', companyId);
+      console.log('Current User UID:', currentUser?.uid);
+      console.log('User Email:', currentUser?.email);
+      console.log('Custom Claims:', currentUser?.customClaims);
+
+      // Try to get the company document to check adminUid
+      const companyRef = doc(db, 'companies', companyId);
+      const companyDoc = await getDocs(collection(db, 'companies'));
+      console.log('Company documents accessible:', companyDoc.docs.length);
+
+      // Try to get specific company
+      const specificCompany = await getDoc(companyRef);
+      if (specificCompany.exists()) {
+        console.log('Company data:', specificCompany.data());
+        console.log('Company adminUid:', specificCompany.data().adminUid);
+        console.log('User is admin?', specificCompany.data().adminUid === currentUser?.uid);
+      } else {
+        console.log('Company document does not exist or no access');
+      }
+    } catch (error) {
+      console.error('Permission check error:', error);
+    }
+  };
+
   const loadCoupons = async () => {
     try {
       console.log('Loading coupons for company:', companyId);
       console.log('Current user:', currentUser);
+
+      // Check permissions first
+      await checkPermissions();
+
       const couponsRef = collection(db, 'companies', companyId, 'coupons');
       const snapshot = await getDocs(couponsRef);
       const couponsData = snapshot.docs.map(doc => ({
@@ -105,6 +137,11 @@ export default function AdminCouponsPage() {
     setIsSubmitting(true);
 
     try {
+      console.log('Attempting to save coupon...');
+      console.log('Company ID:', companyId);
+      console.log('Current User:', currentUser);
+      console.log('Form Data:', formData);
+
       const couponData = {
         ...formData,
         discountAmount: parseFloat(formData.discountAmount),
@@ -117,10 +154,15 @@ export default function AdminCouponsPage() {
         updatedAt: new Date()
       };
 
+      console.log('Coupon Data to save:', couponData);
+
       if (editingCoupon) {
+        console.log('Updating existing coupon:', editingCoupon.id);
         await updateDoc(doc(db, 'companies', companyId, 'coupons', editingCoupon.id), couponData);
       } else {
-        await addDoc(collection(db, 'companies', companyId, 'coupons'), couponData);
+        console.log('Creating new coupon...');
+        const docRef = await addDoc(collection(db, 'companies', companyId, 'coupons'), couponData);
+        console.log('Coupon created with ID:', docRef.id);
       }
 
       setShowCreateModal(false);
@@ -128,9 +170,13 @@ export default function AdminCouponsPage() {
       setEditingCoupon(null);
       resetForm();
       loadCoupons();
+      console.log('Coupon saved successfully!');
     } catch (error) {
       console.error('Error saving coupon:', error);
-      alert('Error saving coupon. Please try again.');
+      console.error('Error code:', error.code);
+      console.error('Error message:', error.message);
+      console.error('Full error object:', error);
+      alert(`Error saving coupon: ${error.message}. Please try again.`);
     } finally {
       setIsSubmitting(false);
     }
