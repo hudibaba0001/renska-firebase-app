@@ -14,64 +14,23 @@ import {
   XMarkIcon
 } from '@heroicons/react/24/outline';
 
-// Enhanced utility functions with better field detection
-const getDateTimeValue = (booking) => {
-  // Check multiple possible field names for date/time
-  const possibleFields = [
-    'bookingDate', 'date', 'appointmentDate', 'scheduledDate',
-    'serviceDate', 'selectedDate', 'datetime', 'timestamp',
-    'createdAt', 'updatedAt'
-  ];
+// Get service name from booking data
+const getServiceName = (booking) => {
+  // Try to get service name from various possible fields
+  const serviceName = booking.serviceName || 
+                     booking.serviceType || 
+                     booking.title || 
+                     booking.name || 
+                     booking.service || 
+                     'Okänd tjänst';
   
-  console.log('🕐 Checking date fields in booking:', Object.keys(booking));
-  
-  for (const field of possibleFields) {
-    if (booking[field]) {
-      console.log(`✅ Found date in field '${field}':`, booking[field]);
-      return booking[field];
-    }
+  // If it's a service ID, try to resolve it
+  if (serviceName && serviceName.length > 10 && !serviceName.includes(' ')) {
+    // This looks like a service ID, return a generic name
+    return 'Städtjänst';
   }
   
-  // Check nested objects
-  if (booking.serviceData?.date) return booking.serviceData.date;
-  if (booking.formData?.date) return booking.formData.date;
-  if (booking.selections?.date) return booking.selections.date;
-  
-  console.log('❌ No date field found in booking');
-  return null;
-};
-
-const getAmountValue = (booking) => {
-  // Try multiple possible amount fields
-  const amount = 
-    booking.totalAmount ||
-    booking.amount ||
-    booking.price ||
-    booking.cost ||
-    booking.fee ||
-    booking.total ||
-    0;
-    
-  console.log('🔍 Amount value found:', amount, 'from booking:', booking);
-  return formatCurrency(amount);
-};
-
-// Render service-specific details based on service type
-const renderServiceDetails = (booking) => {
-  const serviceType = getServiceType(booking);
-  const serviceData = booking.serviceData || booking.formData || booking.selections || {};
-  
-  console.log('🔍 Service type:', serviceType, 'Service data:', serviceData);
-  
-  if (serviceType === 'windows') {
-    return renderWindowsService(serviceData);
-  } else if (serviceType === 'moveout') {
-    return renderMoveOutService(serviceData);
-  } else if (serviceType === 'cleaning') {
-    return renderCleaningService(serviceData);
-  } else {
-    return renderGenericService(serviceData);
-  }
+  return serviceName;
 };
 
 // Get service type from booking data
@@ -539,39 +498,47 @@ const BookingTablePremium = ({ bookings = [], loading = false, onBookingUpdate }
     }
   };
   
-  // Get the correct service name from booking data
-  const getServiceName = (booking) => {
-    console.log('🔍 Getting service name for:', booking);
-    
-    // Try multiple possible service name fields
-    let serviceName = 
-      booking.serviceName ||
-      booking.service?.name ||
-      booking.service ||
-      booking.serviceType ||
-      booking.title ||
-      booking.name ||
-      booking.description ||
-      booking.type;
-    
-    // If we have a service ID (like zSakk35jCjCRkmrS1t7r), try to get a friendly name
-    if (serviceName && typeof serviceName === 'string') {
-      // Check if it looks like a service ID (long alphanumeric string)
-      if (serviceName.length > 15 && /^[a-zA-Z0-9]+$/.test(serviceName)) {
-        // Map common service IDs to friendly names
-        const serviceIdMap = {
-          'zSakk35jCjCRkmrS1t7r': 'Premium Städning',
-          'eSAd41JyQKSkmzSJTy': 'Standard Städning',
-          // Add more mappings as needed
-        };
-        serviceName = serviceIdMap[serviceName] || 'Städtjänst';
-      }
+  // Enhanced utility functions with better field detection
+const getDateTimeValue = (booking) => {
+  // Check multiple possible field names for date/time
+  const possibleFields = [
+    'bookingDate', 'date', 'appointmentDate', 'scheduledDate',
+    'serviceDate', 'selectedDate', 'datetime', 'timestamp',
+    'createdAt', 'updatedAt'
+  ];
+  
+  console.log('🕐 Checking date fields in booking:', Object.keys(booking));
+  
+  for (const field of possibleFields) {
+    if (booking[field]) {
+      console.log(`✅ Found date in field '${field}':`, booking[field]);
+      return booking[field];
     }
+  }
+  
+  // Check nested objects
+  if (booking.serviceData?.date) return booking.serviceData.date;
+  if (booking.formData?.date) return booking.formData.date;
+  if (booking.selections?.date) return booking.selections.date;
+  
+  console.log('❌ No date field found in booking');
+  return null;
+};
+
+const getAmountValue = (booking) => {
+  // Try multiple possible amount fields
+  const amount = 
+    booking.totalAmount ||
+    booking.amount ||
+    booking.price ||
+    booking.cost ||
+    booking.fee ||
+    booking.total ||
+    0;
     
-    const result = serviceName || 'Okänd tjänst';
-    console.log('🔍 Service name result:', result);
-    return result;
-  };
+  console.log('🔍 Amount value found:', amount, 'from booking:', booking);
+  return formatCurrency(amount);
+};
 
   const SortableHeader = ({ column, children, icon: Icon }) => (
     <th 

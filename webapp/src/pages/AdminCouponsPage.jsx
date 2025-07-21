@@ -7,7 +7,8 @@ import {
   TagIcon,
   CalendarIcon,
   UsersIcon,
-  CurrencyDollarIcon
+  CurrencyDollarIcon,
+  QuestionMarkCircleIcon
 } from '@heroicons/react/24/outline';
 import { Button } from 'flowbite-react';
 import { db } from '../firebase/init';
@@ -17,9 +18,7 @@ import {
   getDocs, 
   deleteDoc, 
   doc, 
-  updateDoc,
-  query,
-  where 
+  updateDoc
 } from 'firebase/firestore';
 
 export default function AdminCouponsPage() {
@@ -279,89 +278,266 @@ export default function AdminCouponsPage() {
         )}
       </div>
 
-      {/* Create Coupon Modal - Simplified */}
+      {/* Create Coupon Modal - Zenbooker Style */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl mx-4">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">Create Coupon</h2>
-              <button 
-                onClick={() => setShowCreateModal(false)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                ✕
-              </button>
-            </div>
-            
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Coupon Code */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Coupon code
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={formData.code}
-                    onChange={(e) => setFormData(prev => ({ ...prev, code: e.target.value }))}
-                    placeholder="Enter coupon code"
-                    required
-                    className="flex-1 border border-gray-300 rounded-md px-3 py-2"
-                  />
-                  <button 
-                    type="button" 
-                    onClick={generateCouponCode}
-                    className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
-                  >
-                    Generate
-                  </button>
-                </div>
-              </div>
-
-              {/* Discount */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Discount
-                </label>
-                <div className="grid grid-cols-2 gap-4">
-                  <select
-                    value={formData.discountType}
-                    onChange={(e) => setFormData(prev => ({ ...prev, discountType: e.target.value }))}
-                    required
-                    className="border border-gray-300 rounded-md px-3 py-2"
-                  >
-                    <option value="amount">Fixed Amount</option>
-                    <option value="percentage">Percentage</option>
-                  </select>
-                  <input
-                    type="number"
-                    value={formData.discountAmount}
-                    onChange={(e) => setFormData(prev => ({ ...prev, discountAmount: e.target.value }))}
-                    placeholder="25"
-                    required
-                    className="border border-gray-300 rounded-md px-3 py-2"
-                  />
-                </div>
-              </div>
-
-              {/* Submit Buttons */}
-              <div className="flex justify-end gap-3 pt-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex justify-between items-center p-6 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-gray-900">Create Coupon</h2>
+              <div className="flex gap-3">
                 <button
-                  type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                  className="px-4 py-2 text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200"
                 >
-                  Cancel
+                  Discard
                 </button>
                 <button
-                  type="submit"
+                  onClick={handleSubmit}
                   disabled={!formData.code || !formData.discountAmount}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
                 >
                   Create Coupon
                 </button>
               </div>
-            </form>
+            </div>
+            
+            {/* Modal Body */}
+            <div className="p-6 space-y-8">
+              {/* Coupon Code Section */}
+              <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Coupon code</h3>
+                <div className="space-y-3">
+                  <div className="flex gap-3">
+                    <div className="flex-1">
+                      <input
+                        type="text"
+                        value={formData.code}
+                        onChange={(e) => setFormData(prev => ({ ...prev, code: e.target.value }))}
+                        placeholder="Enter coupon code"
+                        required
+                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                    <button 
+                      type="button" 
+                      onClick={generateCouponCode}
+                      className="px-4 py-2 text-blue-600 hover:text-blue-700 font-medium"
+                    >
+                      Autogenerate code
+                    </button>
+                  </div>
+                  <p className="text-sm text-gray-500">Customers will enter this code when booking online</p>
+                </div>
+              </div>
+
+              {/* Discount Section */}
+              <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Discount</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Type</label>
+                    <select
+                      value={formData.discountType}
+                      onChange={(e) => setFormData(prev => ({ ...prev, discountType: e.target.value }))}
+                      required
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="amount">Fixed Amount</option>
+                      <option value="percentage">Percentage</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Discount amount</label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        value={formData.discountAmount}
+                        onChange={(e) => setFormData(prev => ({ ...prev, discountAmount: e.target.value }))}
+                        placeholder="25"
+                        required
+                        className="w-full border border-gray-300 rounded-md pl-8 pr-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                      <span className="absolute left-3 top-2 text-gray-500">
+                        {formData.discountType === 'percentage' ? '%' : '$'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Applies to Section */}
+              <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Applies to</h3>
+                <p className="text-sm text-gray-600 mb-4">Select the services that this coupon can be applied to</p>
+                
+                <div className="space-y-4">
+                  <div className="flex items-center">
+                    <input
+                      type="radio"
+                      id="all-services"
+                      name="appliesTo"
+                      value="all"
+                      checked={formData.appliesTo === 'all'}
+                      onChange={(e) => setFormData(prev => ({ ...prev, appliesTo: e.target.value }))}
+                      className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                    />
+                    <label htmlFor="all-services" className="ml-3 text-sm font-medium text-gray-700">
+                      All services
+                    </label>
+                  </div>
+                  
+                  <div className="flex items-center">
+                    <input
+                      type="radio"
+                      id="specific-services"
+                      name="appliesTo"
+                      value="specific"
+                      checked={formData.appliesTo === 'specific'}
+                      onChange={(e) => setFormData(prev => ({ ...prev, appliesTo: e.target.value }))}
+                      className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                    />
+                    <label htmlFor="specific-services" className="ml-3 text-sm font-medium text-gray-700">
+                      Specific services
+                    </label>
+                  </div>
+                  
+                  {formData.appliesTo === 'specific' && (
+                    <div className="ml-7 space-y-3">
+                      {services.map((service) => (
+                        <div key={service.id} className="flex items-center">
+                          <input
+                            type="checkbox"
+                            id={`service-${service.id}`}
+                            checked={formData.selectedServices.includes(service.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  selectedServices: [...prev.selectedServices, service.id]
+                                }));
+                              } else {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  selectedServices: prev.selectedServices.filter(id => id !== service.id)
+                                }));
+                              }
+                            }}
+                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          />
+                          <label htmlFor={`service-${service.id}`} className="ml-3 text-sm text-gray-700">
+                            {service.name}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Expiration Date Section */}
+              <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Expiration date</h3>
+                <div className="space-y-4">
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="doesnt-expire"
+                      checked={formData.doesntExpire}
+                      onChange={(e) => setFormData(prev => ({ ...prev, doesntExpire: e.target.checked }))}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <label htmlFor="doesnt-expire" className="ml-3 text-sm font-medium text-gray-700">
+                      Doesn't expire
+                    </label>
+                  </div>
+                  
+                  {!formData.doesntExpire && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Use by</label>
+                      <input
+                        type="date"
+                        value={formData.expiresAt}
+                        onChange={(e) => setFormData(prev => ({ ...prev, expiresAt: e.target.value }))}
+                        required={!formData.doesntExpire}
+                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                  )}
+                  
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="restrict-expiration"
+                      checked={formData.restrictToExpirationDate}
+                      onChange={(e) => setFormData(prev => ({ ...prev, restrictToExpirationDate: e.target.checked }))}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <label htmlFor="restrict-expiration" className="ml-3 text-sm text-gray-700">
+                      Restrict coupon to appointments on or before expiration date
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Usage Limits Section */}
+              <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Usage limits</h3>
+                <div className="space-y-4">
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="limit-usage"
+                      checked={formData.limitUsage}
+                      onChange={(e) => setFormData(prev => ({ ...prev, limitUsage: e.target.checked }))}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <label htmlFor="limit-usage" className="ml-3 text-sm font-medium text-gray-700">
+                      Limit the total number of times this coupon can be redeemed
+                    </label>
+                  </div>
+                  
+                  {formData.limitUsage && (
+                    <div className="ml-7">
+                      <input
+                        type="number"
+                        value={formData.usageLimit}
+                        onChange={(e) => setFormData(prev => ({ ...prev, usageLimit: e.target.value }))}
+                        placeholder="100"
+                        required={formData.limitUsage}
+                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                  )}
+                  
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="combine-recurring"
+                      checked={formData.canCombineWithRecurring}
+                      onChange={(e) => setFormData(prev => ({ ...prev, canCombineWithRecurring: e.target.checked }))}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <label htmlFor="combine-recurring" className="ml-3 text-sm font-medium text-gray-700">
+                      This coupon can be combined with recurring booking discounts
+                    </label>
+                    <QuestionMarkCircleIcon className="w-4 h-4 text-gray-400 ml-2" />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">For recurring bookings, apply coupon to...</label>
+                    <select
+                      value={formData.applyToRecurring}
+                      onChange={(e) => setFormData(prev => ({ ...prev, applyToRecurring: e.target.value }))}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="all">All jobs in recurring series</option>
+                      <option value="first">First job only</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
