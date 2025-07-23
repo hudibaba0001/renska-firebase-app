@@ -66,7 +66,7 @@ const ZipCodeStep = ({ onNext, formData, setFormData, allowedZipCodes, error, se
     <h2 className="text-xl font-bold mb-4">Steg 1: Ange postnummer</h2>
     <input
       type="text"
-      className="border p-2 rounded w-full mb-2"
+      className="border p-2 rounded w-full mb-2 bg-white"
       placeholder="Postnummer"
       maxLength={5}
       value={formData.zip || ''}
@@ -113,7 +113,7 @@ const ServiceSelectStep = ({ onNext, onBack, formData, setFormData, config }) =>
       ) : (
         <>
           <select
-            className="border p-2 rounded w-full mb-4"
+            className="border p-2 rounded w-full mb-4 bg-white"
             value={formData.service || ''}
             onChange={e => setFormData(f => ({ ...f, service: e.target.value }))}
           >
@@ -904,29 +904,11 @@ const PriceCard = ({ originalPrice, finalPrice, rutApplied, selectedService, for
   console.log('💰 PriceCard - hasServiceData:', hasServiceData);
   console.log('💰 PriceCard - step:', step);
 
-  // Only show price card if there's actual service data or we're on step 4+
-  const shouldShowPriceCard = step >= 4 || hasServiceData;
+  // Show price card on steps 3 and 4, but on step 3 show with zero values until user enters data
+  const shouldShowPriceCard = step >= 3;
 
   if (!shouldShowPriceCard) {
-    return (
-      <div className="sticky top-4 bg-white shadow-lg rounded-lg p-6 min-w-[320px] border border-gray-200">
-        <h3 className="text-xl font-bold text-gray-900 mb-4 pb-3 border-b border-gray-200">
-          Sammanställning
-        </h3>
-        <div className="text-center py-8">
-          <div className="text-gray-400 mb-2">
-            <svg className="h-12 w-12 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-            </svg>
-            <p className="text-gray-500 text-sm">
-              {step === 1 ? 'Ange ditt postnummer för att komma igång' : 
-               step === 2 ? 'Välj en tjänst för att se priset' :
-               'Konfigurera tjänsten för att se priset'}
-            </p>
-          </div>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   return (
@@ -938,11 +920,11 @@ const PriceCard = ({ originalPrice, finalPrice, rutApplied, selectedService, for
       
       {/* Service Breakdown */}
       <div className="space-y-3 mb-4">
-        {selectedService && hasServiceData ? (
+        {selectedService ? (
           <>
             <div className="flex justify-between items-center">
               <span className="text-gray-700">{selectedService.name}</span>
-              <span className="font-semibold text-gray-900">{basePrice.toLocaleString()} kr</span>
+              <span className="font-semibold text-gray-900">{hasServiceData ? basePrice.toLocaleString() : '0'} kr</span>
             </div>
             
             {/* Add-ons */}
@@ -1033,7 +1015,7 @@ const PriceCard = ({ originalPrice, finalPrice, rutApplied, selectedService, for
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
               </svg>
               <p className="text-gray-500 text-sm">
-                Konfigurera tjänsten för att se priset
+                Välj en tjänst för att se priset
               </p>
             </div>
           </div>
@@ -1055,10 +1037,10 @@ const PriceCard = ({ originalPrice, finalPrice, rutApplied, selectedService, for
         <div className="flex justify-between items-center">
           <span className="text-lg font-bold text-gray-900">
             {hasServiceData ? (rutApplied ? finalPrice : originalPrice) : 0} kr
-            {rutApplied && <span className="text-xs text-gray-500 ml-1">*</span>}
+            {rutApplied && hasServiceData && <span className="text-xs text-gray-500 ml-1">*</span>}
           </span>
         </div>
-        {rutApplied && (
+        {rutApplied && hasServiceData && (
           <p className="text-xs text-gray-500 mt-1">
             *RUT-avdrag på {Math.round((config.rutPercentage || 0.5) * 100)}% applicerat
           </p>
@@ -1066,7 +1048,7 @@ const PriceCard = ({ originalPrice, finalPrice, rutApplied, selectedService, for
       </div>
       
       {/* RUT Breakdown (if applicable) */}
-      {rutApplied && selectedService && (
+      {rutApplied && selectedService && hasServiceData && (
         <div className="mb-4 p-3 bg-green-50 rounded-lg border border-green-200">
           <div className="flex justify-between items-center text-sm">
             <span className="text-green-700">RUT-avdrag</span>
@@ -1445,81 +1427,90 @@ export default function BookingCalculator({ config: propConfig, companyId: propC
   if (!config) return <div>Ingen konfiguration hittades.</div>;
 
   return (
-    <div className="w-full max-w-6xl mx-auto">
-      {/* Step 1: Zip Code - Small, integrated form */}
+    <div className="w-full max-w-7xl mx-auto px-4">
+      {/* Step 1: Zip Code - Clean, integrated form like Hemfrid */}
       {step === 1 && (
-        <div className="text-center py-8">
-          <div className="inline-block max-w-sm w-full">
-            {isZipCodeEnabled ? (
-              <ZipCodeStep
-                onNext={() => setStep(2)}
-                formData={formData}
-                setFormData={setFormData}
-                allowedZipCodes={config.zipAreas || []}
-                error={zipError}
-                setError={setZipError}
-              />
-            ) : (
-              <ServiceSelectStep
-                onNext={() => setStep(2)}
-                formData={formData}
-                setFormData={setFormData}
-                config={{ ...config, services: formServices }}
-              />
-            )}
+        <div className="text-center py-12">
+          <div className="inline-block max-w-md w-full">
+            <div className="bg-transparent rounded-lg p-8">
+              <h2 className="text-2xl font-semibold text-gray-900 mb-2">
+                Hur kan vi hjälpa dig?
+              </h2>
+              <p className="text-gray-600 mb-6">
+                Ange ditt postnummer för att se tillgängliga tjänster
+              </p>
+              {isZipCodeEnabled ? (
+                <ZipCodeStep
+                  onNext={() => setStep(2)}
+                  formData={formData}
+                  setFormData={setFormData}
+                  allowedZipCodes={config.zipAreas || []}
+                  error={zipError}
+                  setError={setZipError}
+                />
+              ) : (
+                <ServiceSelectStep
+                  onNext={() => setStep(2)}
+                  formData={formData}
+                  setFormData={setFormData}
+                  config={{ ...config, services: formServices }}
+                />
+              )}
+            </div>
           </div>
         </div>
       )}
 
-      {/* Steps 2-4: Full integrated experience */}
-      {step >= 2 && (
-        <div className="w-full">
-          {/* Step Header */}
-          <div className="mb-6 text-center">
-            <div className="inline-flex items-center space-x-2 bg-gray-100 px-4 py-2 rounded-full">
-              <span className="text-sm font-medium text-gray-600">
-                Steg {step} av 4
-              </span>
+      {/* Step 2: Service Selection - Centered like Step 1 */}
+      {step === 2 && (
+        <div className="text-center py-12">
+          <div className="inline-block max-w-md w-full">
+            <div className="bg-transparent rounded-lg p-8">
+              <ServiceSelectStep
+                onNext={() => setStep(3)}
+                onBack={() => setStep(1)}
+                formData={formData}
+                setFormData={setFormData}
+                config={{ ...config, services: formServices }}
+              />
             </div>
           </div>
+        </div>
+      )}
 
-          {/* Main Content */}
+      {/* Steps 3-4: Full-width layout for embedding */}
+      {step >= 3 && (
+        <div className="py-8">
           <div className="flex gap-8">
+            {/* Left Column - Main Form */}
             <div className="flex-1">
-              {step === 2 && (
-                <ServiceSelectStep
-                  onNext={() => setStep(3)}
-                  onBack={() => setStep(1)}
-                  formData={formData}
-                  setFormData={setFormData}
-                  config={{ ...config, services: formServices }}
-                />
-              )}
-              {step === 3 && (
-                <ServiceDetailsStep
-                  onNext={() => setStep(4)}
-                  onBack={() => setStep(2)}
-                  formData={formData}
-                  setFormData={setFormData}
-                  config={{ ...config, services: formServices }}
-                />
-              )}
-              {step === 4 && (
-                <CustomerInfoStep
-                  onBack={() => setStep(3)}
-                  formData={formData}
-                  setFormData={setFormData}
-                  companyId={companyId}
-                  totalPrice={finalPrice}
-                  rutApplied={rutApplied}
-                  paymentConfig={paymentConfig}
-                />
-              )}
+              <div className="bg-transparent rounded-lg p-8">
+                {step === 3 && (
+                  <ServiceDetailsStep
+                    onNext={() => setStep(4)}
+                    onBack={() => setStep(2)}
+                    formData={formData}
+                    setFormData={setFormData}
+                    config={{ ...config, services: formServices }}
+                  />
+                )}
+                {step === 4 && (
+                  <CustomerInfoStep
+                    onBack={() => setStep(3)}
+                    formData={formData}
+                    setFormData={setFormData}
+                    companyId={companyId}
+                    totalPrice={finalPrice}
+                    rutApplied={rutApplied}
+                    paymentConfig={paymentConfig}
+                  />
+                )}
+              </div>
             </div>
             
-            {/* Price Card - Show for steps 3 and 4 */}
-            {step >= 3 && (
-              <div className="w-80 flex-shrink-0">
+            {/* Right Column - Fixed Summary Panel */}
+            <div className="w-80 flex-shrink-0">
+              <div className="bg-transparent rounded-lg p-6 sticky top-4">
                 <PriceCard
                   originalPrice={originalPrice}
                   finalPrice={finalPrice}
@@ -1530,7 +1521,7 @@ export default function BookingCalculator({ config: propConfig, companyId: propC
                   config={config}
                 />
               </div>
-            )}
+            </div>
           </div>
         </div>
       )}
