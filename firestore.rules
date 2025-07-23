@@ -106,17 +106,69 @@ service cloud.firestore {
     }
     
     // ============================================================================
-    // CUSTOMERS COLLECTION (for Stripe extension)
+    // CUSTOMERS COLLECTION (for Stripe extension and CRM)
     // ============================================================================
     match /customers/{customerId} {
+      // For Stripe customers (no companyId field)
       allow create: if isOwner(customerId) || isSuperAdmin();
       allow read, update, delete: if isOwner(customerId) || isSuperAdmin();
+      
+      // For CRM customers (with companyId field)
+      allow read, write: if isSignedIn() && 
+        request.resource.data.companyId != null &&
+        (isSuperAdmin() || 
+         (resource == null && isCompanyAdmin(request.resource.data.companyId)) ||
+         (resource != null && isCompanyAdmin(resource.data.companyId)));
 
       // Allow the user to create and read their own checkout_sessions
       match /checkout_sessions/{sessionId} {
         allow create: if isOwner(customerId) || isSuperAdmin();
         allow read: if isOwner(customerId) || isSuperAdmin();
       }
+    }
+    
+    // ============================================================================
+    // CRM COLLECTIONS
+    // ============================================================================
+    
+    // CRM Leads - allow company admins to manage their leads
+    match /leads/{leadId} {
+      allow read, write: if isSignedIn() && 
+        (isSuperAdmin() || 
+         (resource == null && isCompanyAdmin(request.resource.data.companyId)) ||
+         (resource != null && isCompanyAdmin(resource.data.companyId)));
+    }
+    
+    // CRM Deals - allow company admins to manage their deals
+    match /deals/{dealId} {
+      allow read, write: if isSignedIn() && 
+        (isSuperAdmin() || 
+         (resource == null && isCompanyAdmin(request.resource.data.companyId)) ||
+         (resource != null && isCompanyAdmin(resource.data.companyId)));
+    }
+    
+    // CRM Tasks - allow company admins to manage their tasks
+    match /tasks/{taskId} {
+      allow read, write: if isSignedIn() && 
+        (isSuperAdmin() || 
+         (resource == null && isCompanyAdmin(request.resource.data.companyId)) ||
+         (resource != null && isCompanyAdmin(resource.data.companyId)));
+    }
+    
+    // CRM Reports - allow company admins to manage their reports
+    match /reports/{reportId} {
+      allow read, write: if isSignedIn() && 
+        (isSuperAdmin() || 
+         (resource == null && isCompanyAdmin(request.resource.data.companyId)) ||
+         (resource != null && isCompanyAdmin(resource.data.companyId)));
+    }
+    
+    // CRM Settings - allow company admins to manage their settings
+    match /settings/{settingId} {
+      allow read, write: if isSignedIn() && 
+        (isSuperAdmin() || 
+         (resource == null && isCompanyAdmin(request.resource.data.companyId)) ||
+         (resource != null && isCompanyAdmin(resource.data.companyId)));
     }
     
     // ============================================================================

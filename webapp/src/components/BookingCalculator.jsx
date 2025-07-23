@@ -1445,11 +1445,11 @@ export default function BookingCalculator({ config: propConfig, companyId: propC
   if (!config) return <div>Ingen konfiguration hittades.</div>;
 
   return (
-    <div className="flex gap-8">
-      <div className={step >= 3 ? "flex-1" : "w-full"}>
-        {step === 1 && (
-          <>
-            {console.log('🔍 BookingCalculator - config.zipAreas:', config?.zipAreas)}
+    <div className="w-full max-w-6xl mx-auto">
+      {/* Step 1: Zip Code - Small, integrated form */}
+      {step === 1 && (
+        <div className="text-center py-8">
+          <div className="inline-block max-w-sm w-full">
             {isZipCodeEnabled ? (
               <ZipCodeStep
                 onNext={() => setStep(2)}
@@ -1460,7 +1460,6 @@ export default function BookingCalculator({ config: propConfig, companyId: propC
                 setError={setZipError}
               />
             ) : (
-              // Skip zip code step and go directly to service selection
               <ServiceSelectStep
                 onNext={() => setStep(2)}
                 formData={formData}
@@ -1468,70 +1467,72 @@ export default function BookingCalculator({ config: propConfig, companyId: propC
                 config={{ ...config, services: formServices }}
               />
             )}
-          </>
-        )}
-        {step === 2 && (
-          <ServiceSelectStep
-            onNext={() => setStep(3)}
-            onBack={() => setStep(isZipCodeEnabled ? 1 : 1)}
-            formData={formData}
-            setFormData={setFormData}
-            config={{ ...config, services: formServices }}
-          />
-        )}
-        {step === 3 && (
-          <>
-            {(() => {
-              console.log('🎯 Step 3 - ServiceDetailsStep active');
-              console.log('🎯 Step 3 - formData:', formData);
-              console.log('🎯 Step 3 - config:', config);
-              console.log('🎯 Step 3 - selectedService:', formServices.find(s => s.id === formData.service));
-              console.log('🔍 Config frequencyMultipliers:', config.frequencyMultipliers);
-              console.log('🔍 Config frequencyMultipliers type:', typeof config.frequencyMultipliers);
-              console.log('🔍 Config frequencyMultipliers length:', config.frequencyMultipliers?.length);
-              return null;
-            })()}
-            <ServiceDetailsStep
-              onNext={() => {
-                console.log('🎯 Step 3 - Next button clicked, moving to step 4');
-                setStep(4);
-              }}
-              onBack={() => {
-                console.log('🎯 Step 3 - Back button clicked, moving to step 2');
-                setStep(2);
-              }}
-              formData={formData}
-              setFormData={setFormData}
-              config={{ ...config, services: formServices }}
-            />
-          </>
-        )}
-            {step === 4 && (
-          <CustomerInfoStep
-            onBack={() => setStep(3)}
-            formData={formData}
-            setFormData={setFormData}
-            companyId={companyId}
-            totalPrice={finalPrice}
-            rutApplied={rutApplied}
-            paymentConfig={paymentConfig}
-          />
-        )}
-      </div>
-      
-      {/* Price Card - Show only when there's pricing information (steps 3 and 4) */}
-      {step >= 3 && step <= 4 && (
-      <div className="w-80">
-          <PriceCard
-            originalPrice={originalPrice}
-            finalPrice={finalPrice}
-            rutApplied={rutApplied}
-            selectedService={formServices.find(s => s.id === formData.service)}
-            formData={formData}
-            step={step}
-            config={config}
-          />
-      </div>
+          </div>
+        </div>
+      )}
+
+      {/* Steps 2-4: Full integrated experience */}
+      {step >= 2 && (
+        <div className="w-full">
+          {/* Step Header */}
+          <div className="mb-6 text-center">
+            <div className="inline-flex items-center space-x-2 bg-gray-100 px-4 py-2 rounded-full">
+              <span className="text-sm font-medium text-gray-600">
+                Steg {step} av 4
+              </span>
+            </div>
+          </div>
+
+          {/* Main Content */}
+          <div className="flex gap-8">
+            <div className="flex-1">
+              {step === 2 && (
+                <ServiceSelectStep
+                  onNext={() => setStep(3)}
+                  onBack={() => setStep(1)}
+                  formData={formData}
+                  setFormData={setFormData}
+                  config={{ ...config, services: formServices }}
+                />
+              )}
+              {step === 3 && (
+                <ServiceDetailsStep
+                  onNext={() => setStep(4)}
+                  onBack={() => setStep(2)}
+                  formData={formData}
+                  setFormData={setFormData}
+                  config={{ ...config, services: formServices }}
+                />
+              )}
+              {step === 4 && (
+                <CustomerInfoStep
+                  onBack={() => setStep(3)}
+                  formData={formData}
+                  setFormData={setFormData}
+                  companyId={companyId}
+                  totalPrice={finalPrice}
+                  rutApplied={rutApplied}
+                  paymentConfig={paymentConfig}
+                />
+              )}
+            </div>
+            
+            {/* Price Card - Show for steps 3 and 4 */}
+            {step >= 3 && (
+              <div className="w-80 flex-shrink-0">
+                <PriceCard
+                  originalPrice={originalPrice}
+                  finalPrice={finalPrice}
+                  rutApplied={rutApplied}
+                  selectedService={formServices.find(s => s.id === formData.service)}
+                  formData={formData}
+                  step={step}
+                  config={config}
+                />
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );
