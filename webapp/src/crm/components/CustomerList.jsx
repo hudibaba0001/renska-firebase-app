@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   List, 
   Datagrid, 
@@ -13,81 +13,93 @@ import {
 } from 'react-admin';
 import { 
   Box, 
-  Chip
+  Chip,
+  Typography,
+  Card,
+  CardContent
 } from '@mui/material';
+import firebase from '../../firebase/init';
 
-// Custom field to display tags
-const TagsField = ({ record }) => {
-  if (!record?.tags || record.tags.length === 0) return null;
-  
+// Debug component to show raw data
+const DebugCustomerList = () => {
+  const [customers, setCustomers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchCustomers = async () => {
+      try {
+        console.log('🔍 Fetching customers from Firestore...');
+        const snapshot = await firebase.firestore()
+          .collection('customers')
+          .where('companyId', '==', 'r7kAsnh-r1')
+          .get();
+        
+        const customerData = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        
+        console.log('📊 Found customers:', customerData);
+        setCustomers(customerData);
+        setLoading(false);
+      } catch (err) {
+        console.error('❌ Error fetching customers:', err);
+        setError(err.message);
+        setLoading(false);
+      }
+    };
+
+    fetchCustomers();
+  }, []);
+
+  if (loading) {
+    return (
+      <Card>
+        <CardContent>
+          <Typography variant="h6">Loading customers...</Typography>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardContent>
+          <Typography variant="h6" color="error">Error: {error}</Typography>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
-    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-      {record.tags.map((tag, index) => (
-        <Chip
-          key={index}
-          label={tag}
-          size="small"
-          variant="outlined"
-          color="primary"
-        />
-      ))}
-    </Box>
+    <Card>
+      <CardContent>
+        <Typography variant="h6">Customers ({customers.length})</Typography>
+        {customers.length === 0 ? (
+          <Typography>No customers found. Try loading demo data first.</Typography>
+        ) : (
+          <Box sx={{ mt: 2 }}>
+            {customers.map(customer => (
+              <Box key={customer.id} sx={{ mb: 2, p: 2, border: '1px solid #ddd', borderRadius: 1 }}>
+                <Typography><strong>Name:</strong> {customer.name || 'N/A'}</Typography>
+                <Typography><strong>Email:</strong> {customer.email || 'N/A'}</Typography>
+                <Typography><strong>Phone:</strong> {customer.phone || 'N/A'}</Typography>
+                <Typography><strong>Company:</strong> {customer.company || 'N/A'}</Typography>
+                <Typography><strong>Status:</strong> {customer.status || 'N/A'}</Typography>
+              </Box>
+            ))}
+          </Box>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 
-// Custom field to display status with color
-const StatusField = ({ record }) => {
-  if (!record?.status) return null;
-  
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'active': return 'success';
-      case 'inactive': return 'error';
-      case 'pending': return 'warning';
-      default: return 'default';
-    }
-  };
-  
-  return (
-    <Chip
-      label={record.status}
-      size="small"
-      color={getStatusColor(record.status)}
-    />
-  );
+// Use the debug component for now
+const CustomerList = () => {
+  return <DebugCustomerList />;
 };
-
-// Customer filters
-const CustomerFilters = () => (
-  <Filter>
-    <SearchInput source="q" placeholder="Search by name, email, or phone" alwaysOn />
-    <SelectInput 
-      source="status" 
-      label="Status"
-      choices={[
-        { id: 'active', name: 'Active' },
-        { id: 'inactive', name: 'Inactive' },
-        { id: 'pending', name: 'Pending' }
-      ]}
-    />
-  </Filter>
-);
-
-const CustomerList = () => (
-  <List filters={<CustomerFilters />} perPage={25}>
-    <Datagrid bulkActionButtons={false} rowClick="edit">
-      <TextField source="name" label="Name" />
-      <EmailField source="email" label="Email" />
-      <TextField source="phone" label="Phone" />
-      <TextField source="company" label="Company" />
-      <StatusField />
-      <TagsField />
-      <DateField source="createdAt" label="Created" />
-      <DateField source="lastContact" label="Last Contact" />
-      <EditButton />
-      <ShowButton />
-    </Datagrid>
-  </List>
-);
 
 export default CustomerList; 

@@ -131,6 +131,14 @@ service cloud.firestore {
     // CRM COLLECTIONS
     // ============================================================================
     
+    // CRM Customers - allow company admins to manage their customers
+    match /customers/{customerId} {
+      allow read, write: if isSignedIn() && 
+        (isSuperAdmin() || 
+         (resource == null && isCompanyAdmin(request.resource.data.companyId)) ||
+         (resource != null && isCompanyAdmin(resource.data.companyId)));
+    }
+    
     // CRM Leads - allow company admins to manage their leads
     match /leads/{leadId} {
       allow read, write: if isSignedIn() && 

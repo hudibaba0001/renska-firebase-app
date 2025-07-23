@@ -1077,7 +1077,7 @@ const PriceCard = ({ originalPrice, finalPrice, rutApplied, selectedService, for
 );
 };
 
-export default function BookingCalculator({ config: propConfig, companyId: propCompanyId }) {
+export default function BookingCalculator({ config: propConfig, companyId: propCompanyId, isEmbedded = false }) {
   const { companyId: paramCompanyId } = useParams();
   const companyId = propCompanyId || paramCompanyId;
   const [step, setStep] = useState(1);
@@ -1427,7 +1427,7 @@ export default function BookingCalculator({ config: propConfig, companyId: propC
   if (!config) return <div>Ingen konfiguration hittades.</div>;
 
   return (
-    <div className="w-full">
+    <div className={`w-full ${isEmbedded ? 'h-screen overflow-hidden' : ''}`}>
       {/* Step 1: Zip Code - Clean, integrated form like Hemfrid */}
       {step === 1 && (
         <div className="text-center py-12">

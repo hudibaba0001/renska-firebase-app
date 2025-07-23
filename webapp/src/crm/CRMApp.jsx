@@ -4,6 +4,7 @@ import firebaseDataProvider from 'ra-data-firebase-client';
 import { useParams } from 'react-router-dom';
 import firebase from '../firebase/init';
 import { loadCRMDemoData } from '../scripts/loadCRMDemoData';
+import { testCRMDemoData } from '../scripts/testCRMDemoData';
 
 // Import CRM components
 import CustomerList from './components/CustomerList';
@@ -42,53 +43,64 @@ import CRMLayout from './components/CRMLayout';
 
 const Dashboard = () => {
   const { companyId } = useParams();
-  const [loading, setLoading] = React.useState(false);
-  const [loaded, setLoaded] = React.useState(false);
 
   const handleLoadDemoData = async () => {
-    setLoading(true);
     try {
-      await loadCRMDemoData(companyId);
-      setLoaded(true);
-      alert('Demo data loaded successfully! Refresh the page to see the data.');
+      if (confirm('Load demo data? This will add sample customers, leads, deals, and tasks.')) {
+        await loadCRMDemoData(companyId);
+        alert('Demo data loaded successfully! Refresh the page to see the data.');
+      }
     } catch (error) {
       console.error('Error loading demo data:', error);
-      alert('Error loading demo data. Check console for details.');
-    } finally {
-      setLoading(false);
+      alert('Error loading demo data: ' + error.message);
+    }
+  };
+
+  const handleTestDemoData = async () => {
+    try {
+      console.log('🧪 Testing demo data...');
+      const count = await testCRMDemoData();
+      alert(`Test completed! Found ${count} customers. Check console for details.`);
+    } catch (error) {
+      console.error('Error testing demo data:', error);
+      alert('Error testing demo data: ' + error.message);
     }
   };
 
   return (
     <div style={{ padding: 32 }}>
-      <h1 style={{ fontSize: '2rem', marginBottom: '1rem' }}>CRM Dashboard</h1>
+      <h1>CRM Dashboard</h1>
       
-      {/* Demo Data Button */}
-      <div style={{ marginBottom: '2rem', padding: '1rem', backgroundColor: '#f8f9fa', borderRadius: '8px', border: '1px solid #dee2e6' }}>
-        <h3 style={{ marginBottom: '0.5rem' }}>🚀 Quick Start</h3>
-        <p style={{ marginBottom: '1rem', color: '#6c757d' }}>
-          Load demo data to see how the CRM works with real data
-        </p>
-        <button
+      <div style={{ marginBottom: 32 }}>
+        <h3>🚀 Quick Start</h3>
+        <p>Load demo data to see how the CRM works with real data</p>
+        <button 
           onClick={handleLoadDemoData}
-          disabled={loading}
           style={{
-            padding: '10px 20px',
-            backgroundColor: loading ? '#6c757d' : '#007bff',
+            padding: '12px 24px',
+            backgroundColor: '#1976d2',
             color: 'white',
             border: 'none',
-            borderRadius: '4px',
-            cursor: loading ? 'not-allowed' : 'pointer',
-            fontSize: '14px'
+            borderRadius: 4,
+            cursor: 'pointer',
+            marginRight: 16
           }}
         >
-          {loading ? 'Loading...' : loaded ? '✅ Demo Data Loaded' : '📊 Load Demo Data'}
+          📊 Load Demo Data
         </button>
-        {loaded && (
-          <p style={{ marginTop: '0.5rem', fontSize: '12px', color: '#28a745' }}>
-            Demo data loaded! Navigate to Customers, Leads, Deals, or Tasks to see the data.
-          </p>
-        )}
+        <button 
+          onClick={handleTestDemoData}
+          style={{
+            padding: '12px 24px',
+            backgroundColor: '#ff9800',
+            color: 'white',
+            border: 'none',
+            borderRadius: 4,
+            cursor: 'pointer'
+          }}
+        >
+          🧪 Test Demo Data
+        </button>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
