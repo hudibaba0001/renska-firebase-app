@@ -55,8 +55,8 @@ export default function App() {
             <Route path="unauthorized" element={<UnauthorizedPage />} />
           </Route>
 
-          {/* Embeddable Calculator Route (Public, Minimal) */}
-          <Route path="/embed/calculator" element={<EmbedCalculatorWrapper />} />
+          {/* Enterprise Embeddable Calculator Route */}
+          <Route path="/embed/calculator" element={<EmbedCalculatorPage />} />
 
           {/* Booking Routes (Public) */}
           <Route path="/booking/:companyId/:formSlug" element={<BookingPage />} />
