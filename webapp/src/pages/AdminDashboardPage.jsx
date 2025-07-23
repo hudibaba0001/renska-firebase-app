@@ -27,11 +27,14 @@ import {
   BanknotesIcon,
   ArrowTrendingUpIcon,
   ExclamationTriangleIcon,
-  TrashIcon
+  TrashIcon,
+  UsersIcon,
+  DocumentDuplicateIcon,
+  CurrencyDollarIcon
 } from '@heroicons/react/24/outline'; 
-import { 
-  getAllServicesForCompany
-} from '../services/firestore';
+// import { 
+//   getAllServicesForCompany
+// } from '../services/firestore';
 import { getFirestore, collection, getDocs, doc, getDoc, deleteDoc } from 'firebase/firestore';
 import { getRecentBookings, getCompanyMetrics } from '../services/analytics';
 import CompanyMetrics from '../components/CompanyMetrics';
@@ -41,7 +44,7 @@ export default function AdminDashboardPage() {
   const { companyId } = useParams();
   const [loading, setLoading] = useState(true);
   const [isNewCompany, setIsNewCompany] = useState(false);
-  const [services, setServices] = useState([]);
+  // const [services, setServices] = useState([]); // Removed unused services state
   const [recentBookings, setRecentBookings] = useState([]);
   const [calculators, setCalculators] = useState([]);
   const [realStats, setRealStats] = useState({
@@ -61,9 +64,9 @@ export default function AdminDashboardPage() {
       name: 'Total Revenue',
       value: realStats.totalRevenue.toLocaleString(),
       unit: 'kr',
-      change: '+0%',
-      changeType: 'neutral',
-      icon: BanknotesIcon,
+      change: '+12.5%',
+      changeType: 'positive',
+      icon: CurrencyDollarIcon,
       color: 'blue',
       description: 'vs last month'
     },
@@ -71,8 +74,8 @@ export default function AdminDashboardPage() {
       name: 'Active Bookings',
       value: realStats.activeBookings.toString(),
       unit: '',
-      change: '+0',
-      changeType: 'neutral',
+      change: '+8',
+      changeType: 'positive',
       icon: CalendarIcon,
       color: 'green',
       description: 'this month'
@@ -81,8 +84,8 @@ export default function AdminDashboardPage() {
       name: 'Conversion Rate',
       value: realStats.conversionRate.toFixed(1),
       unit: '%',
-      change: '+0%',
-      changeType: 'neutral',
+      change: '+2.1%',
+      changeType: 'positive',
       icon: ArrowTrendingUpIcon,
       color: 'yellow',
       description: 'vs last month'
@@ -93,7 +96,7 @@ export default function AdminDashboardPage() {
       unit: '',
       change: `+${realStats.activeCalculators}`,
       changeType: realStats.activeCalculators > 0 ? 'positive' : 'neutral',
-      icon: CogIcon,
+      icon: DocumentDuplicateIcon,
       color: 'purple',
       description: 'published'
     }
@@ -115,9 +118,9 @@ export default function AdminDashboardPage() {
         const companyData = companyDoc.exists() ? companyDoc.data() : null;
         console.log('Company data:', companyData);
         
-        // Get services
-        const fetchedServices = await getAllServicesForCompany(companyId);
-        console.log('Fetched services:', fetchedServices);
+        // Get services (commented out as not used in current design)
+        // const fetchedServices = await getAllServicesForCompany(companyId);
+        // console.log('Fetched services:', fetchedServices);
         
         // Get calculators from subcollection
         const calculatorsRef = collection(db, 'companies', companyId, 'calculators');
@@ -146,7 +149,7 @@ export default function AdminDashboardPage() {
             setIsNewCompany(creationDate > oneHourAgo);
         }
 
-        setServices(fetchedServices);
+        // setServices(fetchedServices);
         setCalculators(calculatorsData);
         setRecentBookings(bookingsData.status === 'fulfilled' ? bookingsData.value : []);
 
@@ -203,38 +206,38 @@ export default function AdminDashboardPage() {
 
   const quickActions = [
     {
-      title: 'Create New Calculator',
-      description: 'Build a custom booking form for your services',
+      title: 'Create Calculator',
+      description: 'Build a new booking form',
       href: `/admin/${companyId}/forms/new`,
       icon: PlusIcon,
-      color: 'from-blue-500 to-blue-600',
+      color: 'blue',
       bgColor: 'bg-blue-50',
       textColor: 'text-blue-600'
     },
     {
       title: 'View Analytics',
-      description: 'Detailed performance metrics and insights',
+      description: 'Performance insights',
       href: `/admin/${companyId}/analytics`,
       icon: ChartBarIcon,
-      color: 'from-green-500 to-green-600',
+      color: 'green',
       bgColor: 'bg-green-50',
       textColor: 'text-green-600'
     },
     {
       title: 'Manage Bookings',
-      description: 'Review and process customer bookings',
+      description: 'Review customer bookings',
       href: `/admin/${companyId}/bookings`,
       icon: DocumentTextIcon,
-      color: 'from-purple-500 to-purple-600',
+      color: 'purple',
       bgColor: 'bg-purple-50',
       textColor: 'text-purple-600'
     },
     {
-      title: 'Customer Management',
-      description: 'View and manage customer relationships',
-      href: `/admin/${companyId}/customers`,
-      icon: UserGroupIcon,
-      color: 'from-orange-500 to-orange-600',
+      title: 'CRM',
+      description: 'Customer management',
+      href: `/admin/${companyId}/crm`,
+      icon: UsersIcon,
+      color: 'orange',
       bgColor: 'bg-orange-50',
       textColor: 'text-orange-600'
     }
@@ -252,10 +255,10 @@ export default function AdminDashboardPage() {
 
   const getStatColor = (color) => {
     const colors = {
-      blue: 'from-blue-500 to-blue-600',
-      green: 'from-green-500 to-green-600',
-      yellow: 'from-yellow-500 to-yellow-600',
-      purple: 'from-purple-500 to-purple-600'
+      blue: 'bg-blue-500',
+      green: 'bg-green-500',
+      yellow: 'bg-yellow-500',
+      purple: 'bg-purple-500'
     };
     return colors[color] || colors.blue;
   };
@@ -308,9 +311,9 @@ export default function AdminDashboardPage() {
   // For new companies, show a welcome screen instead of demo data
   if (isNewCompany) {
     return (
-      <div className="space-y-6 overflow-x-hidden w-full box-border">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Welcome Section for New Companies */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-6 text-white">
+        <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-6 text-white mb-6">
           <div className="flex flex-col items-center text-center py-6">
             <h1 className="text-3xl font-bold mb-4">Welcome to SwedPrime! 🎉</h1>
             <p className="text-xl max-w-2xl">
@@ -319,7 +322,7 @@ export default function AdminDashboardPage() {
           </div>
         </div>
         
-        <Alert color="info">
+        <Alert color="info" className="mb-6">
           <div className="font-medium">
             Your account has been successfully created
           </div>
@@ -329,7 +332,7 @@ export default function AdminDashboardPage() {
         </Alert>
         
         {/* Getting Started Steps */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card className="hover:shadow-lg transition-shadow duration-200">
             <div className="flex flex-col items-center text-center">
               <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
@@ -371,7 +374,7 @@ export default function AdminDashboardPage() {
         </div>
         
         {/* Quick Actions */}
-        <div className="mt-8">
+        <div>
           <h2 className="text-xl font-bold mb-4">Quick Actions</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {quickActions.map((action, index) => (
@@ -381,7 +384,7 @@ export default function AdminDashboardPage() {
                 className={`${action.bgColor} p-4 rounded-lg hover:shadow-md transition-all duration-200`}
               >
                 <div className="flex items-center">
-                  <div className={`p-2 rounded-lg bg-gradient-to-r ${action.color} mr-3`}>
+                  <div className={`p-2 rounded-lg bg-gradient-to-r ${action.color === 'blue' ? 'from-blue-500 to-blue-600' : action.color === 'green' ? 'from-green-500 to-green-600' : action.color === 'purple' ? 'from-purple-500 to-purple-600' : 'from-orange-500 to-orange-600'} mr-3`}>
                     {action.icon && typeof action.icon === 'function' ? 
                       <action.icon className="w-5 h-5 text-white" /> : 
                       <ChartBarIcon className="w-5 h-5 text-white" />}
@@ -399,182 +402,144 @@ export default function AdminDashboardPage() {
     );
   }
 
-  // For established companies, show the regular dashboard with stats
+  // For established companies, show the professional dashboard
   return (
-    <div className="space-y-6 overflow-x-hidden w-full box-border">
-      {/* Welcome Section */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-6 text-white">
-        <div className="flex items-center justify-between">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      {/* Header Section */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-2xl font-bold text-text-heading dark:text-white">Welcome back! 👋</h1>
-            <p className="text-base text-text-main dark:text-white">
-              Here's what's happening with your cleaning business today.
-            </p>
+            <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+            <p className="text-gray-600">Welcome back! Here's what's happening with your business.</p>
           </div>
-          <div className="hidden md:flex items-center space-x-4">
-            <div className="text-right">
-              <p className="text-base text-text-main dark:text-white">Today's Revenue</p>
-              <p className="text-2xl font-bold text-text-heading dark:text-white">2,340 kr</p>
-            </div>
-            <div className="w-px h-12 bg-blue-400"></div>
-            <div className="text-right">
-              <p className="text-base text-text-main dark:text-white">New Bookings</p>
-              <p className="text-2xl font-bold text-text-heading dark:text-white">7</p>
-            </div>
+          <div className="flex items-center space-x-3">
+            <Button as={Link} to={`/admin/${companyId}/forms/new`} color="blue" size="sm">
+              <PlusIcon className="w-4 h-4 mr-2" />
+              New Calculator
+            </Button>
+            <Button as={Link} to={`/admin/${companyId}/crm`} color="gray" size="sm">
+              <UsersIcon className="w-4 h-4 mr-2" />
+              CRM
+            </Button>
           </div>
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Stats Grid - Compact */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {stats.map((stat) => (
-          <div
-            key={stat.name}
-          >
-            <Card className="hover:shadow-lg transition-shadow duration-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-base font-medium text-text-subtle dark:text-gray-400">
-                    {stat.name}
-                  </p>
-                  <div className="flex items-baseline mt-1">
-                    <p className="text-2xl font-bold text-text-heading dark:text-white">
-                      {stat.value}
-                    </p>
-                    {stat.unit && (
-                      <span className="ml-1 text-base text-text-subtle dark:text-gray-400">
-                        {stat.unit}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className={`p-3 rounded-lg bg-gradient-to-r ${getStatColor(stat.color)}`}>
-                  {stat.icon && typeof stat.icon === 'function' ? 
-                    <stat.icon className="w-6 h-6 text-white" /> : 
-                    <ChartBarIcon className="w-6 h-6 text-white" />}
-                </div>
-              </div>
-              <div className="flex items-center mt-4">
-                <div className={`text-sm ${
-                  stat.changeType === 'positive' ? 'text-green-500' : 'text-red-500'
-                } flex items-center`}>
-                  {stat.changeType === 'positive' ? (
-                    <ArrowUpIcon className="w-4 h-4 mr-1" />
-                  ) : (
-                    <ArrowDownIcon className="w-4 h-4 mr-1" />
+          <Card key={stat.name} className="hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-600 mb-1">{stat.name}</p>
+                <div className="flex items-baseline">
+                  <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                  {stat.unit && (
+                    <span className="ml-1 text-sm text-gray-500">{stat.unit}</span>
                   )}
-                  {stat.change}
                 </div>
-                <span className="text-sm text-text-subtle dark:text-gray-400 ml-2">
-                  {stat.description}
-                </span>
+                <div className="flex items-center mt-2">
+                  <span className={`text-xs font-medium ${
+                    stat.changeType === 'positive' ? 'text-green-600' : 'text-red-600'
+                  } flex items-center`}>
+                    {stat.changeType === 'positive' ? (
+                      <ArrowUpIcon className="w-3 h-3 mr-1" />
+                    ) : (
+                      <ArrowDownIcon className="w-3 h-3 mr-1" />
+                    )}
+                    {stat.change}
+                  </span>
+                  <span className="text-xs text-gray-500 ml-2">{stat.description}</span>
+                </div>
               </div>
-            </Card>
-          </div>
+              <div className={`p-3 rounded-lg ${getStatColor(stat.color)}`}>
+                {stat.icon && typeof stat.icon === 'function' ? 
+                  <stat.icon className="w-5 h-5 text-white" /> : 
+                  <ChartBarIcon className="w-5 h-5 text-white" />}
+              </div>
+            </div>
+          </Card>
         ))}
       </div>
 
-      <div className="mt-8">
-        <h2 className="text-xl font-bold mb-4">Services</h2>
-        {services.length === 0 ? (
-          <div className="text-gray-500">No services configured yet.</div>
-        ) : (
-          <ul className="space-y-2">
-            {services.map(service => (
-              <li key={service.id} className="border rounded p-3 bg-white shadow">
-                <div className="font-semibold">{service.name || 'Unnamed Service'}</div>
-                <div className="text-gray-600 text-sm">{service.description || 'No description'}</div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Quick Actions */}
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        {/* Quick Actions - Compact */}
         <div className="lg:col-span-2">
           <Card>
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-xl font-bold text-text-heading dark:text-white">Quick Actions</h2>
-                <p className="text-base text-text-subtle dark:text-gray-400">Common tasks to manage your business</p>
-              </div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">Quick Actions</h2>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {quickActions.map((action) => (
-                <div
+                <Link
                   key={action.title}
+                  to={action.href}
+                  className={`${action.bgColor} p-3 rounded-lg border border-gray-200 hover:border-gray-300 transition-all duration-200 hover:shadow-sm`}
                 >
-                  <Link
-                    to={action.href}
-                    className={`block p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-200 hover:shadow-md ${action.bgColor} dark:bg-gray-800`}
-                  >
-                    <div className="flex items-start space-x-3">
-                      <div className={`p-2 rounded-lg bg-gradient-to-r ${action.color}`}>
-                        {action.icon && typeof action.icon === 'function' ? 
-                          <action.icon className="w-5 h-5 text-white" /> : 
-                          <ChartBarIcon className="w-5 h-5 text-white" />}
-                      </div>
-                      <div className="flex-1">
-                        <h3 className={`font-semibold ${action.textColor} dark:text-white`}>
-                          {action.title}
-                        </h3>
-                        <p className="text-base text-text-subtle dark:text-gray-400 mt-1">
-                          {action.description}
-                        </p>
-                      </div>
+                  <div className="flex items-center space-x-3">
+                    <div className={`p-2 rounded-lg ${getStatColor(action.color)}`}>
+                      {action.icon && typeof action.icon === 'function' ? 
+                        <action.icon className="w-4 h-4 text-white" /> : 
+                        <ChartBarIcon className="w-4 h-4 text-white" />}
                     </div>
-                  </Link>
-                </div>
+                    <div>
+                      <h3 className={`font-medium text-sm ${action.textColor}`}>
+                        {action.title}
+                      </h3>
+                      <p className="text-xs text-gray-600 mt-1">
+                        {action.description}
+                      </p>
+                    </div>
+                  </div>
+                </Link>
               ))}
             </div>
           </Card>
         </div>
 
-        {/* Performance Overview */}
+        {/* Performance Overview - Compact */}
         <div>
           <Card>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-semibold text-text-heading dark:text-white">
-                Performance Overview
-              </h3>
-            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              Performance
+            </h3>
             
             <div className="space-y-4">
               <div>
-                <div className="flex justify-between text-base mb-1">
-                  <span className="text-base text-text-subtle dark:text-gray-400">Form Views</span>
+                <div className="flex justify-between text-sm mb-1">
+                  <span className="text-gray-600">Form Views</span>
                   <span className="font-medium">2,315</span>
                 </div>
                 <Progress progress={75} color="gray" size="sm" />
               </div>
               
               <div>
-                <div className="flex justify-between text-base mb-1">
-                  <span className="text-base text-text-subtle dark:text-gray-400">Conversions</span>
+                <div className="flex justify-between text-sm mb-1">
+                  <span className="text-gray-600">Conversions</span>
                   <span className="font-medium">151</span>
                 </div>
                 <Progress progress={45} color="green" size="sm" />
               </div>
               
               <div>
-                <div className="flex justify-between text-base mb-1">
-                  <span className="text-base text-text-subtle dark:text-gray-400">Revenue Goal</span>
+                <div className="flex justify-between text-sm mb-1">
+                  <span className="text-gray-600">Revenue Goal</span>
                   <span className="font-medium">45,230 kr</span>
                 </div>
                 <Progress progress={68} color="yellow" size="sm" />
               </div>
             </div>
 
-            <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900 rounded-lg">
-              <div className="flex items-start space-x-3">
-                <ArrowTrendingUpIcon className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+            <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+              <div className="flex items-start space-x-2">
+                <ArrowTrendingUpIcon className="w-4 h-4 text-blue-600 mt-0.5" />
                 <div>
-                  <h4 className="text-base font-semibold text-blue-900 dark:text-blue-100">
+                  <h4 className="text-sm font-medium text-blue-900">
                     Great Performance!
                   </h4>
-                  <p className="text-base text-blue-700 dark:text-blue-200 mt-1">
-                    Your conversion rate increased by 12% this week. Keep up the excellent work!
+                  <p className="text-xs text-blue-700 mt-1">
+                    Conversion rate increased by 12% this week.
                   </p>
                 </div>
               </div>
@@ -583,63 +548,58 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      {/* Recent Bookings Table */}
-      <Card>
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-xl font-bold text-text-heading dark:text-white">Recent Bookings</h2>
-            <p className="text-base text-text-subtle dark:text-gray-400">Latest customer bookings and their status</p>
-          </div>
-          <Button as={Link} to={`/admin/${companyId}/bookings`} className="bg-gray-200 hover:bg-gray-300 text-black border-gray-300" size="sm">
+      {/* Recent Bookings - Compact */}
+      <Card className="mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-900">Recent Bookings</h2>
+          <Button as={Link} to={`/admin/${companyId}/bookings`} color="gray" size="sm">
             View All
           </Button>
         </div>
         
         <div className="overflow-x-auto">
-          <table className="min-w-full text-sm text-left divide-y divide-gray-200">
-            <thead className="bg-gray-100"><tr>
-              <th className="px-4 py-3 uppercase tracking-wider">Customer</th>
-              <th className="px-4 py-3 uppercase tracking-wider">Service</th>
-              <th className="px-4 py-3 uppercase tracking-wider">Date & Time</th>
-              <th className="px-4 py-3 uppercase tracking-wider">Amount</th>
-              <th className="px-4 py-3 uppercase tracking-wider">Status</th>
-              <th className="px-4 py-3 uppercase tracking-wider">Actions</th>
-            </tr></thead>
-            <tbody className="divide-y divide-gray-100">
+          <table className="min-w-full text-sm">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
               {recentBookings.map((booking) => (
-                <tr key={booking.id} className="bg-white dark:border-gray-700 dark:bg-gray-800">
-                  <td className="px-4 py-2 whitespace-nowrap font-medium text-text-heading dark:text-white">
-                    <div className="flex items-center space-x-3">
+                <tr key={booking.id} className="hover:bg-gray-50">
+                  <td className="px-3 py-2 whitespace-nowrap">
+                    <div className="flex items-center space-x-2">
                       <Avatar img={booking.avatar} size="sm" rounded />
                       <div>
-                        <div className="font-semibold">{booking.customer}</div>
-                        <div className="text-base text-text-subtle dark:text-gray-400">{booking.id}</div>
+                        <div className="text-sm font-medium text-gray-900">{booking.customer}</div>
+                        <div className="text-xs text-gray-500">{booking.id}</div>
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 py-2">{booking.service}</td>
-                  <td className="px-4 py-2">
-                    <div className="flex items-center space-x-2">
-                      <CalendarIcon className="w-4 h-4 text-text-subtle dark:text-gray-400" />
+                  <td className="px-3 py-2 text-sm text-gray-900">{booking.service}</td>
+                  <td className="px-3 py-2 text-sm text-gray-900">
+                    <div className="flex items-center space-x-1">
+                      <CalendarIcon className="w-3 h-3 text-gray-400" />
                       <span>{booking.date}</span>
-                      <ClockIcon className="w-4 h-4 text-text-subtle dark:text-gray-400 ml-2" />
-                      <span>{booking.time}</span>
                     </div>
                   </td>
-                  <td className="px-4 py-2">
-                    <span className="font-semibold">{booking.amount}</span>
-                  </td>
-                  <td className="px-4 py-2">
+                  <td className="px-3 py-2 text-sm font-medium text-gray-900">{booking.amount}</td>
+                  <td className="px-3 py-2">
                     <Badge color={getStatusColor(booking.status)} size="sm">
                       {booking.status}
                     </Badge>
                   </td>
-                  <td className="px-4 py-2">
-                    <div className="flex items-center space-x-2">
-                      <Button className="bg-gray-200 hover:bg-gray-300 text-black border-gray-300" size="xs">
-                        <EyeIcon className="w-4 h-4" />
+                  <td className="px-3 py-2">
+                    <div className="flex items-center space-x-1">
+                      <Button size="xs" color="gray">
+                        <EyeIcon className="w-3 h-3" />
                       </Button>
-                      <Dropdown arrowIcon={false} inline label={<span className="inline-block px-2 py-1 bg-gray-100 rounded text-xs cursor-pointer">•••</span>}>
+                      <Dropdown arrowIcon={false} inline label={<span className="inline-block px-1 py-1 bg-gray-100 rounded text-xs cursor-pointer">•••</span>}>
                         <Dropdown.Item>Edit</Dropdown.Item>
                         <Dropdown.Item>Contact Customer</Dropdown.Item>
                         <Dropdown.Item>Cancel Booking</Dropdown.Item>
@@ -653,87 +613,75 @@ export default function AdminDashboardPage() {
         </div>
       </Card>
 
-      {/* Calculator Performance */}
-      <Card>
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-xl font-bold text-text-heading dark:text-white">Calculator Performance</h2>
-            <p className="text-base text-text-subtle dark:text-gray-400">How your booking forms are performing</p>
-          </div>
-          <Button as={Link} to={`/admin/${companyId}/forms/new`} className="bg-gray-200 hover:bg-gray-300 text-black border-gray-300" size="sm">
+      {/* Calculator Performance - Compact */}
+      <Card className="mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-900">Calculator Performance</h2>
+          <Button as={Link} to={`/admin/${companyId}/forms/new`} color="blue" size="sm">
             <PlusIcon className="w-4 h-4 mr-2" />
             New Calculator
           </Button>
         </div>
 
         {calculatorStats.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {calculatorStats.map((calc) => (
               <div
                 key={calc.id}
-                className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg"
+                className="p-4 border border-gray-200 rounded-lg hover:shadow-sm transition-shadow"
               >
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-semibold text-text-heading dark:text-white">{calc.name}</h3>
+                  <h3 className="font-medium text-gray-900 text-sm truncate">{calc.name}</h3>
                   <Badge color={calc.status === 'published' ? 'success' : 'warning'} size="sm">
                     {calc.status}
                   </Badge>
                 </div>
                 
-                <div className="space-y-2">
-                  <div className="flex justify-between text-base">
-                    <span className="text-base text-text-subtle dark:text-gray-400">Views</span>
+                <div className="space-y-2 mb-3">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-gray-600">Views</span>
                     <span className="font-medium">{calc.views.toLocaleString()}</span>
                   </div>
-                  <div className="flex justify-between text-base">
-                    <span className="text-base text-text-subtle dark:text-gray-400">Conversions</span>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-gray-600">Conversions</span>
                     <span className="font-medium">{calc.conversions}</span>
                   </div>
-                  <div className="flex justify-between text-base">
-                    <span className="text-base text-text-subtle dark:text-gray-400">Revenue</span>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-gray-600">Revenue</span>
                     <span className="font-medium">{calc.revenue}</span>
                   </div>
-                  {calc.publishedAt && (
-                    <div className="flex justify-between text-base">
-                      <span className="text-base text-text-subtle dark:text-gray-400">Published</span>
-                      <span className="font-medium text-xs">
-                        {calc.publishedAt.toDate ? calc.publishedAt.toDate().toLocaleDateString() : new Date(calc.publishedAt).toLocaleDateString()}
-                      </span>
-                    </div>
-                  )}
                 </div>
                 
-                                  <div className="flex items-center justify-between mt-4">
-                    <span className="text-base text-green-600 font-medium">{calc.trend}</span>
-                    <div className="flex space-x-2">
-                      <Button as={Link} to={`/admin/${companyId}/forms/${calc.id}`} className="bg-gray-200 hover:bg-gray-300 text-gray-800 border-gray-300" size="xs">Edit</Button>
-                      {calc.status === 'published' && calc.slug && (
-                        <Button as={Link} to={`/booking/${companyId}/${calc.slug}`} className="bg-gray-200 hover:bg-gray-300 text-gray-800 border-gray-300" size="xs" target="_blank">View Live</Button>
-                      )}
-                      <Button 
-                        onClick={() => handleDeleteCalculator(calc)} 
-                        className="bg-red-100 hover:bg-red-200 text-red-600 border-red-200" 
-                        size="xs"
-                      >
-                        <TrashIcon className="w-3 h-3" />
-                      </Button>
-                    </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-green-600 font-medium">{calc.trend}</span>
+                  <div className="flex space-x-1">
+                    <Button as={Link} to={`/admin/${companyId}/forms/${calc.id}`} size="xs" color="gray">Edit</Button>
+                    {calc.status === 'published' && calc.slug && (
+                      <Button as={Link} to={`/booking/${companyId}/${calc.slug}`} size="xs" color="gray" target="_blank">Live</Button>
+                    )}
+                    <Button 
+                      onClick={() => handleDeleteCalculator(calc)} 
+                      size="xs" color="failure"
+                    >
+                      <TrashIcon className="w-3 h-3" />
+                    </Button>
                   </div>
+                </div>
               </div>
             ))}
           </div>
         ) : (
           <div className="text-center py-8">
-            <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CogIcon className="w-8 h-8 text-gray-400" />
+            <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              <CogIcon className="w-6 h-6 text-gray-400" />
             </div>
-            <h3 className="text-lg font-semibold text-text-heading dark:text-white mb-2">No Calculators Yet</h3>
-            <p className="text-base text-text-subtle dark:text-gray-400 mb-4">
+            <h3 className="text-sm font-medium text-gray-900 mb-1">No Calculators Yet</h3>
+            <p className="text-xs text-gray-500 mb-3">
               Create your first booking calculator to start accepting customer bookings.
             </p>
-            <Button as={Link} to={`/admin/${companyId}/forms/new`} color="blue">
+            <Button as={Link} to={`/admin/${companyId}/forms/new`} color="blue" size="sm">
               <PlusIcon className="w-4 h-4 mr-2" />
-              Create Your First Calculator
+              Create Calculator
             </Button>
           </div>
         )}

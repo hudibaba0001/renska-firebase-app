@@ -32,6 +32,7 @@
     "react-hot-toast": "^2.5.2",
     "react-i18next": "^15.6.0",
     "react-router-dom": "^7.6.3",
+    "regenerator-runtime": "^0.14.1",
     "stripe": "^18.3.0"
   },
   "devDependencies": {

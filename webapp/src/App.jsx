@@ -90,10 +90,15 @@ export default function App() {
           <Route path="bookings" element={<BookingManagementPage />} />
             <Route path="analytics" element={<AdminAnalyticsPage />} />
             <Route path="customers" element={<CustomersPage />} />
-            <Route path="crm/*" element={<CRMApp />} />
           <Route path="payment-settings" element={<AdminPaymentSettings />} /> {/* CORRECTED ROUTE */}
           <Route path="coupons" element={<AdminCouponsPage />} />
           </Route>
+
+        {/* CRM route is now isolated to prevent double sidebar */}
+        <Route
+          path="/admin/:companyId/crm/*"
+          element={<CRMApp />}
+        />
 
           {/* Legacy Admin Routes */}
         <Route
@@ -112,6 +117,9 @@ export default function App() {
             </RequireAuth>
           }
         />
+        
+        {/* Catch-all route for unmatched paths */}
+        <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         
         {/* Toast notifications */}

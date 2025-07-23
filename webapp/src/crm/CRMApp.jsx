@@ -123,14 +123,9 @@ const CRMApp = () => {
         layout={CRMLayout}
         title="Reniska CRM"
         disableTelemetry
+        dashboard={Dashboard}
+        basename={`/admin/${companyId}/crm`}
       >
-        {/* Dashboard */}
-        <Resource 
-          name="dashboard" 
-          list={Dashboard}
-          icon={HomeIcon}
-          options={{ label: 'Dashboard' }}
-        />
 
         {/* Customers */}
         <Resource 

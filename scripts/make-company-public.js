@@ -1,34 +1,35 @@
 // scripts/make-company-public.js
-const { initializeApp } = require('firebase/app');
-const { getFirestore, doc, updateDoc } = require('firebase/firestore');
+const firebase = require('firebase/compat/app');
+require('firebase/compat/firestore');
 
-// Firebase configuration
+console.log('🔧 Using Firebase v8 compat init.js');
+
 const firebaseConfig = {
-  apiKey: process.env.VITE_FIREBASE_API_KEY,
-  authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.VITE_FIREBASE_APP_ID
+  apiKey: "AIzaSyBTrOmWHj0iQH2mkcNjUrD0IVKVnioHYbs",
+  authDomain: "swed-de2a3.firebaseapp.com",
+  projectId: "swed-de2a3",
+  storageBucket: "swed-de2a3.firebasestorage.app",
+  messagingSenderId: "647686291389",
+  appId: "1:647686291389:web:2306e61c2b196be2e51cd4",
+  measurementId: "G-QQCGCERGV3"
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
+
+const db = firebase.firestore();
 
 async function makeCompanyPublic(companyId) {
   try {
     console.log(`🔧 Making company ${companyId} public...`);
-    
-    const companyRef = doc(db, 'companies', companyId);
-    await updateDoc(companyRef, {
+    const companyRef = db.collection('companies').doc(companyId);
+    await companyRef.update({
       isPublic: true,
       updatedAt: new Date()
     });
-    
     console.log(`✅ Company ${companyId} is now public!`);
     console.log(`🌐 Public booking form available at: https://staging-swed-de2a3.web.app/booking/${companyId}`);
-    
   } catch (error) {
     console.error('❌ Error making company public:', error);
     throw error;
