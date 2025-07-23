@@ -39,7 +39,29 @@ import {
 // Custom layout for CRM
 import CRMLayout from './components/CRMLayout';
 
-const Dashboard = () => <div>CRM Dashboard</div>;
+const Dashboard = () => (
+  <div style={{ padding: 32 }}>
+    <h1 style={{ fontSize: '2rem', marginBottom: '1rem' }}>CRM Dashboard</h1>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
+      <div style={{ padding: '1rem', border: '1px solid #ddd', borderRadius: '8px' }}>
+        <h3>Customers</h3>
+        <p>Manage your customer relationships</p>
+      </div>
+      <div style={{ padding: '1rem', border: '1px solid #ddd', borderRadius: '8px' }}>
+        <h3>Leads</h3>
+        <p>Track potential customers</p>
+      </div>
+      <div style={{ padding: '1rem', border: '1px solid #ddd', borderRadius: '8px' }}>
+        <h3>Deals</h3>
+        <p>Monitor sales opportunities</p>
+      </div>
+      <div style={{ padding: '1rem', border: '1px solid #ddd', borderRadius: '8px' }}>
+        <h3>Tasks</h3>
+        <p>Manage your activities</p>
+      </div>
+    </div>
+  </div>
+);
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -51,7 +73,6 @@ class ErrorBoundary extends React.Component {
   }
   componentDidCatch(error, errorInfo) {
     this.setState({ errorInfo });
-    // Log error to console for debugging
     console.error('CRMApp ErrorBoundary:', error, errorInfo);
   }
   render() {
