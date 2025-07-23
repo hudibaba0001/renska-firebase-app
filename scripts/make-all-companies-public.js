@@ -1,15 +1,24 @@
 // scripts/make-all-companies-public.js
-const admin = require('firebase-admin');
+const firebase = require('firebase/compat/app');
+require('firebase/compat/firestore');
 
-// Initialize Firebase Admin SDK
-const serviceAccount = require('../webapp/src/firebase/serviceAccountKey.json');
+console.log('🔧 Using Firebase v8 compat init.js');
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-  projectId: 'swed-de2a3'
-});
+const firebaseConfig = {
+  apiKey: "AIzaSyBTrOmWHj0iQH2mkcNjUrD0IVKVnioHYbs",
+  authDomain: "swed-de2a3.firebaseapp.com",
+  projectId: "swed-de2a3",
+  storageBucket: "swed-de2a3.firebasestorage.app",
+  messagingSenderId: "647686291389",
+  appId: "1:647686291389:web:2306e61c2b196be2e51cd4",
+  measurementId: "G-QQCGCERGV3"
+};
 
-const db = admin.firestore();
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
+
+const db = firebase.firestore();
 
 async function makeAllCompaniesPublic() {
   try {
@@ -26,21 +35,20 @@ async function makeAllCompaniesPublic() {
     console.log(`📊 Found ${companiesSnapshot.size} companies`);
     
     // Update each company
-    const batch = db.batch();
     let updatedCount = 0;
     
-    companiesSnapshot.forEach(doc => {
-      const companyRef = db.collection('companies').doc(doc.id);
-      batch.update(companyRef, {
-        isPublic: true,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp()
-      });
-      updatedCount++;
-      console.log(`✅ Queued update for company: ${doc.id}`);
-    });
-    
-    // Commit all updates
-    await batch.commit();
+    for (const doc of companiesSnapshot.docs) {
+      try {
+        await doc.ref.update({
+          isPublic: true,
+          updatedAt: new Date()
+        });
+        updatedCount++;
+        console.log(`✅ Updated company: ${doc.id}`);
+      } catch (error) {
+        console.error(`❌ Failed to update company ${doc.id}:`, error.message);
+      }
+    }
     
     console.log(`🎉 Successfully made ${updatedCount} companies public!`);
     console.log(`🌐 All companies now have public booking forms available`);

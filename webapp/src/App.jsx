@@ -97,7 +97,13 @@ export default function App() {
         {/* CRM route is now isolated to prevent double sidebar */}
         <Route
           path="/admin/:companyId/crm/*"
-          element={<CRMApp />}
+          element={
+            <RequireAuth>
+              <RequireCompanyAccess>
+                <CRMApp />
+              </RequireCompanyAccess>
+            </RequireAuth>
+          }
         />
 
           {/* Legacy Admin Routes */}

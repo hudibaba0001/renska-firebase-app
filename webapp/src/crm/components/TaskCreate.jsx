@@ -4,11 +4,11 @@ import { Create, SimpleForm, TextInput, SelectInput, DateInput } from 'react-adm
 const TaskCreate = () => (
   <Create>
     <SimpleForm>
-      <TextInput source="title" label="Title" required />
-      <TextInput source="description" label="Description" multiline rows={4} />
+      <TextInput source="title" label="Task Title" required />
+      <TextInput source="description" label="Description" multiline rows={3} />
       <SelectInput 
         source="status" 
-        label="Status"
+        label="Status" 
         choices={[
           { id: 'pending', name: 'Pending' },
           { id: 'in-progress', name: 'In Progress' },
@@ -18,7 +18,7 @@ const TaskCreate = () => (
       />
       <SelectInput 
         source="priority" 
-        label="Priority"
+        label="Priority" 
         choices={[
           { id: 'low', name: 'Low' },
           { id: 'medium', name: 'Medium' },
@@ -26,6 +26,7 @@ const TaskCreate = () => (
           { id: 'urgent', name: 'Urgent' }
         ]}
       />
+      <TextInput source="assignedTo" label="Assigned To" />
       <DateInput source="dueDate" label="Due Date" />
     </SimpleForm>
   </Create>
