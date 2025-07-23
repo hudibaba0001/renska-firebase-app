@@ -95,12 +95,10 @@ export const AddCustomerModal = ({
         ...newAddress,
         id: `addr_${Date.now()}`
       };
-      
       setNewCustomer(prev => ({
         ...prev,
         addresses: [...prev.addresses, addressToAdd]
       }));
-      
       setNewAddress({
         type: 'primary',
         street: '',
@@ -119,376 +117,202 @@ export const AddCustomerModal = ({
     }));
   };
 
+  if (!show) return null;
+
   return (
-    <Modal show={show} onClose={handleClose} size="4xl">
-      <Modal.Header>Lägg till ny kund</Modal.Header>
-      <Modal.Body>
-        <Tabs>
-          <Tabs.Item active title="Grundläggande" icon={UserIcon}>
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Namn *
-                  </label>
-                  <TextInput
-                    value={newCustomer.name}
-                    onChange={(e) => setNewCustomer(prev => ({ ...prev, name: e.target.value }))}
-                    placeholder="Kundens namn"
-                  />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+      <div className="bg-white rounded-lg shadow-lg w-full max-w-3xl p-6 relative">
+        <button onClick={handleClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 text-2xl">&times;</button>
+        <h2 className="text-xl font-semibold mb-4">Lägg till ny kund</h2>
+        <form onSubmit={e => { e.preventDefault(); onAddCustomer(); handleClose(); }}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Namn *</label>
+              <input
+                className="w-full border rounded px-3 py-2"
+                value={newCustomer.name}
+                onChange={e => setNewCustomer(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="Kundens namn"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">E-post *</label>
+              <input
+                type="email"
+                className="w-full border rounded px-3 py-2"
+                value={newCustomer.email}
+                onChange={e => setNewCustomer(prev => ({ ...prev, email: e.target.value }))}
+                placeholder="kund@example.com"
+                required
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Telefon</label>
+              <input
+                className="w-full border rounded px-3 py-2"
+                value={newCustomer.phone}
+                onChange={e => setNewCustomer(prev => ({ ...prev, phone: e.target.value }))}
+                placeholder="070-123 45 67"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Kundtyp</label>
+              <select
+                className="w-full border rounded px-3 py-2"
+                value={newCustomer.customerType}
+                onChange={e => setNewCustomer(prev => ({ ...prev, customerType: e.target.value }))}
+              >
+                <option value="private">Privat</option>
+                <option value="business">Företag</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+              <select
+                className="w-full border rounded px-3 py-2"
+                value={newCustomer.status}
+                onChange={e => setNewCustomer(prev => ({ ...prev, status: e.target.value }))}
+              >
+                <option value="lead">Lead</option>
+                <option value="prospect">Prospekt</option>
+                <option value="active">Aktiv</option>
+                <option value="inactive">Inaktiv</option>
+              </select>
+            </div>
+          </div>
+          {/* Tags Section */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Taggar</label>
+            <div className="flex flex-wrap gap-2 mb-2">
+              {newCustomer.tags.map((tag, idx) => (
+                <span key={idx} className="bg-blue-100 text-blue-700 px-2 py-1 rounded flex items-center">
+                  {tag}
+                  <button type="button" className="ml-1 text-red-500" onClick={() => removeTag(tag)}>&times;</button>
+                </span>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <input
+                className="border rounded px-3 py-2 flex-1"
+                value={newTag}
+                onChange={e => setNewTag(e.target.value)}
+                placeholder="Ny tagg..."
+                onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addTag())}
+              />
+              <button type="button" className="bg-blue-500 text-white px-3 py-2 rounded" onClick={addTag} disabled={!newTag.trim()}>Lägg till</button>
+            </div>
+          </div>
+          {/* Addresses Section */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Adresser</label>
+            <div className="flex flex-col gap-2 mb-2">
+              {newCustomer.addresses.map(addr => (
+                <div key={addr.id} className="flex items-center gap-2 bg-gray-100 px-2 py-1 rounded">
+                  <span>{addr.street}, {addr.city}, {addr.postalCode}, {addr.country}</span>
+                  <button type="button" className="text-red-500" onClick={() => removeAddress(addr.id)}>&times;</button>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    E-post *
-                  </label>
-                  <TextInput
-                    type="email"
-                    value={newCustomer.email}
-                    onChange={(e) => setNewCustomer(prev => ({ ...prev, email: e.target.value }))}
-                    placeholder="kund@example.com"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Telefon
-                  </label>
-                  <TextInput
-                    value={newCustomer.phone}
-                    onChange={(e) => setNewCustomer(prev => ({ ...prev, phone: e.target.value }))}
-                    placeholder="070-123 45 67"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Kundtyp
-                  </label>
-                  <Select
-                    value={newCustomer.customerType}
-                    onChange={(e) => setNewCustomer(prev => ({ ...prev, customerType: e.target.value }))}
-                  >
-                    <option value="private">Privat</option>
-                    <option value="business">Företag</option>
-                  </Select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Status
-                  </label>
-                  <Select
-                    value={newCustomer.status}
-                    onChange={(e) => setNewCustomer(prev => ({ ...prev, status: e.target.value }))}
-                  >
-                    <option value="lead">Lead</option>
-                    <option value="prospect">Prospekt</option>
-                    <option value="active">Aktiv</option>
-                    <option value="inactive">Inaktiv</option>
-                  </Select>
-                </div>
-              </div>
-
+              ))}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+              <input
+                className="border rounded px-3 py-2"
+                value={newAddress.street}
+                onChange={e => setNewAddress(prev => ({ ...prev, street: e.target.value }))}
+                placeholder="Gata"
+              />
+              <input
+                className="border rounded px-3 py-2"
+                value={newAddress.city}
+                onChange={e => setNewAddress(prev => ({ ...prev, city: e.target.value }))}
+                placeholder="Stad"
+              />
+              <input
+                className="border rounded px-3 py-2"
+                value={newAddress.postalCode}
+                onChange={e => setNewAddress(prev => ({ ...prev, postalCode: e.target.value }))}
+                placeholder="Postnummer"
+              />
+              <button type="button" className="bg-green-500 text-white px-3 py-2 rounded" onClick={addAddress}>Lägg till adress</button>
+            </div>
+          </div>
+          {/* Preferences Section */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Preferenser</label>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Källa
-                </label>
-                <Select
-                  value={newCustomer.source}
-                  onChange={(e) => setNewCustomer(prev => ({ ...prev, source: e.target.value }))}
+                <label className="block text-xs text-gray-500 mb-1">Kontaktmetod</label>
+                <select
+                  className="w-full border rounded px-3 py-2"
+                  value={newCustomer.preferences.preferredContactMethod}
+                  onChange={e => setNewCustomer(prev => ({ ...prev, preferences: { ...prev.preferences, preferredContactMethod: e.target.value } }))}
                 >
-                  <option value="manual">Manuell</option>
-                  <option value="booking">Bokning</option>
-                  <option value="website">Webbplats</option>
-                  <option value="referral">Rekommendation</option>
-                  <option value="social">Sociala medier</option>
-                  <option value="advertisement">Annons</option>
-                </Select>
+                  <option value="email">E-post</option>
+                  <option value="phone">Telefon</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Tid</label>
+                <select
+                  className="w-full border rounded px-3 py-2"
+                  value={newCustomer.preferences.preferredTime}
+                  onChange={e => setNewCustomer(prev => ({ ...prev, preferences: { ...prev.preferences, preferredTime: e.target.value } }))}
+                >
+                  <option value="morning">Morgon</option>
+                  <option value="afternoon">Eftermiddag</option>
+                  <option value="evening">Kväll</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Husdjur</label>
+                <input
+                  type="checkbox"
+                  checked={!!newCustomer.preferences.pets}
+                  onChange={e => setNewCustomer(prev => ({ ...prev, preferences: { ...prev.preferences, pets: e.target.checked } }))}
+                  className="mr-2"
+                />
+                <span>Ja</span>
               </div>
             </div>
-          </Tabs.Item>
-
-          <Tabs.Item title="Adresser" icon={MapPinIcon}>
-            <div className="space-y-4">
-              {/* Existing Addresses */}
-              {newCustomer.addresses.length > 0 && (
-                <div>
-                  <h4 className="text-sm font-medium text-gray-700 mb-2">Befintliga adresser</h4>
-                  <div className="space-y-2">
-                    {newCustomer.addresses.map((address) => (
-                      <div key={address.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <Badge color="info" size="sm">{address.type}</Badge>
-                            {address.isDefault && <Badge color="success" size="sm">Standard</Badge>}
-                          </div>
-                          <p className="text-sm">
-                            {address.street && `${address.street}, `}
-                            {address.postalCode && `${address.postalCode} `}
-                            {address.city}
-                            {address.country && `, ${address.country}`}
-                          </p>
-                        </div>
-                        <Button
-                          size="sm"
-                          color="failure"
-                          onClick={() => removeAddress(address.id)}
-                        >
-                          <XMarkIcon className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Add New Address */}
-              <div className="border-t pt-4">
-                <h4 className="text-sm font-medium text-gray-700 mb-3">Lägg till adress</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Typ
-                    </label>
-                    <Select
-                      value={newAddress.type}
-                      onChange={(e) => setNewAddress(prev => ({ ...prev, type: e.target.value }))}
-                    >
-                      <option value="primary">Primär</option>
-                      <option value="billing">Fakturering</option>
-                      <option value="service">Service</option>
-                    </Select>
-                  </div>
-                  <div className="flex items-end">
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={newAddress.isDefault}
-                        onChange={(e) => setNewAddress(prev => ({ ...prev, isDefault: e.target.checked }))}
-                        className="mr-2"
-                      />
-                      <span className="text-sm text-gray-700">Standardadress</span>
-                    </label>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Gatuadress
-                    </label>
-                    <TextInput
-                      value={newAddress.street}
-                      onChange={(e) => setNewAddress(prev => ({ ...prev, street: e.target.value }))}
-                      placeholder="Storgatan 123"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Stad
-                    </label>
-                    <TextInput
-                      value={newAddress.city}
-                      onChange={(e) => setNewAddress(prev => ({ ...prev, city: e.target.value }))}
-                      placeholder="Stockholm"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Postnummer
-                    </label>
-                    <TextInput
-                      value={newAddress.postalCode}
-                      onChange={(e) => setNewAddress(prev => ({ ...prev, postalCode: e.target.value }))}
-                      placeholder="123 45"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Land
-                    </label>
-                    <TextInput
-                      value={newAddress.country}
-                      onChange={(e) => setNewAddress(prev => ({ ...prev, country: e.target.value }))}
-                      placeholder="Sweden"
-                    />
-                  </div>
-                </div>
-
-                <Button
-                  onClick={addAddress}
-                  disabled={!newAddress.street && !newAddress.city}
-                  className="mt-4"
-                  size="sm"
-                >
-                  <PlusIcon className="w-4 h-4 mr-2" />
-                  Lägg till adress
-                </Button>
-              </div>
-            </div>
-          </Tabs.Item>
-
-          <Tabs.Item title="Preferenser" icon={StarIcon}>
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Föredragen kontaktmetod
-                  </label>
-                  <Select
-                    value={newCustomer.preferences.preferredContactMethod}
-                    onChange={(e) => setNewCustomer(prev => ({
-                      ...prev,
-                      preferences: { ...prev.preferences, preferredContactMethod: e.target.value }
-                    }))}
-                  >
-                    <option value="email">E-post</option>
-                    <option value="phone">Telefon</option>
-                    <option value="sms">SMS</option>
-                  </Select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Föredragen tid
-                  </label>
-                  <Select
-                    value={newCustomer.preferences.preferredTime}
-                    onChange={(e) => setNewCustomer(prev => ({
-                      ...prev,
-                      preferences: { ...prev.preferences, preferredTime: e.target.value }
-                    }))}
-                  >
-                    <option value="morning">Morgon</option>
-                    <option value="afternoon">Eftermiddag</option>
-                    <option value="evening">Kväll</option>
-                  </Select>
-                </div>
-              </div>
-
+            <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Särskilda instruktioner
-                </label>
-                <Textarea
-                  value={newCustomer.preferences.specialInstructions}
-                  onChange={(e) => setNewCustomer(prev => ({
-                    ...prev,
-                    preferences: { ...prev.preferences, specialInstructions: e.target.value }
-                  }))}
-                  placeholder="Särskilda instruktioner för städning..."
-                  rows={3}
+                <label className="block text-xs text-gray-500 mb-1">Allergier</label>
+                <input
+                  className="w-full border rounded px-3 py-2"
+                  value={newCustomer.preferences.allergies}
+                  onChange={e => setNewCustomer(prev => ({ ...prev, preferences: { ...prev.preferences, allergies: e.target.value } }))}
+                  placeholder="Allergier"
                 />
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Allergier
-                  </label>
-                  <TextInput
-                    value={newCustomer.preferences.allergies}
-                    onChange={(e) => setNewCustomer(prev => ({
-                      ...prev,
-                      preferences: { ...prev.preferences, allergies: e.target.value }
-                    }))}
-                    placeholder="Allergier att tänka på..."
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Tillträdesinstruktioner
-                  </label>
-                  <TextInput
-                    value={newCustomer.preferences.accessInstructions}
-                    onChange={(e) => setNewCustomer(prev => ({
-                      ...prev,
-                      preferences: { ...prev.preferences, accessInstructions: e.target.value }
-                    }))}
-                    placeholder="Kod, nyckel, etc..."
-                  />
-                </div>
-              </div>
-
               <div>
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={newCustomer.preferences.pets}
-                    onChange={(e) => setNewCustomer(prev => ({
-                      ...prev,
-                      preferences: { ...prev.preferences, pets: e.target.checked }
-                    }))}
-                    className="mr-2"
-                  />
-                  <span className="text-sm text-gray-700">Husdjur i hemmet</span>
-                </label>
+                <label className="block text-xs text-gray-500 mb-1">Speciella instruktioner</label>
+                <input
+                  className="w-full border rounded px-3 py-2"
+                  value={newCustomer.preferences.specialInstructions}
+                  onChange={e => setNewCustomer(prev => ({ ...prev, preferences: { ...prev.preferences, specialInstructions: e.target.value } }))}
+                  placeholder="Instruktioner"
+                />
               </div>
             </div>
-          </Tabs.Item>
-
-          <Tabs.Item title="Taggar" icon={TagIcon}>
-            <div className="space-y-4">
-              {/* Existing Tags */}
-              {newCustomer.tags.length > 0 && (
-                <div>
-                  <h4 className="text-sm font-medium text-gray-700 mb-2">Befintliga taggar</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {newCustomer.tags.map((tag, index) => (
-                      <Badge key={index} color="info" className="flex items-center gap-1">
-                        {tag}
-                        <button
-                          onClick={() => removeTag(tag)}
-                          className="ml-1 hover:text-red-500"
-                        >
-                          <XMarkIcon className="w-3 h-3" />
-                        </button>
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Add New Tag */}
-              <div className="border-t pt-4">
-                <h4 className="text-sm font-medium text-gray-700 mb-2">Lägg till tagg</h4>
-                <div className="flex gap-2">
-                  <TextInput
-                    value={newTag}
-                    onChange={(e) => setNewTag(e.target.value)}
-                    placeholder="Ny tagg..."
-                    onKeyPress={(e) => e.key === 'Enter' && addTag()}
-                    className="flex-1"
-                  />
-                  <Button onClick={addTag} disabled={!newTag.trim()} size="sm">
-                    <PlusIcon className="w-4 h-4" />
-                  </Button>
-                </div>
-                <p className="text-xs text-gray-500 mt-1">
-                  Tryck Enter eller klicka på + för att lägga till taggen
-                </p>
-              </div>
+            <div className="mt-2">
+              <label className="block text-xs text-gray-500 mb-1">Portkod / Access</label>
+              <input
+                className="w-full border rounded px-3 py-2"
+                value={newCustomer.preferences.accessInstructions}
+                onChange={e => setNewCustomer(prev => ({ ...prev, preferences: { ...prev.preferences, accessInstructions: e.target.value } }))}
+                placeholder="Portkod eller accessinstruktioner"
+              />
             </div>
-          </Tabs.Item>
-        </Tabs>
-      </Modal.Body>
-      <Modal.Footer>
-        <Button onClick={handleClose} color="gray">
-          Avbryt
-        </Button>
-        <Button 
-          onClick={() => {
-            onAddCustomer();
-            handleClose();
-          }}
-          disabled={!newCustomer.name || !newCustomer.email}
-        >
-          Skapa kund
-        </Button>
-      </Modal.Footer>
-    </Modal>
+          </div>
+          <div className="flex justify-end gap-2 mt-6">
+            <button type="button" onClick={handleClose} className="bg-gray-200 text-gray-700 px-4 py-2 rounded">Avbryt</button>
+            <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded" disabled={!newCustomer.name || !newCustomer.email}>Skapa kund</button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 };
 

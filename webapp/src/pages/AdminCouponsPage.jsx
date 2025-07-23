@@ -25,7 +25,7 @@ import { useAuth } from '../hooks/useAuth';
 
 export default function AdminCouponsPage() {
   const { companyId } = useParams();
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, loading: authLoading } = useAuth();
   const [coupons, setCoupons] = useState([]);
   const [services, setServices] = useState([]);
   const [showCreateModal, setShowCreateModal] = useState(false);

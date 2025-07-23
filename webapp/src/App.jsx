@@ -27,6 +27,8 @@ import SuperAdminDashboardPage from './pages/SuperAdminDashboardPage';
 import UnauthorizedPage from './pages/UnauthorizedPage';
 import AdminCouponsPage from './pages/AdminCouponsPage';
 import CustomersPage from './pages/CustomersPage';
+import CRMApp from './crm/CRMApp';
+import BookingCalculator from './components/BookingCalculator';
 
 // Import Layout and Auth Components
 import AdminLayout from './components/AdminLayout';
@@ -51,6 +53,9 @@ export default function App() {
             <Route path="setup-super-admin" element={<SetupSuperAdminPage />} />
             <Route path="unauthorized" element={<UnauthorizedPage />} />
           </Route>
+
+          {/* Embeddable Calculator Route (Public, Minimal) */}
+          <Route path="/embed/calculator" element={<EmbedCalculatorWrapper />} />
 
           {/* Booking Routes (Public) */}
           <Route path="/booking/:companyId/:formSlug" element={<BookingPage />} />
@@ -85,6 +90,7 @@ export default function App() {
           <Route path="bookings" element={<BookingManagementPage />} />
             <Route path="analytics" element={<AdminAnalyticsPage />} />
             <Route path="customers" element={<CustomersPage />} />
+            <Route path="crm/*" element={<CRMApp />} />
           <Route path="payment-settings" element={<AdminPaymentSettings />} /> {/* CORRECTED ROUTE */}
           <Route path="coupons" element={<AdminCouponsPage />} />
           </Route>
@@ -196,3 +202,15 @@ function UserManagementPage() { return <div className="text-center p-8"><h2 clas
 
 function AdminAnalyticsPage() { return <div className="text-center p-8"><h2 className="text-xl font-bold">Analytics (Placeholder)</h2></div>; }
 function AdminCustomersPage() { return <CustomersPage />; }
+
+function EmbedCalculatorWrapper() {
+  // Get companyId from query string
+  const searchParams = new URLSearchParams(window.location.search);
+  const companyId = searchParams.get('companyId');
+  // Optionally, add more config from query params here
+  return (
+    <div style={{ background: 'white', minHeight: '100vh', padding: 0, margin: 0 }}>
+      <BookingCalculator companyId={companyId} />
+    </div>
+  );
+}

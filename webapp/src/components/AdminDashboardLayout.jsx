@@ -227,6 +227,13 @@ export default function AdminDashboardLayout() {
       description: 'Customer management'
     },
     {
+      label: 'CRM',
+      href: `/admin/${companyId}/crm`,
+      icon: UserGroupIcon,
+      badge: null,
+      description: 'Customer Relationship Management'
+    },
+    {
       label: 'Settings',
       href: `/admin/${companyId}/config`,
       icon: CogIcon,

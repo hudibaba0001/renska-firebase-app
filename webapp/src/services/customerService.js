@@ -475,20 +475,27 @@ export class CustomerService {
 
   /**
    * Sync customer data from booking (when a booking is created)
+   *
+   * Matching order:
+   *   1. By email (primary)
+   *   2. By phone number (secondary)
+   *   3. Create new customer if no match
    */
   static async syncFromBooking(companyId, bookingData) {
     try {
       const { customerName, customerEmail, customerPhone } = bookingData;
-      
-      if (!customerEmail) {
-        console.warn('No customer email in booking data');
+      if (!customerEmail && !customerPhone) {
+        console.warn('No customer email or phone in booking data');
         return null;
       }
-      
-      // Check if customer already exists
-      const customers = await this.searchCustomers(companyId, customerEmail);
-      const existingCustomer = customers.find(c => c.email === customerEmail);
-      
+      // Check if customer already exists by email
+      let customers = await this.searchCustomers(companyId, customerEmail);
+      let existingCustomer = customers.find(c => c.email === customerEmail);
+      // If not found by email, check by phone
+      if (!existingCustomer && customerPhone) {
+        customers = await this.searchCustomers(companyId, customerPhone);
+        existingCustomer = customers.find(c => c.phone === customerPhone);
+      }
       if (existingCustomer) {
         // Update existing customer with booking data
         const updates = {
@@ -497,11 +504,9 @@ export class CustomerService {
           lastBooking: serverTimestamp(),
           status: 'active'
         };
-        
         if (!existingCustomer.firstBooking) {
           updates.firstBooking = serverTimestamp();
         }
-        
         await this.updateCustomer(companyId, existingCustomer.id, updates, 'system');
         return existingCustomer.id;
       } else {
@@ -518,7 +523,6 @@ export class CustomerService {
           firstBooking: serverTimestamp(),
           lastBooking: serverTimestamp()
         };
-        
         const createdCustomer = await this.createCustomer(companyId, newCustomer, 'system');
         return createdCustomer.id;
       }
