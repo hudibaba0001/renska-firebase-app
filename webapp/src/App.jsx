@@ -40,7 +40,7 @@ import RequireCompanyAccess from './components/RequireCompanyAccess';
 
 export default function App() {
   return (
-    <div className="min-h-screen bg-background font-mono">
+    <div className="min-h-screen bg-background font-mono" style={{ height: '100vh', width: '100vw' }}>
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<PublicLayout />}>
@@ -223,7 +223,17 @@ function EmbedCalculatorWrapper() {
   const companyId = searchParams.get('companyId');
   // Optionally, add more config from query params here
   return (
-    <div style={{ background: 'white', minHeight: '100vh', padding: 0, margin: 0 }}>
+    <div style={{ 
+      background: 'white', 
+      height: '100vh', 
+      width: '100vw', 
+      padding: 0, 
+      margin: 0,
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      overflow: 'hidden'
+    }}>
       <BookingCalculator companyId={companyId} />
     </div>
   );

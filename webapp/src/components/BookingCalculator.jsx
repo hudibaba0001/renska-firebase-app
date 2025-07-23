@@ -1427,7 +1427,7 @@ export default function BookingCalculator({ config: propConfig, companyId: propC
   if (!config) return <div>Ingen konfiguration hittades.</div>;
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4">
+    <div className="w-full">
       {/* Step 1: Zip Code - Clean, integrated form like Hemfrid */}
       {step === 1 && (
         <div className="text-center py-12">
@@ -1478,39 +1478,37 @@ export default function BookingCalculator({ config: propConfig, companyId: propC
         </div>
       )}
 
-      {/* Steps 3-4: Full-width layout for embedding */}
+      {/* Steps 3-4: Full-screen layout for iframe embedding */}
       {step >= 3 && (
-        <div className="py-8">
-          <div className="flex gap-8">
+        <div className="w-full h-screen min-h-screen">
+          <div className="flex h-full min-h-screen">
             {/* Left Column - Main Form */}
-            <div className="flex-1">
-              <div className="bg-transparent rounded-lg p-8">
-                {step === 3 && (
-                  <ServiceDetailsStep
-                    onNext={() => setStep(4)}
-                    onBack={() => setStep(2)}
-                    formData={formData}
-                    setFormData={setFormData}
-                    config={{ ...config, services: formServices }}
-                  />
-                )}
-                {step === 4 && (
-                  <CustomerInfoStep
-                    onBack={() => setStep(3)}
-                    formData={formData}
-                    setFormData={setFormData}
-                    companyId={companyId}
-                    totalPrice={finalPrice}
-                    rutApplied={rutApplied}
-                    paymentConfig={paymentConfig}
-                  />
-                )}
-              </div>
+            <div className="flex-1 p-8 overflow-y-auto">
+              {step === 3 && (
+                <ServiceDetailsStep
+                  onNext={() => setStep(4)}
+                  onBack={() => setStep(2)}
+                  formData={formData}
+                  setFormData={setFormData}
+                  config={{ ...config, services: formServices }}
+                />
+              )}
+              {step === 4 && (
+                <CustomerInfoStep
+                  onBack={() => setStep(3)}
+                  formData={formData}
+                  setFormData={setFormData}
+                  companyId={companyId}
+                  totalPrice={finalPrice}
+                  rutApplied={rutApplied}
+                  paymentConfig={paymentConfig}
+                />
+              )}
             </div>
             
             {/* Right Column - Fixed Summary Panel */}
-            <div className="w-80 flex-shrink-0">
-              <div className="bg-transparent rounded-lg p-6 sticky top-4">
+            <div className="w-96 flex-shrink-0 p-6 bg-gray-50">
+              <div className="sticky top-4">
                 <PriceCard
                   originalPrice={originalPrice}
                   finalPrice={finalPrice}

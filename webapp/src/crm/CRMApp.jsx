@@ -152,6 +152,7 @@ const CRMApp = () => {
         firebase,
         {
           firestore: true,
+          realtime: false, // Disable Realtime Database
           logging: false,
           rootRef: '',
           watch: [],
