@@ -74,9 +74,8 @@ const CRMApp = () => {
   console.log('[CRMApp] Rendering with companyId:', companyId);
 
   // Configure the data provider for Firestore v8 compat
-  let dataProvider;
-  try {
-    dataProvider = useMemo(() => {
+  const dataProvider = useMemo(() => {
+    try {
       console.log('[CRMApp] Creating dataProvider...');
       const provider = firebaseDataProvider(
         firebase,
@@ -109,22 +108,18 @@ const CRMApp = () => {
       );
       console.log('[CRMApp] dataProvider created successfully');
       return provider;
-    }, [firebase, companyId]);
-  } catch (err) {
-    console.error('[CRMApp] Error creating dataProvider:', err);
+    } catch (err) {
+      console.error('[CRMApp] Error creating dataProvider:', err);
+      return null;
+    }
+  }, [firebase, companyId]);
+
+  if (!dataProvider) {
+    console.log('[CRMApp] No dataProvider available, showing error...');
     return (
       <div style={{ padding: 32, color: 'red' }}>
         <h2>Error initializing CRM</h2>
-        <p>Failed to create data provider: {err.message}</p>
-      </div>
-    );
-  }
-
-  if (!dataProvider) {
-    console.log('[CRMApp] No dataProvider available, showing loading...');
-    return (
-      <div style={{ padding: 32 }}>
-        <h2>Loading CRM...</h2>
+        <p>Failed to create data provider. Please check the console for details.</p>
       </div>
     );
   }
