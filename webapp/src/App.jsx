@@ -218,24 +218,4 @@ function UserManagementPage() { return <div className="text-center p-8"><h2 clas
 function AdminAnalyticsPage() { return <div className="text-center p-8"><h2 className="text-xl font-bold">Analytics (Placeholder)</h2></div>; }
 function AdminCustomersPage() { return <CustomersPage />; }
 
-function EmbedCalculatorWrapper() {
-  // Get companyId from query string
-  const searchParams = new URLSearchParams(window.location.search);
-  const companyId = searchParams.get('companyId');
-  // Optionally, add more config from query params here
-  return (
-    <div style={{ 
-      background: 'white', 
-      height: '100vh', 
-      width: '100vw', 
-      padding: 0, 
-      margin: 0,
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      overflow: 'hidden'
-    }}>
-      <BookingCalculator companyId={companyId} />
-    </div>
-  );
-}
+
