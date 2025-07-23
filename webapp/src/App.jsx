@@ -1,6 +1,6 @@
 // webapp/src/App.jsx
 import React from 'react';
-import { Routes, Route, Link, Outlet, Navigate, useParams } from 'react-router-dom';
+import { Routes, Route, Link, Outlet, Navigate, useParams, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 
 // Import Page Components
@@ -40,6 +40,30 @@ import RequireSuperAdmin from './components/RequireSuperAdmin';
 import RequireCompanyAccess from './components/RequireCompanyAccess';
 
 export default function App() {
+  const location = useLocation();
+  const isEmbedRoute = location.pathname.startsWith('/embed');
+
+  // For embed routes, render without the main app container constraints
+  if (isEmbedRoute) {
+    return (
+      <>
+        <Routes>
+          <Route path="/embed/calculator" element={<EmbedCalculatorPage />} />
+        </Routes>
+        <Toaster 
+          position="top-right"
+          toastOptions={{
+            duration: 4000,
+            style: {
+              fontFamily: 'Ubuntu Mono, monospace',
+            },
+          }}
+        />
+      </>
+    );
+  }
+
+  // Normal app layout for all other routes
   return (
     <div className="min-h-screen bg-background font-mono" style={{ height: '100vh', width: '100vw' }}>
         <Routes>
@@ -54,9 +78,6 @@ export default function App() {
             <Route path="setup-super-admin" element={<SetupSuperAdminPage />} />
             <Route path="unauthorized" element={<UnauthorizedPage />} />
           </Route>
-
-          {/* Enterprise Embeddable Calculator Route */}
-          <Route path="/embed/calculator" element={<EmbedCalculatorPage />} />
 
           {/* Booking Routes (Public) */}
           <Route path="/booking/:companyId/:formSlug" element={<BookingPage />} />
