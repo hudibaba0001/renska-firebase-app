@@ -29,6 +29,7 @@ import AdminCouponsPage from './pages/AdminCouponsPage';
 import CustomersPage from './pages/CustomersPage';
 import CRMApp from './crm/CRMApp';
 import BookingCalculator from './components/BookingCalculator';
+import EmbedCalculatorPage from './pages/EmbedCalculatorPage';
 
 // Import Layout and Auth Components
 import AdminLayout from './components/AdminLayout';
