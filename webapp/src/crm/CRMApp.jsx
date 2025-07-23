@@ -3,6 +3,7 @@ import { Admin, Resource } from 'react-admin';
 import firebaseDataProvider from 'ra-data-firebase-client';
 import { useParams } from 'react-router-dom';
 import firebase from '../firebase/init';
+import { loadCRMDemoData } from './scripts/loadCRMDemoData';
 
 // Import CRM components
 import CustomerList from './components/CustomerList';
