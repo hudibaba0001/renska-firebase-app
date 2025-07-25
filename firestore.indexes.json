@@ -1,20 +1,112 @@
 {
   "indexes": [
     {
-      "collectionGroup": "services",
+      "collectionGroup": "companies",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "companyId", "order": "ASCENDING" },
-        { "fieldPath": "serviceId", "order": "ASCENDING" }
+        { "fieldPath": "deleted", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     },
     {
-      "collectionGroup": "calculators",
+      "collectionGroup": "services",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "companyId", "order": "asc" },
+        { "fieldPath": "deleted", "order": "asc" },
+        { "fieldPath": "createdAt", "order": "desc" }
+      ]
+    },
+    {
+      "collectionGroup": "customers",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "companyId", "order": "asc" },
+        { "fieldPath": "deleted", "order": "asc" },
+        { "fieldPath": "createdAt", "order": "desc" }
+      ]
+    },
+    {
+      "collectionGroup": "customers",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "companyId", "order": "asc" },
+        { "fieldPath": "deleted", "order": "asc" },
+        { "fieldPath": "status", "order": "asc" },
+        { "fieldPath": "createdAt", "order": "desc" }
+      ]
+    },
+    {
+      "collectionGroup": "customers",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "companyId", "order": "asc" },
+        { "fieldPath": "deleted", "order": "asc" },
+        { "fieldPath": "customerType", "order": "asc" },
+        { "fieldPath": "createdAt", "order": "desc" }
+      ]
+    },
+    {
+      "collectionGroup": "customers",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "companyId", "order": "asc" },
+        { "fieldPath": "deleted", "order": "asc" },
+        { "fieldPath": "personnummer", "order": "asc" }
+      ]
+    },
+    {
+      "collectionGroup": "customers",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "companyId", "order": "asc" },
+        { "fieldPath": "deleted", "order": "asc" },
+        { "fieldPath": "totalSpent", "order": "desc" }
+      ]
+    },
+    {
+      "collectionGroup": "bookings",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "companyId", "order": "asc" },
+        { "fieldPath": "deleted", "order": "asc" },
+        { "fieldPath": "createdAt", "order": "desc" }
+      ]
+    },
+    {
+      "collectionGroup": "bookings",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "companyId", "order": "asc" },
+        { "fieldPath": "deleted", "order": "asc" },
+        { "fieldPath": "date", "order": "asc" }
+      ]
+    },
+    {
+      "collectionGroup": "bookings",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "companyId", "order": "asc" },
+        { "fieldPath": "deleted", "order": "asc" },
+        { "fieldPath": "customerId", "order": "asc" }
+      ]
+    },
+    {
+      "collectionGroup": "bookings",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "companyId", "order": "asc" },
+        { "fieldPath": "deleted", "order": "asc" },
+        { "fieldPath": "personnummer", "order": "asc" }
+      ]
+    },
+    {
+      "collectionGroup": "users",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "companyId", "order": "ASCENDING" }
+        { "fieldPath": "deleted", "order": "asc" },
+        { "fieldPath": "createdAt", "order": "desc" }
       ]
     }
-  ],
-  "fieldOverrides": []
-} 
+  ]
+}

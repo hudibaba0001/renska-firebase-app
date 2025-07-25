@@ -1,191 +1,194 @@
-// webapp/src/services/firestore.js
-
-import { collection, query, getDocs, orderBy, addDoc, deleteDoc, doc, where, updateDoc, getDoc, limit } from "firebase/firestore";
+import { collection, query, getDocs, orderBy, addDoc, doc, where, updateDoc, getDoc, limit, startAfter, serverTimestamp, writeBatch } from "firebase/firestore";
 import { db } from "../firebase/init";
-import { serverTimestamp } from "firebase/firestore";
+import sanitizeHtml from 'sanitize-html';
+import { getAuth } from "firebase/auth"; // For client-side auth checks (UX/UI)
 
-// Get all tenants (companies) from the 'companies' collection
-export const getAllTenants = async () => {
+// IMPORTANT: Firestore Security Rules are the PRIMARY enforcement layer for data access and security.
+// The client-side checks below (e.g., checkAuthAndRole, rateLimit) are for UX/UI and preventing unnecessary API calls,
+// but they DO NOT replace robust server-side security rules or Cloud Functions for sensitive operations.
+
+// Centralized error logging utility
+const logError = (functionName, error, data = {}) => {
+  console.error(`Error in ${functionName}:`, error);
+  console.error('Context data:', data);
+  // TODO: In production, integrate with a professional logging service (e.g., Google Cloud Logging, Sentry, Datadog)
+};
+
+// Helper to ensure common timestamping and initial 'deleted' status for new documents
+const addTimestamps = (data, isNew = true) => {
+  const timestampedData = { ...data, updatedAt: serverTimestamp() };
+  if (isNew) {
+    timestampedData.createdAt = serverTimestamp();
+    timestampedData.deleted = false; // Default to not deleted for new documents
+  }
+  return timestampedData;
+};
+
+// Email validation regex
+const validateEmail = (email) => /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email);
+
+// Personnummer validation (Swedish personal identity number format: YYYYMMDD-XXXX, used for RUT deduction)
+const validatePersonnummer = (personnummer) => /^[0-9]{8}-[0-9]{4}$/.test(personnummer);
+
+// Client-side Rate limiting (for UX/UI, NOT security)
+const rateLimit = (userId) => {
+  const now = Date.now();
+  // This Map should persist for the session, e.g., defined outside this function in module scope
+  rateLimit.limits = rateLimit.limits || new Map();
+  const userLimit = rateLimit.limits.get(userId) || { tokens: 10, lastReset: now };
+
+  // Reset tokens every 60 seconds (1 minute)
+  if (now - userLimit.lastReset > 60000) {
+    userLimit.tokens = 10;
+    userLimit.lastReset = now;
+  }
+
+  if (userLimit.tokens <= 0) {
+    throw new Error('Rate limit exceeded. Please try again in a moment.');
+  }
+
+  userLimit.tokens--;
+  rateLimit.limits.set(userId, userLimit);
+  return true;
+
+  // TODO: For production, consider enhancing rateLimit persistence across sessions/serverless invocations
+  // (e.g., using Firebase Realtime Database, a dedicated cache, or Cloud Functions for server-side rate limiting)
+};
+
+// Client-side Authentication and Role check (for UI/UX, NOT security)
+const checkAuthAndRole = async (companyId = null, requiredRole = 'adminOf') => {
+  const auth = getAuth();
+  const user = auth.currentUser;
+
+  if (!user) {
+    throw new Error('Authentication required. Please log in.');
+  }
+
+  const token = await user.getIdTokenResult();
+
+  // Check for superAdmin role claim
+  if (requiredRole === 'superAdmin') {
+    if (!token.claims.superAdmin) {
+      throw new Error('Super admin permissions required for this operation.');
+    }
+    return true;
+  }
+
+  // Check for adminOf specific company claim
+  if (requiredRole === 'adminOf' && companyId) {
+    if (!token.claims.adminOf || !token.claims.adminOf.includes(companyId)) {
+      throw new Error('Insufficient permissions. You are not an admin of this company.');
+    }
+    return true;
+  }
+
+  // Default: if no specific role or companyId is required, just check if authenticated
+  if (requiredRole === null) {
+    return true;
+  }
+
+  // Fallback for roles not explicitly handled
+  throw new Error('Authorization check failed. Unknown role or missing permissions.');
+
+  // TODO: Ensure a Cloud Function or other backend logic sets custom claims (adminOf, superAdmin) on user tokens after sign-up/role assignment.
+};
+
+// --- CRUD Operations ---
+
+// Get all tenants (companies) from the 'companies' collection with pagination and soft-delete filtering
+export const getAllTenants = async (options = {}) => {
   try {
+    // No client-side auth/rate-limit here for initial public/unauthenticated list of tenants (if allowed by rules)
+    // If this list should only be for super-admins, add checkAuthAndRole('superAdmin')
     const companiesRef = collection(db, 'companies');
-    
-    // Try with orderBy first, but fallback to simple query if no results or createdAt is missing
-    let snapshot;
-    try {
-      const q = query(companiesRef, orderBy('createdAt', 'desc'));
-      snapshot = await getDocs(q);
-      console.log(`Fetched ${snapshot.size} tenants with orderBy from Firestore`);
-      
-      // If orderBy returns 0 results, try simple query (likely due to missing createdAt field)
-      if (snapshot.size === 0) {
-        console.warn('orderBy returned 0 results, trying simple query (likely missing createdAt field)');
-        snapshot = await getDocs(companiesRef);
-        console.log(`Fetched ${snapshot.size} tenants with simple query from Firestore`);
-      }
-    } catch (orderByError) {
-      console.warn('orderBy failed, trying simple query:', orderByError.message);
-      // Fallback to simple query without orderBy
-      snapshot = await getDocs(companiesRef);
-      console.log(`Fetched ${snapshot.size} tenants with simple query from Firestore`);
+    let q = query(
+      companiesRef,
+      where('deleted', '==', false), // Filter out soft-deleted companies
+      orderBy('createdAt', 'desc'),
+      limit(options.limit || 50)
+    );
+
+    if (options.lastDoc) {
+      q = query(q, startAfter(options.lastDoc));
     }
-    
-    const tenants = [];
-    
-    snapshot.forEach(doc => {
+
+    const snapshot = await getDocs(q);
+    const tenants = snapshot.docs.map(doc => {
       const tenantData = { id: doc.id, ...doc.data() };
-      
-      // Log warnings for missing subscription data
-      if (!tenantData.subscription) {
-        console.warn(`Tenant ${doc.id} is missing subscription data`);
-        // Ensure all tenants have a subscription object with active=true by default
-        tenantData.subscription = { active: true, plan: 'basic' };
-      } else if (tenantData.subscription.active === undefined) {
-        console.warn(`Tenant ${doc.id} has subscription but active status is undefined`);
-        // Set undefined active status to true by default
-        tenantData.subscription.active = true;
+
+      // Defensive fallback for inconsistent subscription data (should be handled on creation)
+      if (!tenantData.subscription || tenantData.subscription.active === undefined) {
+        console.warn(`Tenant ${doc.id} subscription data inconsistent, setting defaults`);
+        tenantData.subscription = { ...(tenantData.subscription || {}), active: true, plan: 'basic' };
       }
-      
-      tenants.push(tenantData);
+
+      // Note: Returning full data from Firestore document, as security rules should handle data minimization for read costs.
+      return tenantData;
     });
-    
-    return tenants;
+
+    console.log(`Fetched ${tenants.length} tenants from Firestore`);
+    return { tenants, lastDoc: snapshot.docs[snapshot.docs.length - 1] || null };
   } catch (error) {
-    console.error('Error fetching tenants:', error);
+    logError('getAllTenants', error, { options });
     throw error;
   }
-};
 
-// Create a new service in the 'services' subcollection for a specific company
-export const createService = async (companyId, serviceData) => {
-  try {
-    const servicesRef = collection(db, 'companies', companyId, 'services');
-    // Remove vatRate if undefined
-    const cleanedServiceData = { ...serviceData };
-    if (cleanedServiceData.vatRate === undefined) {
-      delete cleanedServiceData.vatRate;
-    }
-    const docRef = await addDoc(servicesRef, cleanedServiceData);
-    return docRef.id;
-  } catch (error) {
-    console.error('Error creating service:', error);
-    throw error;
-  }
-};
-
-// Delete a service from the 'services' subcollection for a specific company
-export const deleteService = async (companyId, serviceId) => {
-  try {
-    const serviceDocRef = doc(db, 'companies', companyId, 'services', serviceId);
-    await deleteDoc(serviceDocRef);
-    return true;
-  } catch (error) {
-    console.error('Error deleting service:', error);
-    throw error;
-  }
-};
-
-// Update a service in the 'services' subcollection for a specific company
-export const updateService = async (companyId, serviceId, serviceData) => {
-  try {
-    // Remove undefined values (e.g., vatRate)
-    const cleanedServiceData = { ...serviceData };
-    Object.keys(cleanedServiceData).forEach(key => {
-      if (cleanedServiceData[key] === undefined) {
-        delete cleanedServiceData[key];
-      }
-    });
-    const serviceDocRef = doc(db, 'companies', companyId, 'services', serviceId);
-    await updateDoc(serviceDocRef, cleanedServiceData);
-    return true;
-  } catch (error) {
-    console.error('Error updating service:', error);
-    throw error;
-  }
-};
-
-// Get all services for a specific company (tenant) by companyId
-export const getAllServicesForCompany = async (companyId) => {
-  try {
-    const servicesRef = collection(db, 'companies', companyId, 'services');
-    // Remove orderBy to fetch all services regardless of createdAt
-    const q = query(servicesRef);
-    const snapshot = await getDocs(q);
-    const services = [];
-    snapshot.forEach(doc => {
-      services.push({ id: doc.id, ...doc.data() });
-    });
-    console.log('Fetched services:', services);
-    return services;
-  } catch (error) {
-    console.error('Error fetching services for company:', error);
-    return [];
-  }
-};
-
-// Create a new booking in the 'bookings' collection
-export const createBooking = async (bookingData) => {
-  try {
-    const bookingsRef = collection(db, 'bookings');
-    const docRef = await addDoc(bookingsRef, bookingData);
-    return { id: docRef.id, ...bookingData };
-  } catch (error) {
-    console.error('Error creating booking:', error);
-    throw error;
-  }
-};
-
-// Get all bookings for a specific company (tenant) by companyId
-export const getAllBookingsForCompany = async (companyId) => {
-  try {
-    const bookingsRef = collection(db, 'bookings');
-    const q = query(bookingsRef, where('companyId', '==', companyId), orderBy('createdAt', 'desc'));
-    const snapshot = await getDocs(q);
-    const bookings = [];
-    snapshot.forEach(doc => {
-      bookings.push({ id: doc.id, ...doc.data() });
-    });
-    return bookings;
-  } catch (error) {
-    console.error('Error fetching bookings for company:', error);
-    return [];
-  }
-};
-
-// Get a tenant (company) by ID
-export const getTenant = async (tenantId) => {
-  try {
-    const tenantDocRef = doc(db, 'companies', tenantId);
-    const tenantSnap = await getDoc(tenantDocRef);
-    if (tenantSnap.exists()) {
-      return { id: tenantSnap.id, ...tenantSnap.data() };
-    } else {
-      return null;
-    }
-  } catch (error) {
-    console.error('Error fetching tenant:', error);
-    throw error;
-  }
+  // TODO: Run one-time migration script (webapp/scripts/migrateFirestore.js) to backfill
+  // 'createdAt' and 'deleted: false' for existing company documents lacking them.
 };
 
 // Create a new tenant (company) in the 'companies' collection
 export const createTenant = async (tenantData) => {
   try {
-    const companiesRef = collection(db, 'companies');
-    const tenantWithTimestamp = {
-      ...tenantData,
-      createdAt: serverTimestamp(),
+    await checkAuthAndRole(null, 'superAdmin'); // Only super admins can create new companies
+    rateLimit(getAuth().currentUser.uid); // Apply client-side rate limit
+
+    // Validation
+    if (!tenantData.name || !sanitizeHtml(tenantData.name).trim()) {
+      throw new Error('Name is required and cannot be empty.');
+    }
+    if (!tenantData.contactEmail || !validateEmail(sanitizeHtml(tenantData.contactEmail))) {
+      throw new Error('Valid contact email is required.');
+    }
+    if (tenantData.RUTEligible !== undefined && typeof tenantData.RUTEligible !== 'boolean') {
+      throw new Error('RUTEligible must be a boolean.');
+    }
+    if (tenantData.consent !== undefined && typeof tenantData.consent !== 'boolean') {
+      throw new Error('Consent must be a boolean.');
+    }
+
+    // Personnummer validation if provided (for RUT deduction eligibility)
+    if (tenantData.personnummer && !validatePersonnummer(sanitizeHtml(tenantData.personnummer))) {
+      throw new Error('Invalid personnummer format (YYYYMMDD-XXXX) if provided.');
+    }
+
+    const sanitizedData = addTimestamps({
+      name: sanitizeHtml(tenantData.name),
+      contactEmail: sanitizeHtml(tenantData.contactEmail),
+      address: sanitizeHtml(tenantData.address || ''),
+      RUTEligible: !!tenantData.RUTEligible,
+      personnummer: sanitizeHtml(tenantData.personnummer || ''), // Store personnummer
+      consent: !!tenantData.consent,
+      consentTimestamp: tenantData.consent ? serverTimestamp() : null,
+      consentDetails: sanitizeHtml(tenantData.consentDetails || ''),
       subscription: {
         ...(tenantData.subscription || {}),
         active: true,
-        status: 'active',
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
+        status: 'active'
       }
-    };
-    const docRef = await addDoc(companiesRef, tenantWithTimestamp);
-    return { id: docRef.id, ...tenantWithTimestamp };
+      // 'deleted: false' is added by addTimestamps helper for new documents
+    }, true);
+
+    if (!sanitizedData.consent) {
+      throw new Error('Consent required to create tenant (GDPR compliance).');
+    }
+
+    const companiesRef = collection(db, 'companies');
+    const docRef = await addDoc(companiesRef, sanitizedData);
+
+    return { id: docRef.id, ...sanitizedData };
   } catch (error) {
-    console.error('Error creating tenant:', error);
+    logError('createTenant', error, { tenantData });
     throw error;
   }
 };
@@ -193,11 +196,414 @@ export const createTenant = async (tenantData) => {
 // Update a tenant (company) in the 'companies' collection by ID
 export const updateTenant = async (tenantId, tenantData) => {
   try {
+    await checkAuthAndRole(tenantId, 'adminOf'); // Only admins of this company can update
+    rateLimit(getAuth().currentUser.uid); // Apply client-side rate limit
+
+    // Validation
+    if (tenantData.name !== undefined && !sanitizeHtml(tenantData.name).trim()) {
+      throw new Error('Name cannot be empty.');
+    }
+    if (tenantData.contactEmail !== undefined && !validateEmail(sanitizeHtml(tenantData.contactEmail))) {
+      throw new Error('Invalid contact email format.');
+    }
+    if (tenantData.RUTEligible !== undefined && typeof tenantData.RUTEligible !== 'boolean') {
+      throw new Error('RUTEligible must be a boolean.');
+    }
+    if (tenantData.personnummer !== undefined && tenantData.personnummer && !validatePersonnummer(sanitizeHtml(tenantData.personnummer))) {
+      throw new Error('Invalid personnummer format (YYYYMMDD-XXXX) if provided.');
+    }
+    if (tenantData.consent !== undefined && typeof tenantData.consent !== 'boolean') {
+      throw new Error('Consent must be a boolean.');
+    }
+
+    const sanitizedData = addTimestamps({
+      name: sanitizeHtml(tenantData.name || ''),
+      contactEmail: sanitizeHtml(tenantData.contactEmail || ''),
+      address: sanitizeHtml(tenantData.address || ''),
+      RUTEligible: tenantData.RUTEligible,
+      personnummer: sanitizeHtml(tenantData.personnummer || ''), // Store personnummer
+      consent: tenantData.consent,
+      consentTimestamp: tenantData.consent ? serverTimestamp() : null, // Update timestamp if consent changes
+      consentDetails: sanitizeHtml(tenantData.consentDetails || ''),
+      // Using dot notation for specific subscription field updates to avoid overwriting the entire sub-object
+      'subscription.active': tenantData.subscription?.active,
+      'subscription.plan': tenantData.subscription?.plan,
+      // Add other top-level fields here if they are part of the update
+    }, false); // Not a new document, so only update 'updatedAt'
+
+    // Clean up undefined values from the sanitizedData before sending to Firestore
+    Object.keys(sanitizedData).forEach(key => {
+      if (sanitizedData[key] === undefined) delete sanitizedData[key];
+    });
+
     const tenantDocRef = doc(db, 'companies', tenantId);
-    await updateDoc(tenantDocRef, tenantData);
+    await updateDoc(tenantDocRef, sanitizedData);
+
     return true;
   } catch (error) {
-    console.error('Error updating tenant:', error);
+    logError('updateTenant', error, { tenantId, tenantData });
+    throw error;
+  }
+
+  // Important Note on Nested Object Updates:
+  // For fields like 'subscription', 'contact', 'settings', etc.,
+  // if the client sends a partial update (e.g., only 'subscription.active'),
+  // use Firestore's dot notation (e.g., { 'nestedObject.field': value }).
+  // If the intent is to COMPLETELY REPLACE a nested object (e.g., all of 'contact'),
+  // the client MUST send the complete new object for that field.
+  // Be mindful of this client-side data construction to avoid unintended overwrites
+  // or data loss of other nested fields not provided in the update payload.
+};
+
+// Soft-delete a tenant (company) from the 'companies' collection by ID
+export const deleteTenant = async (tenantId, userId = null) => { // userId for audit trail
+  try {
+    await checkAuthAndRole(tenantId, 'adminOf'); // Only admins of this company can initiate soft-delete
+    rateLimit(getAuth().currentUser.uid); // Apply client-side rate limit
+
+    const tenantDocRef = doc(db, 'companies', tenantId);
+    await updateDoc(tenantDocRef, {
+      deleted: true,
+      deletedAt: serverTimestamp(),
+      deletedBy: userId || getAuth().currentUser?.uid || 'system', // Track who initiated the soft-delete
+      updatedAt: serverTimestamp() // Update timestamp for this action
+    });
+
+    return true;
+  } catch (error) {
+    logError('deleteTenant', error, { tenantId, userId });
+    throw error;
+  }
+
+  // WARNING: This function only soft-deletes the parent 'company' document.
+  // For full cascade soft-deletion of associated subcollections (services, customers, bookings)
+  // and cleanup of any related top-level documents, a Firebase Cloud Function (e.g., functions/cascadeDelete.js)
+  // triggered by this 'deleted' flag change is required.
+};
+
+// Get a tenant (company) by ID
+export const getTenant = async (tenantId) => {
+  try {
+    // No client-side auth/rate-limit here, as this might be called by the client directly after login
+    // Security Rules are crucial here to ensure only authorized users can read.
+    const tenantDocRef = doc(db, 'companies', tenantId);
+    const tenantSnap = await getDoc(tenantDocRef);
+
+    // Client-side filtering of soft-deleted documents (Security Rules should also enforce this)
+    if (tenantSnap.exists() && tenantSnap.data().deleted === false) { 
+      // Return full data from Firestore document. Security rules will minimize read costs.
+      return { id: tenantSnap.id, ...tenantSnap.data() };
+    } else {
+      return null; // Tenant not found or is soft-deleted
+    }
+  } catch (error) {
+    logError('getTenant', error, { tenantId });
+    throw error;
+  }
+};
+
+// Create a new service in the 'services' subcollection for a specific company
+export const createService = async (companyId, serviceData) => {
+  try {
+    await checkAuthAndRole(companyId, 'adminOf'); // Only admins of this company can create services
+    rateLimit(getAuth().currentUser.uid); // Apply client-side rate limit
+
+    // Validation
+    if (!serviceData.name || !sanitizeHtml(serviceData.name).trim()) {
+      throw new Error('Service name is required and cannot be empty.');
+    }
+    if (typeof serviceData.price !== 'number' || serviceData.price <= 0) {
+      throw new Error('Price must be a positive number.');
+    }
+    if (serviceData.duration !== undefined && (typeof serviceData.duration !== 'number' || serviceData.duration < 0)) {
+      throw new Error('Duration must be a non-negative number.');
+    }
+    if (serviceData.RUTEligible !== undefined && typeof serviceData.RUTEligible !== 'boolean') {
+      throw new Error('RUTEligible must be a boolean.');
+    }
+
+    const sanitizedData = addTimestamps({
+      name: sanitizeHtml(serviceData.name),
+      price: serviceData.price,
+      duration: serviceData.duration || 0,
+      RUTEligible: !!serviceData.RUTEligible,
+      // 'deleted: false' is added by addTimestamps helper for new documents
+      // Include other service-specific fields here, ensuring sanitization for strings
+    }, true);
+
+    const servicesRef = collection(db, 'companies', companyId, 'services');
+    const docRef = await addDoc(servicesRef, sanitizedData);
+
+    return docRef.id;
+  } catch (error) {
+    logError('createService', error, { companyId, serviceData });
+    throw error;
+  }
+};
+
+// Update a service in the 'services' subcollection for a specific company
+export const updateService = async (companyId, serviceId, serviceData) => {
+  try {
+    await checkAuthAndRole(companyId, 'adminOf'); // Only admins of this company can update services
+    rateLimit(getAuth().currentUser.uid); // Apply client-side rate limit
+
+    // Validation
+    if (serviceData.name !== undefined && !sanitizeHtml(serviceData.name).trim()) {
+      throw new Error('Service name cannot be empty.');
+    }
+    if (serviceData.price !== undefined && (typeof serviceData.price !== 'number' || serviceData.price <= 0)) {
+      throw new Error('Price must be a positive number.');
+    }
+    if (serviceData.duration !== undefined && (typeof serviceData.duration !== 'number' || serviceData.duration < 0)) {
+      throw new Error('Duration must be a non-negative number.');
+    }
+    if (serviceData.RUTEligible !== undefined && typeof serviceData.RUTEligible !== 'boolean') {
+      throw new Error('RUTEligible must be a boolean.');
+    }
+
+    const sanitizedData = addTimestamps({
+      name: sanitizeHtml(serviceData.name || ''),
+      price: serviceData.price,
+      duration: serviceData.duration,
+      RUTEligible: serviceData.RUTEligible,
+      // Include other service-specific fields here, ensuring sanitization for strings
+    }, false);
+
+    Object.keys(sanitizedData).forEach(key => {
+      if (sanitizedData[key] === undefined) delete sanitizedData[key];
+    });
+
+    const serviceDocRef = doc(db, 'companies', companyId, 'services', serviceId);
+    await updateDoc(serviceDocRef, sanitizedData);
+
+    return true;
+  } catch (error) {
+    logError('updateService', error, { companyId, serviceId, serviceData });
+    throw error;
+  }
+};
+
+// Soft-delete a service from the 'services' subcollection for a specific company
+export const deleteService = async (companyId, serviceId, userId = null) => {
+  try {
+    await checkAuthAndRole(companyId, 'adminOf'); // Only admins of this company can soft-delete services
+    rateLimit(getAuth().currentUser.uid); // Apply client-side rate limit
+
+    const serviceDocRef = doc(db, 'companies', companyId, 'services', serviceId);
+    await updateDoc(serviceDocRef, {
+      deleted: true,
+      deletedAt: serverTimestamp(),
+      deletedBy: userId || getAuth().currentUser?.uid || 'system',
+      updatedAt: serverTimestamp()
+    });
+
+    return true;
+  } catch (error) {
+    logError('deleteService', error, { companyId, serviceId, userId });
+    throw error;
+  }
+};
+
+// Get all services for a specific company (tenant) by companyId with pagination and soft-delete filtering
+export const getAllServicesForCompany = async (companyId, options = {}) => {
+  try {
+    await checkAuthAndRole(companyId, 'adminOf'); // Only company members can read services
+
+    const servicesRef = collection(db, 'companies', companyId, 'services');
+    let q = query(
+      servicesRef,
+      where('deleted', '==', false), // Filter out soft-deleted services
+      orderBy('createdAt', 'desc'),
+      limit(options.limit || 50)
+    );
+
+    if (options.lastDoc) {
+      q = query(q, startAfter(options.lastDoc));
+    }
+
+    const snapshot = await getDocs(q);
+    const services = snapshot.docs.map(doc => {
+      // Return full data from Firestore document. Security rules will minimize read costs.
+      return { id: doc.id, ...doc.data() };
+    });
+
+    console.log(`Fetched ${services.length} services for company ${companyId}`);
+    return { services, lastDoc: snapshot.docs[snapshot.docs.length - 1] || null };
+  } catch (error) {
+    logError('getAllServicesForCompany', error, { companyId, options });
+    throw error;
+  }
+};
+
+// Create a new booking in the 'bookings' subcollection for a specific company
+export const createBooking = async (companyId, bookingData) => {
+  try {
+    await checkAuthAndRole(companyId, 'adminOf'); // Only admins of this company can create bookings
+    rateLimit(getAuth().currentUser.uid); // Apply client-side rate limit
+
+    // Validation
+    if (!bookingData.customerEmail || !validateEmail(sanitizeHtml(bookingData.customerEmail))) {
+      throw new Error('Valid customer email is required.');
+    }
+    if (bookingData.price !== undefined && (typeof bookingData.price !== 'number' || bookingData.price <= 0)) {
+      throw new Error('Price must be a positive number.');
+    }
+
+    // Personnummer is optional, but if provided, it must be valid
+    if (bookingData.personnummer && !validatePersonnummer(sanitizeHtml(bookingData.personnummer))) {
+      throw new Error('Invalid personnummer format (YYYYMMDD-XXXX) if provided.');
+    }
+    if (!bookingData.customerId || !sanitizeHtml(bookingData.customerId).trim()) {
+      throw new Error('Customer ID is required and cannot be empty.');
+    }
+    if (!bookingData.serviceId || !sanitizeHtml(bookingData.serviceId).trim()) {
+      throw new Error('Service ID is required and cannot be empty.');
+    }
+
+    // Date Validation: bookingData.date should be a client-provided scheduled date
+    if (bookingData.date && !(bookingData.date instanceof Date || (bookingData.date.toDate && typeof bookingData.date.toDate === 'function'))) {
+      throw new Error('Invalid date format for booking date. Must be a Date object or Firestore Timestamp.');
+    }
+    if (bookingData.consent !== undefined && typeof bookingData.consent !== 'boolean') {
+      throw new Error('Consent must be a boolean.');
+    }
+
+    const sanitizedData = addTimestamps({
+      // companyId is implicitly part of the subcollection path here, but included for clarity in data
+      companyId: companyId,
+      customerId: sanitizeHtml(bookingData.customerId),
+      serviceId: sanitizeHtml(bookingData.serviceId),
+      date: bookingData.date || serverTimestamp(), // Fallback to creation timestamp if no specific date is provided
+      personnummer: sanitizeHtml(bookingData.personnummer || ''), // Store personnummer
+      consent: !!bookingData.consent,
+      consentTimestamp: bookingData.consent ? serverTimestamp() : null,
+      consentDetails: sanitizeHtml(bookingData.consentDetails || ''),
+      RUTEligible: !!bookingData.RUTEligible,
+      customerEmail: sanitizeHtml(bookingData.customerEmail),
+      price: bookingData.price,
+      // 'deleted: false' is added by addTimestamps helper for new documents
+      // Include other booking-specific fields here, ensuring sanitization for strings
+    }, true);
+
+    if (!sanitizedData.consent) {
+      throw new Error('Consent required to create booking (GDPR compliance).');
+    }
+
+    const bookingsRef = collection(db, 'companies', companyId, 'bookings'); // Use subcollection
+    const docRef = await addDoc(bookingsRef, sanitizedData);
+
+    return { id: docRef.id, ...sanitizedData };
+  } catch (error) {
+    logError('createBooking', error, { companyId, bookingData });
+    throw error;
+  }
+};
+
+// Update a booking in the 'bookings' subcollection for a specific company
+export const updateBooking = async (companyId, bookingId, bookingData) => {
+  try {
+    await checkAuthAndRole(companyId, 'adminOf'); // Only admins of this company can update bookings
+    rateLimit(getAuth().currentUser.uid); // Apply client-side rate limit
+
+    // Validation
+    if (bookingData.customerEmail !== undefined && !validateEmail(sanitizeHtml(bookingData.customerEmail))) {
+      throw new Error('Invalid customer email format.');
+    }
+    if (bookingData.price !== undefined && (typeof bookingData.price !== 'number' || bookingData.price <= 0)) {
+      throw new Error('Price must be a positive number.');
+    }
+    if (bookingData.personnummer !== undefined && bookingData.personnummer && !validatePersonnummer(sanitizeHtml(bookingData.personnummer))) {
+      throw new Error('Invalid personnummer format (YYYYMMDD-XXXX) if provided.');
+    }
+    if (bookingData.customerId !== undefined && !sanitizeHtml(bookingData.customerId).trim()) {
+      throw new Error('Customer ID cannot be empty.');
+    }
+    if (bookingData.serviceId !== undefined && !sanitizeHtml(bookingData.serviceId).trim()) {
+      throw new Error('Service ID cannot be empty.');
+    }
+    if (bookingData.date !== undefined && bookingData.date && !(bookingData.date instanceof Date || (bookingData.date.toDate && typeof bookingData.date.toDate === 'function'))) {
+      throw new Error('Invalid date format for booking date. Must be a Date object or Firestore Timestamp.');
+    }
+    if (bookingData.consent !== undefined && typeof bookingData.consent !== 'boolean') {
+      throw new Error('Consent must be a boolean.');
+    }
+
+    const sanitizedData = addTimestamps({
+      customerId: sanitizeHtml(bookingData.customerId || ''),
+      serviceId: sanitizeHtml(bookingData.serviceId || ''),
+      date: bookingData.date,
+      personnummer: sanitizeHtml(bookingData.personnummer || ''), // Store personnummer
+      consent: bookingData.consent,
+      consentTimestamp: bookingData.consent ? serverTimestamp() : null,
+      consentDetails: sanitizeHtml(bookingData.consentDetails || ''),
+      RUTEligible: bookingData.RUTEligible,
+      customerEmail: sanitizeHtml(bookingData.customerEmail || ''),
+      price: bookingData.price,
+      // Include other booking-specific fields here, ensuring sanitization for strings
+    }, false);
+
+    Object.keys(sanitizedData).forEach(key => {
+      if (sanitizedData[key] === undefined) delete sanitizedData[key];
+    });
+
+    const bookingDocRef = doc(db, 'companies', companyId, 'bookings', bookingId);
+    await updateDoc(bookingDocRef, sanitizedData);
+
+    return true;
+  } catch (error) {
+    logError('updateBooking', error, { companyId, bookingId, bookingData });
+    throw error;
+  }
+};
+
+// Soft-delete a booking from the 'bookings' subcollection for a specific company
+export const deleteBooking = async (companyId, bookingId, userId = null) => {
+  try {
+    await checkAuthAndRole(companyId, 'adminOf'); // Only admins of this company can soft-delete bookings
+    rateLimit(getAuth().currentUser.uid); // Apply client-side rate limit
+
+    const bookingDocRef = doc(db, 'companies', companyId, 'bookings', bookingId);
+    await updateDoc(bookingDocRef, {
+      deleted: true,
+      deletedAt: serverTimestamp(),
+      deletedBy: userId || getAuth().currentUser?.uid || 'system',
+      updatedAt: serverTimestamp()
+    });
+
+    return true;
+  } catch (error) {
+    logError('deleteBooking', error, { companyId, bookingId, userId });
+    throw error;
+  }
+};
+
+// Get all bookings for a specific company (tenant) by companyId with pagination and soft-delete filtering
+export const getAllBookingsForCompany = async (companyId, options = {}) => {
+  try {
+    await checkAuthAndRole(companyId, 'adminOf'); // Only company members can read bookings
+
+    const bookingsRef = collection(db, 'companies', companyId, 'bookings');
+    let q = query(
+      bookingsRef,
+      where('deleted', '==', false), // Filter out soft-deleted bookings
+      orderBy('createdAt', 'desc'),
+      limit(options.limit || 50)
+    );
+
+    if (options.lastDoc) {
+      q = query(q, startAfter(options.lastDoc));
+    }
+
+    const snapshot = await getDocs(q);
+    const bookings = snapshot.docs.map(doc => {
+      // Return full data from Firestore document. Security rules will minimize read costs.
+      return { id: doc.id, ...doc.data() };
+    });
+
+    console.log(`Fetched ${bookings.length} bookings for company ${companyId}`);
+    return { bookings, lastDoc: snapshot.docs[snapshot.docs.length - 1] || null };
+  } catch (error) {
+    logError('getAllBookingsForCompany', error, { companyId, options });
     throw error;
   }
 };
@@ -207,169 +613,267 @@ export const getUserProfile = async (userId) => {
   try {
     const userDocRef = doc(db, 'users', userId);
     const userSnap = await getDoc(userDocRef);
-    if (userSnap.exists()) {
+
+    // Client-side filtering of soft-deleted documents (Security Rules should also enforce this)
+    if (userSnap.exists() && userSnap.data().deleted === false) { 
+      // Return full data from Firestore document. Security rules will minimize read costs.
       return { id: userSnap.id, ...userSnap.data() };
     } else {
-      // Return empty profile if user document doesn't exist
-      return {};
+      return null; // User not found or is soft-deleted
     }
   } catch (error) {
-    console.error('Error fetching user profile:', error);
-    // Return empty profile on error to prevent app crash
-    return {};
-  }
-};
-
-// Delete a tenant (company) from the 'companies' collection by ID
-export const deleteTenant = async (tenantId) => {
-  try {
-    const tenantDocRef = doc(db, 'companies', tenantId);
-    await deleteDoc(tenantDocRef);
-    return true;
-  } catch (error) {
-    console.error('Error deleting tenant:', error);
+    logError('getUserProfile', error, { userId });
     throw error;
   }
 };
 
-// Debug function to list all companies in the database
-export const debugListAllCompanies = async () => {
-  try {
-    const companiesRef = collection(db, 'companies');
-    const snapshot = await getDocs(companiesRef);
-    const companies = [];
-    
-    console.log(`Found ${snapshot.size} companies in the database:`);
-    
-    snapshot.forEach(doc => {
-      const companyData = { id: doc.id, ...doc.data() };
-      companies.push(companyData);
-      
-      // Log detailed company information
-      console.log(`Company ID: ${doc.id}`);
-      console.log(`Name: ${companyData.name || companyData.companyName || 'No name'}`);
-      console.log(`Subscription:`, companyData.subscription || 'No subscription data');
-      console.log(`Active status: ${companyData.subscription?.active !== false ? 'Active' : 'Inactive'}`);
-      console.log('-----------------------------------');
-    });
-    
-    return companies;
-  } catch (error) {
-    console.error('Error in debug listing companies:', error);
-    return [];
-  }
-};
-
-// Customer-related functions
+// Create a new customer in the 'customers' subcollection for a specific company
 export const createCustomer = async (companyId, customerData) => {
   try {
+    await checkAuthAndRole(companyId, 'adminOf'); // Only admins of this company can create customers
+    rateLimit(getAuth().currentUser.uid); // Apply client-side rate limit
+
+    // Validation
+    if (!customerData.name || !sanitizeHtml(customerData.name).trim()) {
+      throw new Error('Customer name is required and cannot be empty.');
+    }
+    if (!customerData.email || !validateEmail(sanitizeHtml(customerData.email))) {
+      throw new Error('Valid email is required.');
+    }
+    if (customerData.personnummer !== undefined && !validatePersonnummer(sanitizeHtml(customerData.personnummer))) {
+      throw new Error('Invalid personnummer format (YYYYMMDD-XXXX) if provided.');
+    }
+    if (customerData.consent !== undefined && typeof customerData.consent !== 'boolean') {
+      throw new Error('Consent must be a boolean.');
+    }
+    if (customerData.totalSpent !== undefined && (typeof customerData.totalSpent !== 'number' || customerData.totalSpent < 0)) {
+      throw new Error('Total spent must be a non-negative number.');
+    }
+
+    const sanitizedData = addTimestamps({
+      name: sanitizeHtml(customerData.name),
+      email: sanitizeHtml(customerData.email),
+      status: sanitizeHtml(customerData.status || 'lead'),
+      customerType: sanitizeHtml(customerData.customerType || 'private'),
+      source: sanitizeHtml(customerData.source || 'unknown'),
+      personnummer: sanitizeHtml(customerData.personnummer || ''), // Store personnummer
+      consent: !!customerData.consent,
+      consentTimestamp: customerData.consent ? serverTimestamp() : null,
+      consentDetails: sanitizeHtml(customerData.consentDetails || ''),
+      totalSpent: customerData.totalSpent || 0,
+      // 'deleted: false' is added by addTimestamps helper for new documents
+      // Include other customer-specific fields here, ensuring sanitization for strings
+    }, true);
+
+    if (!sanitizedData.consent) {
+      throw new Error('Consent required to create customer (GDPR compliance).');
+    }
+
+    // Note: For production SaaS, 'totalSpent' should ideally be a derived field
+    // calculated via Cloud Functions triggered by related booking/payment events
+    // to ensure data integrity and prevent manual inconsistencies.
+
     const customersRef = collection(db, 'companies', companyId, 'customers');
-    const docRef = await addDoc(customersRef, {
-      ...customerData,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    });
+    const docRef = await addDoc(customersRef, sanitizedData);
+
     return docRef.id;
   } catch (error) {
-    console.error('Error creating customer:', error);
+    logError('createCustomer', error, { companyId, customerData });
     throw error;
   }
 };
 
 export const getCustomersForCompany = async (companyId, options = {}) => {
   try {
+    await checkAuthAndRole(companyId, 'adminOf'); // Only company members can read customers
+
     const customersRef = collection(db, 'companies', companyId, 'customers');
     let q = query(customersRef);
-    
-    // Apply filters
-    if (options.status && options.status !== 'all') {
-      q = query(q, where('status', '==', options.status));
-    }
-    
-    if (options.customerType && options.customerType !== 'all') {
-      q = query(q, where('customerType', '==', options.customerType));
-    }
-    
-    // Apply sorting
+
+    // Filter out soft-deleted documents
+    q = query(q, where('deleted', '==', false));
+
+    if (options.status && options.status !== 'all') q = query(q, where('status', '==', options.status));
+    if (options.customerType && options.customerType !== 'all') q = query(q, where('customerType', '==', options.customerType));
+
     const sortField = options.sortBy || 'createdAt';
     const sortDirection = options.sortDirection || 'desc';
     q = query(q, orderBy(sortField, sortDirection));
-    
-    // Apply limit
-    if (options.limit) {
-      q = query(q, limit(options.limit));
-    }
-    
+
+    if (options.limit) q = query(q, limit(options.limit));
+    if (options.lastDoc) q = query(q, startAfter(options.lastDoc));
+
     const snapshot = await getDocs(q);
-    const customers = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-    
-    return customers;
+    const customers = snapshot.docs.map(doc => {
+      // Return full data from Firestore document. Security rules will minimize read costs.
+      return { id: doc.id, ...doc.data() };
+    });
+
+    console.log(`Fetched ${customers.length} customers for company ${companyId}`);
+    return { customers, lastDoc: snapshot.docs[snapshot.docs.length - 1] || null };
   } catch (error) {
-    console.error('Error fetching customers:', error);
+    logError('getCustomersForCompany', error, { companyId, options });
     throw error;
   }
 };
 
 export const updateCustomer = async (companyId, customerId, updates) => {
   try {
+    await checkAuthAndRole(companyId, 'adminOf'); // Only admins of this company can update customers
+    rateLimit(getAuth().currentUser.uid); // Apply client-side rate limit
+
+    // Validation
+    if (updates.name !== undefined && !sanitizeHtml(updates.name).trim()) {
+      throw new Error('Name cannot be empty.');
+    }
+    if (updates.email !== undefined && !validateEmail(sanitizeHtml(updates.email))) {
+      throw new Error('Invalid email format.');
+    }
+    if (updates.personnummer !== undefined && updates.personnummer && !validatePersonnummer(sanitizeHtml(updates.personnummer))) {
+      throw new Error('Invalid personnummer format (YYYYMMDD-XXXX) if provided.');
+    }
+    if (updates.consent !== undefined && typeof updates.consent !== 'boolean') {
+      throw new Error('Consent must be a boolean.');
+    }
+    if (updates.totalSpent !== undefined && (typeof updates.totalSpent !== 'number' || updates.totalSpent < 0)) {
+      throw new Error('Total spent must be a non-negative number.');
+    }
+
+    const sanitizedData = addTimestamps({
+      name: sanitizeHtml(updates.name || ''),
+      email: sanitizeHtml(updates.email || ''),
+      status: sanitizeHtml(updates.status || ''),
+      customerType: sanitizeHtml(updates.customerType || ''),
+      source: sanitizeHtml(updates.source || ''),
+      personnummer: sanitizeHtml(updates.personnummer || ''), // Store personnummer
+      consent: updates.consent,
+      consentTimestamp: updates.consent ? serverTimestamp() : null,
+      consentDetails: sanitizeHtml(updates.consentDetails || ''),
+      totalSpent: updates.totalSpent
+      // Include other top-level fields here if they are part of the update, ensuring sanitization for strings
+    }, false); // Not a new document, so only update 'updatedAt'
+
+    Object.keys(sanitizedData).forEach(key => {
+      if (sanitizedData[key] === undefined) delete sanitizedData[key];
+    });
+
+    const customerRef = doc(db, 'companies', companyId, 'customers', customerId);
+    await updateDoc(customerRef, sanitizedData);
+
+    return true;
+  } catch (error) {
+    logError('updateCustomer', error, { companyId, customerId, updates });
+    throw error;
+  }
+
+  // Note: For production SaaS, 'totalSpent' should ideally be a derived field
+  // calculated via Cloud Functions triggered by related booking/payment events
+  // to ensure data integrity and prevent manual inconsistencies.
+};
+
+// Soft-delete a customer from the 'customers' subcollection for a specific company
+export const deleteCustomer = async (companyId, customerId, userId = null) => {
+  try {
+    await checkAuthAndRole(companyId, 'adminOf'); // Only admins of this company can soft-delete customers
+    rateLimit(getAuth().currentUser.uid); // Apply client-side rate limit
+
     const customerRef = doc(db, 'companies', companyId, 'customers', customerId);
     await updateDoc(customerRef, {
-      ...updates,
+      deleted: true,
+      deletedAt: serverTimestamp(),
+      deletedBy: userId || getAuth().currentUser?.uid || 'system',
       updatedAt: serverTimestamp()
     });
+
     return true;
   } catch (error) {
-    console.error('Error updating customer:', error);
+    logError('deleteCustomer', error, { companyId, customerId, userId });
     throw error;
   }
+
+  // WARNING: This function performs a soft delete on the customer document only.
+  // It does NOT cascade soft-delete to related bookings. True cascade deletion/soft-deletion requires Cloud Functions.
 };
 
-export const deleteCustomer = async (companyId, customerId) => {
-  try {
-    const customerRef = doc(db, 'companies', companyId, 'customers', customerId);
-    await deleteDoc(customerRef);
-    return true;
-  } catch (error) {
-    console.error('Error deleting customer:', error);
-    throw error;
-  }
-};
-
+// Get customer stats for a specific company
 export const getCustomerStats = async (companyId) => {
   try {
-    const customers = await getCustomersForCompany(companyId);
-    
-    const stats = {
-      total: customers.length,
-      byStatus: {
-        lead: customers.filter(c => c.status === 'lead').length,
-        active: customers.filter(c => c.status === 'active').length,
-        inactive: customers.filter(c => c.status === 'inactive').length,
-        prospect: customers.filter(c => c.status === 'prospect').length
-      },
-      byType: {
-        private: customers.filter(c => c.customerType === 'private').length,
-        business: customers.filter(c => c.customerType === 'business').length
-      },
-      bySource: {},
-      totalRevenue: customers.reduce((sum, c) => sum + (c.totalSpent || 0), 0),
-      averageOrderValue: customers.length > 0 
-        ? customers.reduce((sum, c) => sum + (c.totalSpent || 0), 0) / customers.length 
-        : 0
-    };
-    
-    // Calculate source distribution
-    customers.forEach(customer => {
-      const source = customer.source || 'unknown';
-      stats.bySource[source] = (stats.bySource[source] || 0) + 1;
-    });
-    
-    return stats;
+    await checkAuthAndRole(companyId, 'adminOf'); // Only admins of this company can get customer stats
+
+    // This function now attempts to read precomputed stats first.
+    const statsDocRef = doc(db, 'companyStats', companyId);
+    const statsSnap = await getDoc(statsDocRef);
+
+    if (statsSnap.exists()) {
+      // If precomputed stats exist, return them directly for fast reads.
+      return statsSnap.data();
+    } else {
+      // TODO: Implement Cloud Function to precompute stats and store in /companyStats/{companyId}
+      // (Triggered on customer/booking create/update/delete events).
+
+      // If stats are not precomputed yet, fall back to client-side aggregation (INEFFICIENT FOR LARGE DATASETS).
+      console.warn(`Precomputed stats for company ${companyId} not found. Falling back to client-side aggregation. This is inefficient for large datasets.`);
+
+      const { customers } = await getCustomersForCompany(companyId, { limit: 10000 }); // Fetch all (up to a large limit) for client-side aggregation
+
+      const stats = {
+        total: customers.length,
+        byStatus: { lead: 0, active: 0, inactive: 0, prospect: 0 },
+        byType: { private: 0, business: 0 },
+        bySource: {},
+        totalRevenue: 0,
+        averageOrderValue: 0
+      };
+
+      customers.forEach(c => {
+        stats.byStatus[c.status] = (stats.byStatus[c.status] || 0) + 1;
+        stats.byType[c.customerType] = (stats.byType[c.customerType] || 0) + 1;
+        const source = c.source || 'unknown';
+        stats.bySource[source] = (stats.bySource[source] || 0) + 1;
+        stats.totalRevenue += (c.totalSpent || 0);
+      });
+
+      stats.averageOrderValue = stats.total > 0 ? stats.totalRevenue / stats.total : 0;
+
+      return stats;
+    }
   } catch (error) {
-    console.error('Error getting customer stats:', error);
+    logError('getCustomerStats', error, { companyId });
     throw error;
+  }
+};
+
+// Debug function to list all companies in the database
+export const debugListAllCompanies = async () => {
+  if (process.env.NODE_ENV === 'production') {
+    console.warn('debugListAllCompanies is disabled in production');
+    return [];
+  }
+
+  try {
+    await checkAuthAndRole(null, 'superAdmin'); // Only super admins can use this debug function
+
+    const companiesRef = collection(db, 'companies');
+    const snapshot = await getDocs(companiesRef);
+    const companies = [];
+
+    console.log(`Found ${snapshot.size} companies in the database:`);
+
+    snapshot.forEach(doc => {
+      const companyData = doc.data(); // Get raw data
+      companies.push({ id: doc.id, ...companyData }); // Store full data in array
+
+      // In non-production, log only essential, non-sensitive data
+      console.log(`Company ID: ${doc.id}`);
+      console.log(`Name: ${companyData.name || 'No name'}`);
+      console.log(`Deleted: ${companyData.deleted || false}`);
+      // Explicitly avoid logging sensitive fields like contactEmail, personnummer, subscription details here
+      console.log('-----------------------------------');
+    });
+
+    return companies;
+  } catch (error) {
+    logError('debugListAllCompanies', error);
+    return [];
   }
 };

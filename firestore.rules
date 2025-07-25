@@ -3,192 +3,125 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ============================================================================
-    // HELPER FUNCTIONS
-    // ============================================================================
-    
-    /**
-     * Checks if the user is authenticated.
-     */
+    // --- Helper functions for common checks ---
+
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /**
-     * Checks if the user is a designated Super Admin.
-     * This is determined by a custom claim on their auth token.
-     */
+    function isNotDeleted() {
+      // For read operations, only allow if the document is not soft-deleted
+      // Also handles documents that might not yet have the 'deleted' field (old data migrated to false)
+      return resource.data.deleted == false || !('deleted' in resource.data);
+    }
+
+    // Function to check if the requesting user is an admin of the specified company
+    // Assumes custom claim 'adminOf' is an array of company IDs the user is an admin for.
+    function isCompanyAdmin(companyId) {
+      return isSignedIn() &&
+             request.auth.token.adminOf is list && // Ensure it's a list
+             request.auth.token.adminOf.hasAny([companyId]); // User is admin of this company
+    }
+
+    // Function to check if the requesting user is a super admin
+    // Assumes custom claim 'superAdmin' is set to true.
     function isSuperAdmin() {
       return isSignedIn() && request.auth.token.superAdmin == true;
     }
 
-    /**
-     * Checks if the user is the admin of the company by comparing adminUid.
-     * @param companyId The ID of the company document.
-     */
-    function isCompanyAdmin(companyId) {
-      let companyDoc = get(/databases/$(database)/documents/companies/$(companyId));
-      return isSignedIn() && companyDoc.data.adminUid == request.auth.uid;
-    }
-    
-    /**
-     * Checks if the user owns the specified document.
-     * @param userId The user ID to check against the authenticated user's UID.
-     */
+    // Function to check if the requesting user is the owner of the document
     function isOwner(userId) {
-        return isSignedIn() && request.auth.uid == userId;
+      return isSignedIn() && request.auth.uid == userId;
     }
 
-    // ============================================================================
-    // USERS COLLECTION
-    // ============================================================================
+    // Helper for personnummer validation (basic format check)
+    // TODO: Add Cloud Function for full personnummer validation (including checksum like Luhn algorithm) before write.
+    function isValidPersonnummerFormat(personnummer) {
+      return personnummer is string && personnummer.matches('^[0-9]{8}-[0-9]{4}$');
+    }
 
+    // --- /users/{userId} Collection ---
+    // Users can only read/write their own profile (if not deleted), super admins can manage all user profiles.
     match /users/{userId} {
-      allow read: if isOwner(userId) || isSuperAdmin();
-      // Allow a user to create their own profile.
-      allow create: if isOwner(userId);
-      // Allow a user to update their own profile, but not grant themselves special permissions.
-      allow update: if isOwner(userId) &&
-                       request.resource.data.superAdmin == resource.data.superAdmin &&
-                       request.resource.data.adminOf == resource.data.adminOf;
+      allow read: if isOwner(userId) && isNotDeleted() || isSuperAdmin();
+      allow create: if isSignedIn(); // Allow any signed-in user to create their own user document
+      allow update: if isOwner(userId) && isNotDeleted() || isSuperAdmin(); // Owner or super admin can update
+      // Soft-delete is handled by setting 'deleted: true' in app logic
+      allow delete: if false; // Disallow direct hard deletes via client for safety
     }
 
-    // ============================================================================
-    // COMPANIES (TENANTS) COLLECTION
-    // ============================================================================
-    
+    // --- /companies/{companyId} Collection (Tenants) ---
     match /companies/{companyId} {
-      // Allow public read if company is marked as public
-      allow get: if resource != null && resource.data.isPublic == true || isSuperAdmin() || isCompanyAdmin(companyId) || (resource == null && isSignedIn());
-      allow list: if isSuperAdmin();
-      // WRITE RULES (create, update, delete)
-      allow create: if (isSignedIn() && request.resource.data.adminUid == request.auth.uid) || isSuperAdmin();
-      allow update: if isSuperAdmin() || isCompanyAdmin(companyId);
-      allow delete: if isSuperAdmin();
-      // --- NESTED: SERVICES SUBCOLLECTION ---
-      match /services/{serviceId} {
-        allow read: if get(/databases/$(database)/documents/companies/$(companyId)).data.isPublic == true || isSuperAdmin() || isCompanyAdmin(companyId);
-        allow create, update, delete: if isSuperAdmin() || isCompanyAdmin(companyId);
-        allow write: if request.resource.data.name is string &&
-                        request.resource.data.name.size() > 1 &&
-                        request.resource.data.name.size() < 100 &&
-                        request.resource.data.minimumPrice is number &&
-                        request.resource.data.minimumPrice >= 0;
-      }
-      
-      // --- NESTED: BOOKINGS SUBCOLLECTION ---
-      match /bookings/{bookingId} {
-        allow read, update, delete: if isSuperAdmin() || isCompanyAdmin(companyId);
-        allow create: if request.resource.data.customerEmail is string &&
-                         request.resource.data.customerName is string &&
-                         request.resource.data.totalPrice is number &&
-                         request.resource.data.totalPrice >= 0 &&
-                         request.resource.data.status == 'pending';
-      }
-      
-      // --- NESTED: PAYMENT CONFIG SUBCOLLECTION ---
-      match /paymentConfig/{configId} {
-        allow read, write: if isSuperAdmin() || isCompanyAdmin(companyId);
-      }
-      
-      // --- NESTED: CALCULATORS SUBCOLLECTION ---
-      match /calculators/{calculatorId} {
-        allow read: if get(/databases/$(database)/documents/companies/$(companyId)).data.isPublic == true || isSuperAdmin() || isCompanyAdmin(companyId);
-        allow create, update, delete: if isSuperAdmin() || isCompanyAdmin(companyId);
-      }
-      
-      // --- NESTED: COUPONS SUBCOLLECTION ---
-      match /coupons/{couponId} {
-        allow read: if get(/databases/$(database)/documents/companies/$(companyId)).data.isPublic == true || 
-                       isSuperAdmin() || isCompanyAdmin(companyId);
-        allow create, update, delete: if isSuperAdmin() || isCompanyAdmin(companyId);
-      }
-    }
-    
-    // ============================================================================
-    // CUSTOMERS COLLECTION (for Stripe extension and CRM)
-    // ============================================================================
-    match /customers/{customerId} {
-      // For Stripe customers (no companyId field)
-      allow create: if isOwner(customerId) || isSuperAdmin();
-      allow read, update, delete: if isOwner(customerId) || isSuperAdmin();
-      
-      // For CRM customers (with companyId field)
-      allow read, write: if isSignedIn() && (
-        isSuperAdmin() ||
-        (resource != null && resource.data.companyId != null && isCompanyAdmin(resource.data.companyId))
+      // Only super admins can create new companies.
+      allow create: if isSuperAdmin();
+
+      // Company admins can read their own company's data if not deleted. Super admins can read all.
+      allow read: if (isCompanyAdmin(companyId) || isSuperAdmin()) && isNotDeleted();
+
+      // Company admins can update their company's details, if not deleted. Super admins can update all.
+      // IMPORTANT: Stricter update rule to prevent arbitrary changes to 'deleted' field
+      allow update: if (isCompanyAdmin(companyId) || isSuperAdmin()) && isNotDeleted() && (
+        // Allow all updates if 'deleted' field is NOT being changed, OR
+        // if 'deleted' field IS being changed, ensure it's only from false to true.
+        // This rule covers the 'deleted: true' soft-delete operation!
+        !('deleted' in request.resource.data) || // If 'deleted' field is not part of the update payload
+        (request.resource.data.deleted == true && resource.data.deleted == false) // OR if it's changing from false to true
       );
 
-      // Allow the user to create and read their own checkout_sessions
-      match /checkout_sessions/{sessionId} {
-        allow create: if isOwner(customerId) || isSuperAdmin();
-        allow read: if isOwner(customerId) || isSuperAdmin();
-      }
-    }
-    
-    // ============================================================================
-    // CRM COLLECTIONS
-    // ============================================================================
-    
-    // CRM Customers - allow company admins to manage their customers
-    match /customers/{customerId} {
-      allow read, write: if isSignedIn() && 
-        (isSuperAdmin() || 
-         (resource == null && isCompanyAdmin(request.resource.data.companyId)) ||
-         (resource != null && isCompanyAdmin(resource.data.companyId)));
-    }
-    
-    // CRM Leads - allow company admins to manage their leads
-    match /leads/{leadId} {
-      allow read, write: if isSignedIn() && 
-        (isSuperAdmin() || 
-         (resource == null && isCompanyAdmin(request.resource.data.companyId)) ||
-         (resource != null && isCompanyAdmin(resource.data.companyId)));
-    }
-    
-    // CRM Deals - allow company admins to manage their deals
-    match /deals/{dealId} {
-      allow read, write: if isSignedIn() && 
-        (isSuperAdmin() || 
-         (resource == null && isCompanyAdmin(request.resource.data.companyId)) ||
-         (resource != null && isCompanyAdmin(resource.data.companyId)));
-    }
-    
-    // CRM Tasks - allow company admins to manage their tasks
-    match /tasks/{taskId} {
-      allow read, write: if isSignedIn() && 
-        (isSuperAdmin() || 
-         (resource == null && isCompanyAdmin(request.resource.data.companyId)) ||
-         (resource != null && isCompanyAdmin(resource.data.companyId)));
-    }
-    
-    // CRM Reports - allow company admins to manage their reports
-    match /reports/{reportId} {
-      allow read, write: if isSignedIn() && 
-        (isSuperAdmin() || 
-         (resource == null && isCompanyAdmin(request.resource.data.companyId)) ||
-         (resource != null && isCompanyAdmin(resource.data.companyId)));
-    }
-    
-    // CRM Settings - allow company admins to manage their settings
-    match /settings/{settingId} {
-      allow read, write: if isSignedIn() && 
-        (isSuperAdmin() || 
-         (resource == null && isCompanyAdmin(request.resource.data.companyId)) ||
-         (resource != null && isCompanyAdmin(resource.data.companyId)));
-    }
-    
-    // ============================================================================
-    // DEPRECATED & GLOBAL COLLECTIONS
-    // ============================================================================
-    
-    match /tenants/{tenantId} {
-        allow read, write: if false; // Disallow all access.
+      // Disallow direct hard deletes via client. Soft-delete is managed by setting 'deleted: true' via app logic/Cloud Function.
+      allow delete: if false;
     }
 
-    // Add rule for superAdminUsers collection
-    match /superAdminUsers/{userId} {
-        allow read: if isOwner(userId) || isSuperAdmin();
+    // --- Subcollections within /companies/{companyId} ---
+
+    // /companies/{companyId}/services/{serviceId}
+    match /companies/{companyId}/services/{serviceId} {
+      allow read: if (isCompanyAdmin(companyId) || isSuperAdmin()) && isNotDeleted();
+      // For creation, consent is required.
+      allow create: if (isCompanyAdmin(companyId) || isSuperAdmin()) && 
+                       request.resource.data.get('consent', false) == true;
+      allow update: if (isCompanyAdmin(companyId) || isSuperAdmin()) && isNotDeleted();
+      allow delete: if false; // Disallow direct hard deletes via client (use soft-delete)
+    }
+
+    // /companies/{companyId}/customers/{customerId}
+    match /companies/{companyId}/customers/{customerId} {
+      allow read: if (isCompanyAdmin(companyId) || isSuperAdmin()) && isNotDeleted();
+      // For creation, consent is required. If personnummer is provided, ensure basic format and RUTEligible is true.
+      allow create: if (isCompanyAdmin(companyId) || isSuperAdmin()) &&
+                       request.resource.data.get('consent', false) == true &&
+                       (!('personnummer' in request.resource.data) || 
+                        (isValidPersonnummerFormat(request.resource.data.personnummer) && 
+                         request.resource.data.get('RUTEligible', false) == true));
+      allow update: if (isCompanyAdmin(companyId) || isSuperAdmin()) && isNotDeleted();
+      allow delete: if false; // Disallow direct hard deletes via client (use soft-delete)
+    }
+
+    // /companies/{companyId}/bookings/{bookingId}
+    match /companies/{companyId}/bookings/{bookingId} {
+      allow read: if (isCompanyAdmin(companyId) || isSuperAdmin()) && isNotDeleted();
+      // For creation, consent is required. If personnummer is provided, ensure basic format and RUTEligible is true.
+      allow create: if (isCompanyAdmin(companyId) || isSuperAdmin()) &&
+                       request.resource.data.get('consent', false) == true &&
+                       (!('personnummer' in request.resource.data) || 
+                        (isValidPersonnummerFormat(request.resource.data.personnummer) && 
+                         request.resource.data.get('RUTEligible', false) == true));
+      allow update: if (isCompanyAdmin(companyId) || isSuperAdmin()) && isNotDeleted();
+      allow delete: if false; // Disallow direct hard deletes via client (use soft-delete)
+    }
+
+    // /companies/{companyId}/coupons/{couponId}
+    match /companies/{companyId}/coupons/{couponId} {
+      allow read: if (isCompanyAdmin(companyId) || isSuperAdmin()) && isNotDeleted();
+      allow create: if (isCompanyAdmin(companyId) || isSuperAdmin());
+      allow update: if (isCompanyAdmin(companyId) || isSuperAdmin()) && isNotDeleted();
+      allow delete: if false; // Disallow direct hard deletes via client (use soft-delete)
+    }
+
+    // --- Default deny for all other paths ---
+    // This is important to ensure only explicitly allowed paths are accessible.
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }
