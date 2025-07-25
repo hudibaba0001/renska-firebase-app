@@ -114,11 +114,10 @@ service cloud.firestore {
       allow read, update, delete: if isOwner(customerId) || isSuperAdmin();
       
       // For CRM customers (with companyId field)
-      allow read, write: if isSignedIn() && 
-        request.resource.data.companyId != null &&
-        (isSuperAdmin() || 
-         (resource == null && isCompanyAdmin(request.resource.data.companyId)) ||
-         (resource != null && isCompanyAdmin(resource.data.companyId)));
+      allow read, write: if isSignedIn() && (
+        isSuperAdmin() ||
+        (resource != null && resource.data.companyId != null && isCompanyAdmin(resource.data.companyId))
+      );
 
       // Allow the user to create and read their own checkout_sessions
       match /checkout_sessions/{sessionId} {

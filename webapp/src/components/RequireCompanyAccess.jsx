@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Navigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../firebase/init';
+import firebase from '../firebase/init';
 import { Spinner, Alert } from 'flowbite-react';
 import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 
@@ -23,10 +22,10 @@ export default function RequireCompanyAccess({ children }) {
       try {
         console.log('🔒 Validating company access:', { userId: user.uid, companyId });
         
-        // Get user's profile to check their company
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        // Get user's profile to check their company using v8 compat
+        const userDoc = await firebase.firestore().collection('users').doc(user.uid).get();
         
-        if (!userDoc.exists()) {
+        if (!userDoc.exists) {
           console.error('❌ User document not found');
           setError('User profile not found');
           setLoading(false);

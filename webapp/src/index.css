@@ -39,3 +39,24 @@
     flex-direction: column;
   }
 }
+
+/* Embed route overrides - ensure full viewport height */
+@layer utilities {
+  /* When on embed routes, override normal app constraints */
+  html[data-embed="true"], 
+  body[data-embed="true"], 
+  #root[data-embed="true"] {
+    width: 100vw !important;
+    height: 100vh !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    background: white !important;
+  }
+  
+  #root[data-embed="true"] {
+    min-height: 100vh !important;
+    display: block !important;
+    flex-direction: unset !important;
+  }
+}

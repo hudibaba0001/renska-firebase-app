@@ -1430,7 +1430,7 @@ export default function BookingCalculator({ config: propConfig, companyId: propC
     <div className={`w-full ${isEmbedded ? 'h-screen overflow-hidden' : ''}`}>
       {/* Step 1: Zip Code - Clean, integrated form like Hemfrid */}
       {step === 1 && (
-        <div className="text-center py-12">
+        <div className={`text-center ${isEmbedded ? 'h-screen flex items-center justify-center' : 'py-12'}`}>
           <div className="inline-block max-w-md w-full">
             <div className="bg-transparent rounded-lg p-8">
               <h2 className="text-2xl font-semibold text-gray-900 mb-2">
@@ -1463,7 +1463,7 @@ export default function BookingCalculator({ config: propConfig, companyId: propC
 
       {/* Step 2: Service Selection - Centered like Step 1 */}
       {step === 2 && (
-        <div className="text-center py-12">
+        <div className={`text-center ${isEmbedded ? 'h-screen flex items-center justify-center' : 'py-12'}`}>
           <div className="inline-block max-w-md w-full">
             <div className="bg-transparent rounded-lg p-8">
               <ServiceSelectStep

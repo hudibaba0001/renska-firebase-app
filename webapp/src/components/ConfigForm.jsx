@@ -72,6 +72,7 @@ export default function ConfigForm({ initialConfig, onSave, onChange, refreshSer
     rutPercentage: 0.3,
     rutEnabled: true,
     vatRate: 25, // Universal VAT setting
+    isPublic: false, // New field for public calculator
     ...initialConfig
   })
 
@@ -269,6 +270,28 @@ export default function ConfigForm({ initialConfig, onSave, onChange, refreshSer
       {/* Global Settings */}
       <div className="rounded-lg bg-gray-50 p-6 mb-8 border border-gray-200">
         <h2 className="text-2xl font-bold mb-4 text-gray-900">Global Settings</h2>
+
+        {/* Public Calculator Toggle */}
+        <div className="mb-6 border rounded-lg bg-white shadow-sm">
+          <div className="p-4 flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="flex items-center justify-center w-8 h-8 bg-yellow-100 rounded-full">
+                <CogIcon className="h-4 w-4 text-yellow-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">Public Calculator</h3>
+            </div>
+            <Checkbox
+              id="is-public-toggle"
+              checked={!!config.isPublic}
+              onChange={e => setConfig(prev => ({ ...prev, isPublic: e.target.checked }))}
+            />
+          </div>
+          <div className="px-4 pb-4 text-gray-600 text-sm">
+            <span>
+              Allow anyone to access and embed your calculator. Disable to restrict access to logged-in admins only.
+            </span>
+          </div>
+        </div>
 
         <>
           {/* RUT Discount Settings */}

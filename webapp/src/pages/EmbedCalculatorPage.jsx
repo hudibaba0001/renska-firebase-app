@@ -83,11 +83,12 @@ export default function EmbedCalculatorPage() {
       const { type, data } = event.data;
 
       switch (type) {
-        case 'GET_HEIGHT':
+        case 'GET_HEIGHT': {
           // Send current height to parent
           const height = document.documentElement.scrollHeight;
           window.parent.postMessage({ type: 'HEIGHT_UPDATE', height }, '*');
           break;
+        }
         
         case 'RESIZE':
           // Handle resize requests
@@ -113,6 +114,26 @@ export default function EmbedCalculatorPage() {
     return () => {
       window.removeEventListener('message', handleMessage);
       window.removeEventListener('resize', sendHeight);
+    };
+  }, []);
+
+  // Set embed attributes for CSS overrides
+  useEffect(() => {
+    // Set data-embed attribute on html, body, and root elements
+    document.documentElement.setAttribute('data-embed', 'true');
+    document.body.setAttribute('data-embed', 'true');
+    const rootElement = document.getElementById('root');
+    if (rootElement) {
+      rootElement.setAttribute('data-embed', 'true');
+    }
+
+    // Cleanup function
+    return () => {
+      document.documentElement.removeAttribute('data-embed');
+      document.body.removeAttribute('data-embed');
+      if (rootElement) {
+        rootElement.removeAttribute('data-embed');
+      }
     };
   }, []);
 
@@ -154,10 +175,19 @@ export default function EmbedCalculatorPage() {
           margin: 0;
           padding: 0;
           overflow: hidden;
-          position: fixed;
+          position: absolute;
           top: 0;
           left: 0;
           background: white;
+        }
+        
+        /* Ensure the page itself takes full viewport */
+        html, body, #root {
+          width: 100vw;
+          height: 100vh;
+          margin: 0;
+          padding: 0;
+          overflow: hidden;
         }
       `}</style>
     </div>
