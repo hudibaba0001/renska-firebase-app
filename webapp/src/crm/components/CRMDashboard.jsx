@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@mui/material';
 import { 
   Users, 
   Target, 
@@ -51,28 +50,26 @@ const CRMDashboard = () => {
     }, 1000);
   }, []);
 
-  const StatCard = ({ title, value, icon: IconComponent, color = 'blue' }) => (
-    <Card className="h-full">
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-gray-600">{title}</p>
-            <p className="text-2xl font-bold text-gray-900">{value}</p>
-          </div>
-          <div className={`p-3 rounded-full bg-${color}-100`}>
-            <IconComponent className={`w-6 h-6 text-${color}-600`} />
-          </div>
+  const StatCard = ({ title, value, icon: Icon, color = 'blue' }) => (
+    <div className="bg-white rounded-lg shadow p-6 h-full">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-gray-600">{title}</p>
+          <p className="text-2xl font-bold text-gray-900">{value}</p>
         </div>
-      </CardContent>
-    </Card>
+        <div className={`p-3 rounded-full bg-${color}-100`}>
+          <Icon className={`w-6 h-6 text-${color}-600`} />
+        </div>
+      </div>
+    </div>
   );
 
   const ActivityCard = ({ title, items, emptyMessage }) => (
-    <Card className="h-full">
-      <CardHeader>
-        <CardTitle className="text-lg font-semibold">{title}</CardTitle>
-      </CardHeader>
-      <CardContent>
+    <div className="bg-white rounded-lg shadow h-full">
+      <div className="p-6 border-b border-gray-200">
+        <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+      </div>
+      <div className="p-6">
         {items.length > 0 ? (
           <div className="space-y-3">
             {items.map((item) => (
@@ -102,8 +99,8 @@ const CRMDashboard = () => {
         ) : (
           <p className="text-gray-500 text-center py-4">{emptyMessage}</p>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 
   if (loading) {
@@ -195,11 +192,11 @@ const CRMDashboard = () => {
       </div>
 
       {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <div className="bg-white rounded-lg shadow">
+        <div className="p-6 border-b border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900">Quick Actions</h3>
+        </div>
+        <div className="p-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-center">
               <Users className="w-8 h-8 mx-auto mb-2 text-blue-600" />
@@ -218,8 +215,8 @@ const CRMDashboard = () => {
               <p className="font-medium">Add Task</p>
             </button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 };

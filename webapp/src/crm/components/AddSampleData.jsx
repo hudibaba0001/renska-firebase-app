@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { Button, Card, CardContent, CardHeader, CardTitle } from '@mui/material';
 import { Plus, Users, Target, Briefcase, CheckSquare } from 'lucide-react';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../firebase/init';
@@ -179,14 +178,15 @@ const AddSampleData = () => {
   };
 
   return (
-    <Card className="max-w-md mx-auto">
-      <CardHeader>
-        <CardTitle className="flex items-center space-x-2">
+    <div className="max-w-md mx-auto bg-white rounded-lg shadow-lg">
+      <div className="p-6 border-b border-gray-200">
+        <div className="flex items-center space-x-2">
           <Plus className="w-6 h-6 text-blue-600" />
-          <span>Add Sample Data</span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
+          <h3 className="text-lg font-semibold text-gray-900">Add Sample Data</h3>
+        </div>
+      </div>
+      
+      <div className="p-6 space-y-4">
         <p className="text-gray-600">
           Add sample customers, leads, deals, and tasks to test your CRM functionality.
         </p>
@@ -210,13 +210,13 @@ const AddSampleData = () => {
           </div>
         </div>
 
-        <Button
+        <button
           onClick={handleAddSampleData}
           disabled={loading}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+          className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white py-2 px-4 rounded-lg transition-colors"
         >
           {loading ? 'Adding Data...' : 'Add Sample Data'}
-        </Button>
+        </button>
 
         {message && (
           <div className={`p-3 rounded-lg text-sm ${
@@ -227,8 +227,8 @@ const AddSampleData = () => {
             {message}
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useParams, useNavigate, Routes, Route } from 'react-router-dom';
-import { ArrowBack, Users, Target, Briefcase, CheckSquare, BarChart3, Settings } from 'lucide-react';
+import { ArrowLeft, Users, Target, Briefcase, CheckSquare, BarChart3, Settings } from 'lucide-react';
 
 // Import CRM components
 import CustomerList from './components/CustomerList';
@@ -31,7 +31,7 @@ const CustomAppBar = () => {
             onClick={() => navigate(`/admin/${companyId}`)}
             className="flex items-center space-x-2 hover:bg-blue-700 px-3 py-2 rounded-lg transition-colors"
           >
-            <ArrowBack className="w-5 h-5" />
+            <ArrowLeft className="w-5 h-5" />
             <span>Back to Admin Dashboard</span>
           </button>
         </div>
