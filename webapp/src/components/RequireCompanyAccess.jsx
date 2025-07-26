@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Navigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import firebase from '../firebase/init';
+import { doc, getDoc, getFirestore } from 'firebase/firestore';
 import { Spinner, Alert } from 'flowbite-react';
 import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import { auth } from '../firebase/init';
 
 export default function RequireCompanyAccess({ children }) {
   const { companyId } = useParams();
@@ -22,11 +23,44 @@ export default function RequireCompanyAccess({ children }) {
       try {
         console.log('🔒 Validating company access:', { userId: user.uid, companyId });
         
-        // Get user's profile to check their company using v8 compat
-        const userDoc = await firebase.firestore().collection('users').doc(user.uid).get();
+        // Get the current Firebase Auth user directly from auth
+        const currentUser = auth.currentUser;
+        if (!currentUser) {
+          console.error('❌ No current Firebase Auth user');
+          setError('Authentication required');
+          setLoading(false);
+          return;
+        }
         
-        if (!userDoc.exists) {
-          console.error('❌ User document not found');
+        // First check custom claims (primary method)
+        const idTokenResult = await currentUser.getIdTokenResult();
+        const claims = idTokenResult.claims || {};
+        
+        console.log('🔑 User custom claims:', claims);
+        
+        // Check if user is super admin via custom claims
+        if (claims.superAdmin) {
+          console.log('✅ Super admin access granted via custom claims');
+          setAuthorized(true);
+          setLoading(false);
+          return;
+        }
+        
+        // Check if user is admin of this company via custom claims
+        if (claims.adminOf && claims.adminOf.includes(companyId)) {
+          console.log('✅ Company admin access granted via custom claims');
+          setAuthorized(true);
+          setLoading(false);
+          return;
+        }
+        
+        // Fallback: Check user profile in Firestore (for backward compatibility)
+        console.log('🔍 Checking user profile in Firestore as fallback...');
+        const db = getFirestore();
+        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+        
+        if (!userDoc.exists()) {
+          console.error('❌ User document not found in Firestore');
           setError('User profile not found');
           setLoading(false);
           return;
@@ -41,9 +75,9 @@ export default function RequireCompanyAccess({ children }) {
           isSuperAdmin: userData.isSuperAdmin 
         });
 
-        // Super admins can access any company
+        // Check if user is super admin via Firestore profile
         if (userData.isSuperAdmin) {
-          console.log('✅ Super admin access granted');
+          console.log('✅ Super admin access granted via Firestore profile');
           setAuthorized(true);
           setLoading(false);
           return;
@@ -54,17 +88,8 @@ export default function RequireCompanyAccess({ children }) {
           console.error('❌ Unauthorized company access attempt:', {
             userCompanyId,
             requestedCompanyId: companyId,
-            userId: user.uid
-          });
-          
-          // Log security incident
-          await logSecurityIncident({
-            type: 'UNAUTHORIZED_COMPANY_ACCESS',
-            userId: user.uid,
-            userEmail: user.email,
-            userCompanyId,
-            requestedCompanyId: companyId,
-            timestamp: new Date().toISOString()
+            userId: currentUser.uid,
+            claims: claims
           });
           
           setError('Unauthorized access to company data');
@@ -72,7 +97,7 @@ export default function RequireCompanyAccess({ children }) {
           return;
         }
 
-        console.log('✅ Company access validated successfully');
+        console.log('✅ Company access validated successfully via Firestore profile');
         setAuthorized(true);
         
       } catch (error) {
@@ -85,31 +110,6 @@ export default function RequireCompanyAccess({ children }) {
 
     validateCompanyAccess();
   }, [user, companyId]);
-
-  // Log security incidents securely
-  const logSecurityIncident = async (incident) => {
-    try {
-      // Use Firebase Functions for secure server-side logging
-      const { httpsCallable } = await import('firebase/functions');
-      const { getFunctions } = await import('firebase/firestore');
-      const functions = getFunctions();
-      
-      const logSecurityEvent = httpsCallable(functions, 'logSecurityEvent');
-      await logSecurityEvent({
-        type: incident.type,
-        userId: incident.userId,
-        userEmail: incident.userEmail,
-        userCompanyId: incident.userCompanyId,
-        requestedCompanyId: incident.requestedCompanyId,
-        timestamp: incident.timestamp,
-        userAgent: navigator.userAgent,
-        ipAddress: 'client-side' // Will be resolved server-side
-      });
-    } catch (error) {
-      // Fallback to console for development, but don't expose sensitive data
-      console.error('Security incident logging failed:', error.message);
-    }
-  };
 
   if (loading) {
     return (

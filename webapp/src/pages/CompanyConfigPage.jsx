@@ -23,13 +23,13 @@ export default function CompanyConfigPage({ companyId: propCompanyId }) {
       setError('');
       try {
         // Fetch both company config and services
-        const [companyDoc, services] = await Promise.all([
+        const [companyDoc, servicesResult] = await Promise.all([
           getTenant(companyId),
           getAllServicesForCompany(companyId)
         ]);
         console.log('🏢 Fetched company doc:', companyDoc);
-        console.log('🔧 Fetched services:', services);
-        const fullConfig = { ...companyDoc, services };
+        console.log('🔧 Fetched services:', servicesResult);
+        const fullConfig = { ...companyDoc, services: servicesResult.services || [] };
         console.log('📋 Full config for preview:', fullConfig);
         setConfig(fullConfig);
         // Initialize preview config with the same data
@@ -49,11 +49,11 @@ export default function CompanyConfigPage({ companyId: propCompanyId }) {
     if (!companyId) return;
     try {
       // Fetch both company config and services
-      const [companyDoc, services] = await Promise.all([
+      const [companyDoc, servicesResult] = await Promise.all([
         getTenant(companyId),
         getAllServicesForCompany(companyId)
       ]);
-      const fullConfig = { ...companyDoc, services };
+      const fullConfig = { ...companyDoc, services: servicesResult.services || [] };
       setConfig(fullConfig);
       // Update preview config as well
       setPreviewConfig(fullConfig);

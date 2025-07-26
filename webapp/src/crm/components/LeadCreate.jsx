@@ -1,38 +1,51 @@
 import React from 'react';
-import { Create, SimpleForm, TextInput, SelectInput, DateInput } from 'react-admin';
+import {
+  Create,
+  SimpleForm,
+  TextInput,
+  SelectInput,
+  NumberInput,
+  DateInput,
+  required,
+  email
+} from 'react-admin';
 
 const LeadCreate = () => (
   <Create>
     <SimpleForm>
-      <TextInput source="name" label="Name" required />
-      <TextInput source="email" label="Email" type="email" />
-      <TextInput source="phone" label="Phone" />
-      <TextInput source="company" label="Company" />
-      <SelectInput 
-        source="status" 
-        label="Status" 
+      <TextInput source="firstName" validate={[required()]} />
+      <TextInput source="lastName" validate={[required()]} />
+      <TextInput source="email" type="email" validate={[required(), email()]} />
+      <TextInput source="phone" />
+      <TextInput source="company" />
+      <SelectInput
+        source="status"
         choices={[
           { id: 'new', name: 'New' },
           { id: 'contacted', name: 'Contacted' },
           { id: 'qualified', name: 'Qualified' },
-          { id: 'unqualified', name: 'Unqualified' },
-          { id: 'converted', name: 'Converted' }
+          { id: 'proposal', name: 'Proposal' },
+          { id: 'won', name: 'Won' },
+          { id: 'lost', name: 'Lost' },
         ]}
+        defaultValue="new"
       />
-      <SelectInput 
-        source="source" 
-        label="Source" 
+      <SelectInput
+        source="source"
         choices={[
           { id: 'website', name: 'Website' },
           { id: 'referral', name: 'Referral' },
           { id: 'social', name: 'Social Media' },
-          { id: 'email', name: 'Email Campaign' },
-          { id: 'other', name: 'Other' }
+          { id: 'advertising', name: 'Advertising' },
+          { id: 'other', name: 'Other' },
         ]}
+        defaultValue="website"
       />
-      <TextInput source="notes" label="Notes" multiline rows={3} />
+      <NumberInput source="estimatedValue" label="Estimated Value (SEK)" />
+      <DateInput source="expectedCloseDate" label="Expected Close Date" />
+      <TextInput source="notes" multiline />
     </SimpleForm>
   </Create>
 );
 
-export default LeadCreate; 
+export default LeadCreate;

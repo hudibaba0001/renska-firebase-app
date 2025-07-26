@@ -15,7 +15,18 @@ const bookingCache = new Map();
 const CACHE_DURATION = 300000; // 5 minutes
 
 // Encryption utilities for sensitive data (personnummer)
-const ENCRYPTION_KEY = import.meta.env.VITE_ENCRYPTION_KEY || 'swedprime-default-key-change-in-production';
+const ENCRYPTION_KEY = import.meta.env.VITE_ENCRYPTION_KEY;
+
+// Validate encryption key on startup
+if (!ENCRYPTION_KEY || ENCRYPTION_KEY.length < 32) {
+  console.error('CRITICAL: VITE_ENCRYPTION_KEY must be set and at least 32 characters long');
+  throw new Error('Invalid or missing encryption key. Please set VITE_ENCRYPTION_KEY environment variable.');
+}
+
+if (ENCRYPTION_KEY === 'swedprime-default-key-change-in-production') {
+  console.error('CRITICAL: Using default encryption key in production is not allowed');
+  throw new Error('Default encryption key detected. Please set a secure VITE_ENCRYPTION_KEY.');
+}
 
 const encryptPersonnummer = (personnummer) => {
   if (!personnummer || personnummer.trim() === '') return '';
@@ -137,6 +148,11 @@ const checkAuthAndRole = async (companyId = null, requiredRole = 'adminOf') => {
 
   if (!user) {
     throw new Error('Authentication required. Please log in.');
+  }
+
+  // Ensure we have a valid Firebase Auth user with getIdTokenResult method
+  if (!user.getIdTokenResult || typeof user.getIdTokenResult !== 'function') {
+    throw new Error('Invalid user object. Please log in again.');
   }
 
   const token = await user.getIdTokenResult();
@@ -360,19 +376,28 @@ export const deleteTenant = async (tenantId, userId = null) => { // userId for a
 // Get a tenant (company) by ID
 export const getTenant = async (tenantId) => {
   try {
+    console.log('🔍 getTenant called with tenantId:', tenantId);
+    
     // No client-side auth/rate-limit here, as this might be called by the client directly after login
     // Security Rules are crucial here to ensure only authorized users can read.
     const tenantDocRef = doc(db, 'companies', tenantId);
+    console.log('📄 Attempting to fetch document from:', `companies/${tenantId}`);
+    
     const tenantSnap = await getDoc(tenantDocRef);
+    console.log('📄 Document exists:', tenantSnap.exists());
 
     // Client-side filtering of soft-deleted documents (Security Rules should also enforce this)
     if (tenantSnap.exists() && tenantSnap.data().deleted === false) { 
+      const data = tenantSnap.data();
+      console.log('✅ Company found and not soft-deleted:', { name: data.name, deleted: data.deleted });
       // Return full data from Firestore document. Security rules will minimize read costs.
-      return { id: tenantSnap.id, ...tenantSnap.data() };
+      return { id: tenantSnap.id, ...data };
     } else {
+      console.log('❌ Company not found or is soft-deleted');
       return null; // Tenant not found or is soft-deleted
     }
   } catch (error) {
+    console.error('❌ Error in getTenant:', error);
     logError('getTenant', error, { tenantId });
     throw error;
   }
@@ -483,6 +508,8 @@ export const deleteService = async (companyId, serviceId, userId = null) => {
 // Get all services for a specific company (tenant) by companyId with pagination and soft-delete filtering
 export const getAllServicesForCompany = async (companyId, options = {}) => {
   try {
+    console.log('🔍 getAllServicesForCompany called with companyId:', companyId);
+    
     // Check cache first
     const cacheKey = getCacheKey('services', companyId, options.limit || 50, options.lastDoc?.id || 'start');
     if (serviceCache.has(cacheKey)) {
@@ -490,9 +517,13 @@ export const getAllServicesForCompany = async (companyId, options = {}) => {
       return serviceCache.get(cacheKey);
     }
 
+    console.log('🔐 Checking auth and role for company:', companyId);
     await checkAuthAndRole(companyId, 'adminOf'); // Only company members can read services
+    console.log('✅ Auth check passed for company:', companyId);
 
     const servicesRef = collection(db, 'companies', companyId, 'services');
+    console.log('📄 Attempting to fetch services from:', `companies/${companyId}/services`);
+    
     let q = query(
       servicesRef,
       where('deleted', '==', false), // Filter out soft-deleted services
@@ -515,9 +546,10 @@ export const getAllServicesForCompany = async (companyId, options = {}) => {
     // Cache the result
     setCacheWithExpiry(serviceCache, cacheKey, result);
 
-    console.log(`Fetched ${services.length} services for company ${companyId}`);
+    console.log(`✅ Fetched ${services.length} services for company ${companyId}`);
     return result;
   } catch (error) {
+    console.error('❌ Error in getAllServicesForCompany:', error);
     logError('getAllServicesForCompany', error, { companyId, options });
     throw error;
   }

@@ -28,3 +28,12 @@ exports.cancelRecurringSeries = bookings.cancelRecurringSeries;
 // Export user management and GDPR functions
 exports.usersApi = users.api; // REST API endpoints
 exports.deleteUserData = users.deleteUserData; // Callable function
+
+// Import and export auth functions
+const auth = require('./routes/auth');
+exports.setUserClaims = auth.setUserClaims;
+exports.initializeSuperAdmin = auth.initializeSuperAdmin;
+exports.removeUserClaims = auth.removeUserClaims;
+exports.getUserClaims = auth.getUserClaims;
+exports.createUserDocument = auth.createUserDocument;
+exports.cleanupUserDocument = auth.cleanupUserDocument;

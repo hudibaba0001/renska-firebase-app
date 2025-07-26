@@ -1,6 +1,4 @@
 import React from 'react';
-import { Alert, Card, Button } from 'flowbite-react';
-import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -8,18 +6,17 @@ class ErrorBoundary extends React.Component {
     this.state = { hasError: false, error: null, errorInfo: null };
   }
 
-  static getDerivedStateFromError() {
+  static getDerivedStateFromError(error) {
     // Update state so the next render will show the fallback UI
     return { hasError: true };
   }
 
   componentDidCatch(error, errorInfo) {
-    // Log the error to console for debugging
+    // Log the error
     console.error('ErrorBoundary caught an error:', error, errorInfo);
-    
     this.setState({
-      error,
-      errorInfo
+      error: error,
+      errorInfo: errorInfo
     });
   }
 
@@ -27,39 +24,58 @@ class ErrorBoundary extends React.Component {
     if (this.state.hasError) {
       // Fallback UI
       return (
-        <Card className="border-red-200">
-          <Alert color="failure">
-            <div className="flex items-center gap-3">
-              <ExclamationTriangleIcon className="w-5 h-5" />
-              <div>
-                <h5 className="font-medium">Something went wrong</h5>
-                <p className="text-sm mt-1">
-                  {this.props.fallbackMessage || 'An error occurred while rendering this component.'}
-                </p>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="max-w-md w-full bg-white shadow-lg rounded-lg p-6">
+            <div className="flex items-center mb-4">
+              <div className="flex-shrink-0">
+                <svg className="h-8 w-8 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 18.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-lg font-medium text-gray-900">
+                  Something went wrong
+                </h3>
               </div>
             </div>
-          </Alert>
-          
-          {import.meta.env.DEV && (
-            <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-              <h6 className="font-medium text-gray-900 dark:text-white mb-2">Error Details:</h6>
-              <pre className="text-xs text-gray-600 dark:text-gray-400 overflow-auto">
-                {this.state.error && this.state.error.toString()}
-                {this.state.errorInfo && this.state.errorInfo.componentStack}
-              </pre>
+            
+            <div className="text-sm text-gray-500 mb-4">
+              <p>An error occurred while loading this page. Please try refreshing or contact support if the problem persists.</p>
             </div>
-          )}
-          
-          <div className="mt-4">
-            <Button 
-              size="sm" 
-              color="gray"
-              onClick={() => this.setState({ hasError: false, error: null, errorInfo: null })}
-            >
-              Try Again
-            </Button>
+
+            {this.props.showDetails && this.state.error && (
+              <details className="mb-4">
+                <summary className="cursor-pointer text-sm font-medium text-gray-700 hover:text-gray-900">
+                  Error Details
+                </summary>
+                <div className="mt-2 p-3 bg-gray-100 rounded text-xs font-mono text-gray-800 overflow-auto max-h-32">
+                  <div className="mb-2">
+                    <strong>Error:</strong> {this.state.error.toString()}
+                  </div>
+                  <div>
+                    <strong>Stack:</strong>
+                    <pre className="whitespace-pre-wrap">{this.state.errorInfo.componentStack}</pre>
+                  </div>
+                </div>
+              </details>
+            )}
+
+            <div className="flex space-x-3">
+              <button
+                onClick={() => window.location.reload()}
+                className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                Refresh Page
+              </button>
+              <button
+                onClick={() => window.history.back()}
+                className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500"
+              >
+                Go Back
+              </button>
+            </div>
           </div>
-        </Card>
+        </div>
       );
     }
 

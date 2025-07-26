@@ -2,7 +2,6 @@ import React, { useState } from 'react'
 import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { signInWithEmailAndPassword } from 'firebase/auth'
 import { auth } from '../firebase/init'
-import { doc, getDoc, getFirestore } from 'firebase/firestore'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -21,42 +20,30 @@ export default function LoginPage() {
     try {
       // Sign in with Firebase Authentication
       const userCred = await signInWithEmailAndPassword(auth, email, password)
+      
+      // Force refresh the token to get latest custom claims
+      await userCred.user.getIdToken(true)
       const idTokenResult = await userCred.user.getIdTokenResult()
       const claims = idTokenResult.claims || {}
 
-      // Fetch user profile from Firestore
-      const db = getFirestore()
-      const userDoc = await getDoc(doc(db, 'users', userCred.user.uid))
-      
-      if (!userDoc.exists()) {
-        setError('User profile not found. Please contact support.')
-        setLoading(false)
-        return
-      }
-      
-      const userData = userDoc.data()
-      
-      // Priority: 1) Preserve original redirect, 2) Super Admin, 3) Company Admin, 4) Fallback dashboard
+      console.log('🔑 User claims after login:', claims)
+
+      // Determine redirect target based on custom claims
       let target = from
 
       if (!location.state?.from) {
         if (claims.superAdmin) {
           target = '/super-admin'
+        } else if (claims.adminOf && claims.adminOf.length > 0) {
+          // User is admin of a company, redirect to company dashboard
+          target = `/admin/${claims.adminOf[0]}`
         } else {
-          // Check Firestore for super admin status
-          const superAdminDoc = await getDoc(doc(db, 'superAdminUsers', userCred.user.uid))
-          
-          if (superAdminDoc.exists() && superAdminDoc.data().isSuperAdmin) {
-            target = '/super-admin'
-          } else if (userData.companyId) {
-            // User has a company ID, redirect to company admin dashboard
-            target = `/admin/${userData.companyId}`
-          } else {
-            target = '/admin/companies'
-          }
+          // Fallback to companies page
+          target = '/admin/companies'
         }
       }
 
+      console.log('🚀 Redirecting to:', target)
       navigate(target, { replace: true })
     } catch (e) {
       console.error('Login error:', e)

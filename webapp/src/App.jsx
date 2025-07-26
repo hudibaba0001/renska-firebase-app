@@ -27,7 +27,7 @@ import SuperAdminDashboardPage from './pages/SuperAdminDashboardPage';
 import UnauthorizedPage from './pages/UnauthorizedPage';
 import AdminCouponsPage from './pages/AdminCouponsPage';
 import CustomersPage from './pages/CustomersPage';
-import CRMApp from './crm/CRMApp';
+import CRMWrapper from './crm/CRMWrapper';
 import BookingCalculator from './components/BookingCalculator';
 import EmbedCalculatorPage from './pages/EmbedCalculatorPage';
 
@@ -122,7 +122,9 @@ export default function App() {
           element={
             <RequireAuth>
               <RequireCompanyAccess>
-                <CRMApp />
+                <ErrorBoundary showDetails={true}>
+                  <CRMWrapper />
+                </ErrorBoundary>
               </RequireCompanyAccess>
             </RequireAuth>
           }

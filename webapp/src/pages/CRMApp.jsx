@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../firebase/init';
+import { logger } from '../utils/logger';
 
 const CRMApp = () => {
   const { companyId } = useParams();
@@ -10,6 +11,9 @@ const CRMApp = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('dashboard');
 
+  // Debug logging
+  logger.info('CRMApp rendered with companyId:', companyId);
+
   useEffect(() => {
     loadCRMData();
   }, [companyId]);
@@ -17,6 +21,11 @@ const CRMApp = () => {
   const loadCRMData = async () => {
     try {
       setLoading(true);
+      
+      if (!companyId) {
+        console.error('No company ID provided');
+        return;
+      }
       
       // Load customers
       const customersQuery = query(
@@ -43,7 +52,10 @@ const CRMApp = () => {
       setLeads(leadsData);
 
     } catch (error) {
-      console.error('Error loading CRM data:', error);
+      logger.error('Error loading CRM data:', error);
+      // Set empty arrays to prevent undefined errors
+      setCustomers([]);
+      setLeads([]);
     } finally {
       setLoading(false);
     }
@@ -149,7 +161,10 @@ const CRMApp = () => {
             {customers.map((customer) => (
               <tr key={customer.id}>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {customer.name || customer.firstName + ' ' + customer.lastName}
+                  {customer.name || 
+                   (customer.firstName && customer.lastName ? 
+                     `${customer.firstName} ${customer.lastName}` : 
+                     customer.firstName || customer.lastName || 'N/A')}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {customer.email}
@@ -161,7 +176,11 @@ const CRMApp = () => {
                   {customer.customerType || 'Private'}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {customer.createdAt ? new Date(customer.createdAt.toDate()).toLocaleDateString() : 'N/A'}
+                  {customer.createdAt ? 
+                    (customer.createdAt.toDate ? 
+                      new Date(customer.createdAt.toDate()).toLocaleDateString() : 
+                      new Date(customer.createdAt).toLocaleDateString()
+                    ) : 'N/A'}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   <button className="text-blue-600 hover:text-blue-900 mr-3">Edit</button>

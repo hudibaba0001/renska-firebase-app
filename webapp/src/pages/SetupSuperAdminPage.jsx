@@ -20,12 +20,17 @@ export default function SetupSuperAdminPage() {
     setStatus('Setting up super admin...');
 
     try {
+      // Validate password input
+      if (!formData.password || formData.password.length < 8) {
+        throw new Error('Password must be at least 8 characters long');
+      }
+
       // Sign in with super admin credentials
       setStatus('Signing in...');
       const userCredential = await signInWithEmailAndPassword(
         auth, 
         formData.email, 
-        'superadmin123'
+        formData.password
       );
       
       const user = userCredential.user;
@@ -85,6 +90,25 @@ export default function SetupSuperAdminPage() {
               </div>
             </div>
           )}
+
+          <input
+            type="email"
+            placeholder="Super Admin Email"
+            value={formData.email}
+            onChange={(e) => setFormData({...formData, email: e.target.value})}
+            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+            required
+          />
+          
+          <input
+            type="password"
+            placeholder="Super Admin Password (min 8 characters)"
+            value={formData.password}
+            onChange={(e) => setFormData({...formData, password: e.target.value})}
+            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+            minLength="8"
+            required
+          />
 
           <button
             onClick={setupSuperAdmin}
