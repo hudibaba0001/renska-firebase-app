@@ -5,6 +5,9 @@ const admin = require("firebase-admin");
 const functions = require('firebase-functions');
 const crypto = require('crypto');
 
+// Import cascade delete functions
+const cascadeDelete = require('./cascadeDelete');
+
 // Initialize Firebase Admin
 try {
   admin.initializeApp();
@@ -231,6 +234,12 @@ exports.createCheckoutSession = onCall({ enforceAppCheck: false }, async (data, 
     throw new HttpsError('internal', error.message);
   }
 });
+
+// Export cascade delete functions
+exports.cascadeSoftDeleteCompanyData = cascadeDelete.cascadeSoftDeleteCompanyData;
+exports.cleanupExpiredSoftDeletes = cascadeDelete.cleanupExpiredSoftDeletes;
+exports.manualCascadeDelete = cascadeDelete.manualCascadeDelete;
+exports.restoreSoftDeletedCompany = cascadeDelete.restoreSoftDeletedCompany;
 
 /**
  * Create Booking Payment Intent (Callable Function)

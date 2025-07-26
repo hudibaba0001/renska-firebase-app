@@ -12,100 +12,100 @@
       "collectionGroup": "services",
       "queryScope": "COLLECTION_GROUP",
       "fields": [
-        { "fieldPath": "companyId", "order": "asc" },
-        { "fieldPath": "deleted", "order": "asc" },
-        { "fieldPath": "createdAt", "order": "desc" }
+        { "fieldPath": "companyId", "order": "ASCENDING" },
+        { "fieldPath": "deleted", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     },
     {
       "collectionGroup": "customers",
       "queryScope": "COLLECTION_GROUP",
       "fields": [
-        { "fieldPath": "companyId", "order": "asc" },
-        { "fieldPath": "deleted", "order": "asc" },
-        { "fieldPath": "createdAt", "order": "desc" }
+        { "fieldPath": "companyId", "order": "ASCENDING" },
+        { "fieldPath": "deleted", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     },
     {
       "collectionGroup": "customers",
       "queryScope": "COLLECTION_GROUP",
       "fields": [
-        { "fieldPath": "companyId", "order": "asc" },
-        { "fieldPath": "deleted", "order": "asc" },
-        { "fieldPath": "status", "order": "asc" },
-        { "fieldPath": "createdAt", "order": "desc" }
+        { "fieldPath": "companyId", "order": "ASCENDING" },
+        { "fieldPath": "deleted", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     },
     {
       "collectionGroup": "customers",
       "queryScope": "COLLECTION_GROUP",
       "fields": [
-        { "fieldPath": "companyId", "order": "asc" },
-        { "fieldPath": "deleted", "order": "asc" },
-        { "fieldPath": "customerType", "order": "asc" },
-        { "fieldPath": "createdAt", "order": "desc" }
+        { "fieldPath": "companyId", "order": "ASCENDING" },
+        { "fieldPath": "deleted", "order": "ASCENDING" },
+        { "fieldPath": "customerType", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     },
     {
       "collectionGroup": "customers",
       "queryScope": "COLLECTION_GROUP",
       "fields": [
-        { "fieldPath": "companyId", "order": "asc" },
-        { "fieldPath": "deleted", "order": "asc" },
-        { "fieldPath": "personnummer", "order": "asc" }
+        { "fieldPath": "companyId", "order": "ASCENDING" },
+        { "fieldPath": "deleted", "order": "ASCENDING" },
+        { "fieldPath": "personnummer", "order": "ASCENDING" }
       ]
     },
     {
       "collectionGroup": "customers",
       "queryScope": "COLLECTION_GROUP",
       "fields": [
-        { "fieldPath": "companyId", "order": "asc" },
-        { "fieldPath": "deleted", "order": "asc" },
-        { "fieldPath": "totalSpent", "order": "desc" }
+        { "fieldPath": "companyId", "order": "ASCENDING" },
+        { "fieldPath": "deleted", "order": "ASCENDING" },
+        { "fieldPath": "totalSpent", "order": "DESCENDING" }
       ]
     },
     {
       "collectionGroup": "bookings",
       "queryScope": "COLLECTION_GROUP",
       "fields": [
-        { "fieldPath": "companyId", "order": "asc" },
-        { "fieldPath": "deleted", "order": "asc" },
-        { "fieldPath": "createdAt", "order": "desc" }
+        { "fieldPath": "companyId", "order": "ASCENDING" },
+        { "fieldPath": "deleted", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     },
     {
       "collectionGroup": "bookings",
       "queryScope": "COLLECTION_GROUP",
       "fields": [
-        { "fieldPath": "companyId", "order": "asc" },
-        { "fieldPath": "deleted", "order": "asc" },
-        { "fieldPath": "date", "order": "asc" }
+        { "fieldPath": "companyId", "order": "ASCENDING" },
+        { "fieldPath": "deleted", "order": "ASCENDING" },
+        { "fieldPath": "date", "order": "ASCENDING" }
       ]
     },
     {
       "collectionGroup": "bookings",
       "queryScope": "COLLECTION_GROUP",
       "fields": [
-        { "fieldPath": "companyId", "order": "asc" },
-        { "fieldPath": "deleted", "order": "asc" },
-        { "fieldPath": "customerId", "order": "asc" }
+        { "fieldPath": "companyId", "order": "ASCENDING" },
+        { "fieldPath": "deleted", "order": "ASCENDING" },
+        { "fieldPath": "customerId", "order": "ASCENDING" }
       ]
     },
     {
       "collectionGroup": "bookings",
       "queryScope": "COLLECTION_GROUP",
       "fields": [
-        { "fieldPath": "companyId", "order": "asc" },
-        { "fieldPath": "deleted", "order": "asc" },
-        { "fieldPath": "personnummer", "order": "asc" }
+        { "fieldPath": "companyId", "order": "ASCENDING" },
+        { "fieldPath": "deleted", "order": "ASCENDING" },
+        { "fieldPath": "personnummer", "order": "ASCENDING" }
       ]
     },
     {
       "collectionGroup": "users",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "deleted", "order": "asc" },
-        { "fieldPath": "createdAt", "order": "desc" }
+        { "fieldPath": "deleted", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     }
   ]

@@ -1,17 +1,55 @@
 import { collection, query, getDocs, orderBy, addDoc, doc, where, updateDoc, getDoc, limit, startAfter, serverTimestamp, writeBatch } from "firebase/firestore";
 import { db } from "../firebase/init";
-import sanitizeHtml from 'sanitize-html';
+import DOMPurify from 'dompurify';
 import { getAuth } from "firebase/auth"; // For client-side auth checks (UX/UI)
+import toast from 'react-hot-toast';
+
+// Note: Offline persistence is now configured in firebase/init.js using the new FirestoreSettings.cache API
+
+// Cache for frequently accessed data
+const serviceCache = new Map();
+const customerCache = new Map();
+const bookingCache = new Map();
+const CACHE_DURATION = 300000; // 5 minutes
 
 // IMPORTANT: Firestore Security Rules are the PRIMARY enforcement layer for data access and security.
 // The client-side checks below (e.g., checkAuthAndRole, rateLimit) are for UX/UI and preventing unnecessary API calls,
 // but they DO NOT replace robust server-side security rules or Cloud Functions for sensitive operations.
 
-// Centralized error logging utility
+// Centralized error logging utility with user notifications
 const logError = (functionName, error, data = {}) => {
   console.error(`Error in ${functionName}:`, error);
   console.error('Context data:', data);
+  
+  // User-friendly error messages
+  let userMessage = error.message;
+  if (error.code === 'permission-denied') {
+    userMessage = 'You do not have permission to perform this action.';
+  } else if (error.code === 'unavailable') {
+    userMessage = 'Service temporarily unavailable. Please try again.';
+  } else if (error.code === 'deadline-exceeded') {
+    userMessage = 'Request timed out. Please check your connection.';
+  } else if (error.message.includes('Rate limit')) {
+    userMessage = 'Too many requests. Please wait a moment and try again.';
+  }
+  
+  toast.error(userMessage);
   // TODO: In production, integrate with a professional logging service (e.g., Google Cloud Logging, Sentry, Datadog)
+};
+
+// Success notification utility
+const logSuccess = (message) => {
+  toast.success(message);
+};
+
+// Cache management utilities
+const setCacheWithExpiry = (cache, key, value, duration = CACHE_DURATION) => {
+  cache.set(key, value);
+  setTimeout(() => cache.delete(key), duration);
+};
+
+const getCacheKey = (prefix, ...params) => {
+  return `${prefix}-${params.filter(p => p !== undefined).join('-')}`;
 };
 
 // Helper to ensure common timestamping and initial 'deleted' status for new documents
@@ -22,6 +60,12 @@ const addTimestamps = (data, isNew = true) => {
     timestampedData.deleted = false; // Default to not deleted for new documents
   }
   return timestampedData;
+};
+
+// Helper function to sanitize HTML strings using DOMPurify
+const sanitizeHtml = (html) => {
+  if (typeof html !== 'string') return html;
+  return DOMPurify.sanitize(html, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
 };
 
 // Email validation regex
@@ -185,7 +229,8 @@ export const createTenant = async (tenantData) => {
 
     const companiesRef = collection(db, 'companies');
     const docRef = await addDoc(companiesRef, sanitizedData);
-
+    
+    logSuccess('Company created successfully!');
     return { id: docRef.id, ...sanitizedData };
   } catch (error) {
     logError('createTenant', error, { tenantData });
@@ -407,6 +452,13 @@ export const deleteService = async (companyId, serviceId, userId = null) => {
 // Get all services for a specific company (tenant) by companyId with pagination and soft-delete filtering
 export const getAllServicesForCompany = async (companyId, options = {}) => {
   try {
+    // Check cache first
+    const cacheKey = getCacheKey('services', companyId, options.limit || 50, options.lastDoc?.id || 'start');
+    if (serviceCache.has(cacheKey)) {
+      console.log(`Serving services from cache for company ${companyId}`);
+      return serviceCache.get(cacheKey);
+    }
+
     await checkAuthAndRole(companyId, 'adminOf'); // Only company members can read services
 
     const servicesRef = collection(db, 'companies', companyId, 'services');
@@ -427,8 +479,13 @@ export const getAllServicesForCompany = async (companyId, options = {}) => {
       return { id: doc.id, ...doc.data() };
     });
 
+    const result = { services, lastDoc: snapshot.docs[snapshot.docs.length - 1] || null };
+    
+    // Cache the result
+    setCacheWithExpiry(serviceCache, cacheKey, result);
+
     console.log(`Fetched ${services.length} services for company ${companyId}`);
-    return { services, lastDoc: snapshot.docs[snapshot.docs.length - 1] || null };
+    return result;
   } catch (error) {
     logError('getAllServicesForCompany', error, { companyId, options });
     throw error;
@@ -495,6 +552,115 @@ export const createBooking = async (companyId, bookingData) => {
     return { id: docRef.id, ...sanitizedData };
   } catch (error) {
     logError('createBooking', error, { companyId, bookingData });
+    throw error;
+  }
+};
+
+// Create recurring bookings in the 'bookings' subcollection for a specific company
+export const createRecurringBooking = async (companyId, bookingData, frequency, occurrences) => {
+  try {
+    await checkAuthAndRole(companyId, 'adminOf'); // Only admins of this company can create bookings
+    rateLimit(getAuth().currentUser.uid); // Apply client-side rate limit
+
+    // Validation
+    if (!bookingData.customerEmail || !validateEmail(sanitizeHtml(bookingData.customerEmail))) {
+      throw new Error('Valid customer email is required.');
+    }
+    if (bookingData.price !== undefined && (typeof bookingData.price !== 'number' || bookingData.price <= 0)) {
+      throw new Error('Price must be a positive number.');
+    }
+    if (!['weekly', 'monthly'].includes(frequency)) {
+      throw new Error('Frequency must be either "weekly" or "monthly".');
+    }
+    if (!occurrences || occurrences < 1 || occurrences > 52) {
+      throw new Error('Occurrences must be between 1 and 52.');
+    }
+
+    // Personnummer is optional, but if provided, it must be valid
+    if (bookingData.personnummer && !validatePersonnummer(sanitizeHtml(bookingData.personnummer))) {
+      throw new Error('Invalid personnummer format (YYYYMMDD-XXXX) if provided.');
+    }
+    if (!bookingData.customerId || !sanitizeHtml(bookingData.customerId).trim()) {
+      throw new Error('Customer ID is required and cannot be empty.');
+    }
+    if (!bookingData.serviceId || !sanitizeHtml(bookingData.serviceId).trim()) {
+      throw new Error('Service ID is required and cannot be empty.');
+    }
+    if (bookingData.consent !== undefined && typeof bookingData.consent !== 'boolean') {
+      throw new Error('Consent must be a boolean.');
+    }
+
+    const baseData = {
+      companyId: companyId,
+      customerId: sanitizeHtml(bookingData.customerId),
+      serviceId: sanitizeHtml(bookingData.serviceId),
+      personnummer: sanitizeHtml(bookingData.personnummer || ''),
+      consent: !!bookingData.consent,
+      consentTimestamp: bookingData.consent ? serverTimestamp() : null,
+      consentDetails: sanitizeHtml(bookingData.consentDetails || ''),
+      RUTEligible: !!bookingData.RUTEligible,
+      customerEmail: sanitizeHtml(bookingData.customerEmail),
+      price: bookingData.price,
+      isRecurring: true,
+      frequency: frequency,
+      originalDate: bookingData.date
+    };
+
+    if (!baseData.consent) {
+      throw new Error('Consent required to create booking (GDPR compliance).');
+    }
+
+    const bookingsRef = collection(db, 'companies', companyId, 'bookings');
+    const batch = writeBatch(db);
+    
+    let currentDate = new Date(bookingData.date);
+    const bookingIds = [];
+
+    for (let i = 0; i < occurrences; i++) {
+      const docRef = doc(bookingsRef);
+      const bookingWithDate = addTimestamps({
+        ...baseData,
+        date: currentDate,
+        occurrenceNumber: i + 1,
+        totalOccurrences: occurrences
+      }, true);
+
+      batch.set(docRef, bookingWithDate);
+      bookingIds.push(docRef.id);
+
+      // Calculate next occurrence date
+      if (i < occurrences - 1) { // Don't calculate for the last iteration
+        if (frequency === 'weekly') {
+          currentDate = new Date(currentDate);
+          currentDate.setDate(currentDate.getDate() + 7);
+        } else if (frequency === 'monthly') {
+          currentDate = new Date(currentDate);
+          currentDate.setMonth(currentDate.getMonth() + 1);
+          
+          // Handle month-end edge cases (e.g., Jan 31 -> Feb 28)
+          const originalDay = new Date(bookingData.date).getDate();
+          const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
+          currentDate.setDate(Math.min(originalDay, lastDayOfMonth));
+        }
+      }
+    }
+
+    await batch.commit();
+    
+    // Clear relevant caches
+    const cachePattern = `bookings-${companyId}`;
+    for (const [key] of bookingCache) {
+      if (key.startsWith(cachePattern)) {
+        bookingCache.delete(key);
+      }
+    }
+
+    logSuccess(`Created ${occurrences} recurring bookings successfully!`);
+    console.log(`Created ${occurrences} recurring ${frequency} bookings for company ${companyId}`);
+    
+    return { success: true, bookingIds, occurrences };
+  } catch (error) {
+    logError('createRecurringBooking', error, { companyId, bookingData, frequency, occurrences });
     throw error;
   }
 };
@@ -685,6 +851,13 @@ export const createCustomer = async (companyId, customerData) => {
 
 export const getCustomersForCompany = async (companyId, options = {}) => {
   try {
+    // Check cache first
+    const cacheKey = getCacheKey('customers', companyId, options.status || 'all', options.limit || 50, options.lastDoc?.id || 'start');
+    if (customerCache.has(cacheKey)) {
+      console.log(`Serving customers from cache for company ${companyId}`);
+      return customerCache.get(cacheKey);
+    }
+
     await checkAuthAndRole(companyId, 'adminOf'); // Only company members can read customers
 
     const customersRef = collection(db, 'companies', companyId, 'customers');
@@ -709,143 +882,22 @@ export const getCustomersForCompany = async (companyId, options = {}) => {
       return { id: doc.id, ...doc.data() };
     });
 
+    const result = { customers, lastDoc: snapshot.docs[snapshot.docs.length - 1] || null };
+    
+    // Cache the result
+    setCacheWithExpiry(customerCache, cacheKey, result);
+
     console.log(`Fetched ${customers.length} customers for company ${companyId}`);
-    return { customers, lastDoc: snapshot.docs[snapshot.docs.length - 1] || null };
+    return result;
   } catch (error) {
     logError('getCustomersForCompany', error, { companyId, options });
     throw error;
   }
 };
 
-export const updateCustomer = async (companyId, customerId, updates) => {
-  try {
-    await checkAuthAndRole(companyId, 'adminOf'); // Only admins of this company can update customers
-    rateLimit(getAuth().currentUser.uid); // Apply client-side rate limit
-
-    // Validation
-    if (updates.name !== undefined && !sanitizeHtml(updates.name).trim()) {
-      throw new Error('Name cannot be empty.');
-    }
-    if (updates.email !== undefined && !validateEmail(sanitizeHtml(updates.email))) {
-      throw new Error('Invalid email format.');
-    }
-    if (updates.personnummer !== undefined && updates.personnummer && !validatePersonnummer(sanitizeHtml(updates.personnummer))) {
-      throw new Error('Invalid personnummer format (YYYYMMDD-XXXX) if provided.');
-    }
-    if (updates.consent !== undefined && typeof updates.consent !== 'boolean') {
-      throw new Error('Consent must be a boolean.');
-    }
-    if (updates.totalSpent !== undefined && (typeof updates.totalSpent !== 'number' || updates.totalSpent < 0)) {
-      throw new Error('Total spent must be a non-negative number.');
-    }
-
-    const sanitizedData = addTimestamps({
-      name: sanitizeHtml(updates.name || ''),
-      email: sanitizeHtml(updates.email || ''),
-      status: sanitizeHtml(updates.status || ''),
-      customerType: sanitizeHtml(updates.customerType || ''),
-      source: sanitizeHtml(updates.source || ''),
-      personnummer: sanitizeHtml(updates.personnummer || ''), // Store personnummer
-      consent: updates.consent,
-      consentTimestamp: updates.consent ? serverTimestamp() : null,
-      consentDetails: sanitizeHtml(updates.consentDetails || ''),
-      totalSpent: updates.totalSpent
-      // Include other top-level fields here if they are part of the update, ensuring sanitization for strings
-    }, false); // Not a new document, so only update 'updatedAt'
-
-    Object.keys(sanitizedData).forEach(key => {
-      if (sanitizedData[key] === undefined) delete sanitizedData[key];
-    });
-
-    const customerRef = doc(db, 'companies', companyId, 'customers', customerId);
-    await updateDoc(customerRef, sanitizedData);
-
-    return true;
-  } catch (error) {
-    logError('updateCustomer', error, { companyId, customerId, updates });
-    throw error;
-  }
-
-  // Note: For production SaaS, 'totalSpent' should ideally be a derived field
-  // calculated via Cloud Functions triggered by related booking/payment events
-  // to ensure data integrity and prevent manual inconsistencies.
-};
-
-// Soft-delete a customer from the 'customers' subcollection for a specific company
-export const deleteCustomer = async (companyId, customerId, userId = null) => {
-  try {
-    await checkAuthAndRole(companyId, 'adminOf'); // Only admins of this company can soft-delete customers
-    rateLimit(getAuth().currentUser.uid); // Apply client-side rate limit
-
-    const customerRef = doc(db, 'companies', companyId, 'customers', customerId);
-    await updateDoc(customerRef, {
-      deleted: true,
-      deletedAt: serverTimestamp(),
-      deletedBy: userId || getAuth().currentUser?.uid || 'system',
-      updatedAt: serverTimestamp()
-    });
-
-    return true;
-  } catch (error) {
-    logError('deleteCustomer', error, { companyId, customerId, userId });
-    throw error;
-  }
-
-  // WARNING: This function performs a soft delete on the customer document only.
-  // It does NOT cascade soft-delete to related bookings. True cascade deletion/soft-deletion requires Cloud Functions.
-};
-
-// Get customer stats for a specific company
-export const getCustomerStats = async (companyId) => {
-  try {
-    await checkAuthAndRole(companyId, 'adminOf'); // Only admins of this company can get customer stats
-
-    // This function now attempts to read precomputed stats first.
-    const statsDocRef = doc(db, 'companyStats', companyId);
-    const statsSnap = await getDoc(statsDocRef);
-
-    if (statsSnap.exists()) {
-      // If precomputed stats exist, return them directly for fast reads.
-      return statsSnap.data();
-    } else {
-      // TODO: Implement Cloud Function to precompute stats and store in /companyStats/{companyId}
-      // (Triggered on customer/booking create/update/delete events).
-
-      // If stats are not precomputed yet, fall back to client-side aggregation (INEFFICIENT FOR LARGE DATASETS).
-      console.warn(`Precomputed stats for company ${companyId} not found. Falling back to client-side aggregation. This is inefficient for large datasets.`);
-
-      const { customers } = await getCustomersForCompany(companyId, { limit: 10000 }); // Fetch all (up to a large limit) for client-side aggregation
-
-      const stats = {
-        total: customers.length,
-        byStatus: { lead: 0, active: 0, inactive: 0, prospect: 0 },
-        byType: { private: 0, business: 0 },
-        bySource: {},
-        totalRevenue: 0,
-        averageOrderValue: 0
-      };
-
-      customers.forEach(c => {
-        stats.byStatus[c.status] = (stats.byStatus[c.status] || 0) + 1;
-        stats.byType[c.customerType] = (stats.byType[c.customerType] || 0) + 1;
-        const source = c.source || 'unknown';
-        stats.bySource[source] = (stats.bySource[source] || 0) + 1;
-        stats.totalRevenue += (c.totalSpent || 0);
-      });
-
-      stats.averageOrderValue = stats.total > 0 ? stats.totalRevenue / stats.total : 0;
-
-      return stats;
-    }
-  } catch (error) {
-    logError('getCustomerStats', error, { companyId });
-    throw error;
-  }
-};
-
 // Debug function to list all companies in the database
 export const debugListAllCompanies = async () => {
-  if (process.env.NODE_ENV === 'production') {
+  if (import.meta.env.PROD) {
     console.warn('debugListAllCompanies is disabled in production');
     return [];
   }

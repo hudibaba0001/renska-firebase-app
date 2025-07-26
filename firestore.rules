@@ -118,6 +118,19 @@ service cloud.firestore {
       allow delete: if false; // Disallow direct hard deletes via client (use soft-delete)
     }
 
+    // --- API Versioning Support ---
+    // TODO: Implement version-specific rules as the API evolves
+    match /v1/{document=**} {
+      // For now, delegate to existing rules structure
+      // In the future, this can contain version-specific security logic
+      allow read, write: if false; // Placeholder - implement version-specific rules here
+    }
+
+    match /v2/{document=**} {
+      // Future API version support
+      allow read, write: if false; // Placeholder for future versions
+    }
+
     // --- Default deny for all other paths ---
     // This is important to ensure only explicitly allowed paths are accessible.
     match /{document=**} {
