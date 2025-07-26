@@ -28,6 +28,7 @@ import UnauthorizedPage from './pages/UnauthorizedPage';
 import AdminCouponsPage from './pages/AdminCouponsPage';
 import CustomersPage from './pages/CustomersPage';
 import CRMApp from './crm/CRMApp';
+import DataConnectCRM from './crm/DataConnectCRM';
 import BookingCalculator from './components/BookingCalculator';
 import EmbedCalculatorPage from './pages/EmbedCalculatorPage';
 
@@ -123,6 +124,18 @@ export default function App() {
               <RequireAuth>
                 <RequireCompanyAccess>
                   <CRMApp />
+                </RequireCompanyAccess>
+              </RequireAuth>
+            }
+          />
+
+          {/* Data Connect CRM Routes - Modern Implementation */}
+          <Route
+            path="/admin/:companyId/crm-data/*"
+            element={
+              <RequireAuth>
+                <RequireCompanyAccess>
+                  <DataConnectCRM />
                 </RequireCompanyAccess>
               </RequireAuth>
             }
