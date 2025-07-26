@@ -5,10 +5,7 @@ import {
   Target, 
   Briefcase, 
   CheckSquare, 
-  TrendingUp, 
-  DollarSign,
-  Calendar,
-  Phone
+  DollarSign
 } from 'lucide-react';
 import AddSampleData from './AddSampleData';
 
