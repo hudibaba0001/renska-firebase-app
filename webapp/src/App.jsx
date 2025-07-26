@@ -27,7 +27,7 @@ import SuperAdminDashboardPage from './pages/SuperAdminDashboardPage';
 import UnauthorizedPage from './pages/UnauthorizedPage';
 import AdminCouponsPage from './pages/AdminCouponsPage';
 import CustomersPage from './pages/CustomersPage';
-import CRMApp from './pages/CRMApp';
+import CRMApp from './crm/CRMApp';
 import BookingCalculator from './components/BookingCalculator';
 import EmbedCalculatorPage from './pages/EmbedCalculatorPage';
 

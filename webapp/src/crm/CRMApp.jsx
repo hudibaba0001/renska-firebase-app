@@ -1,9 +1,5 @@
-import React, { useMemo } from 'react';
-import { Admin, Resource, Layout } from 'react-admin';
-import { useParams, useNavigate } from 'react-router-dom';
-import { createFirebaseDataProvider } from '../utils/firebaseDataProvider';
-import { createFirebaseAuthProvider } from '../utils/firebaseAuthProvider';
-import { AppBar, TitlePortal, Button } from 'react-admin';
+import React from 'react';
+import { useParams, useNavigate, Routes, Route } from 'react-router-dom';
 import { ArrowBack, Users, Target, Briefcase, CheckSquare, BarChart3, Settings } from 'lucide-react';
 
 // Import CRM components
@@ -28,20 +24,22 @@ const CustomAppBar = () => {
   const { companyId } = useParams();
   
   return (
-    <AppBar>
-      <TitlePortal />
-      <Button
-        label="Back to Admin Dashboard"
-        onClick={() => navigate(`/admin/${companyId}`)}
-        startIcon={<ArrowBack />}
-        sx={{ 
-          color: 'white',
-          '&:hover': {
-            backgroundColor: 'rgba(255, 255, 255, 0.1)'
-          }
-        }}
-      />
-    </AppBar>
+    <div className="bg-blue-600 text-white px-6 py-4 shadow-md">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <button
+            onClick={() => navigate(`/admin/${companyId}`)}
+            className="flex items-center space-x-2 hover:bg-blue-700 px-3 py-2 rounded-lg transition-colors"
+          >
+            <ArrowBack className="w-5 h-5" />
+            <span>Back to Admin Dashboard</span>
+          </button>
+        </div>
+        <div className="flex items-center space-x-4">
+          <h1 className="text-xl font-semibold">SwedPrime CRM</h1>
+        </div>
+      </div>
+    </div>
   );
 };
 
@@ -49,6 +47,7 @@ const CustomAppBar = () => {
 const CustomSidebar = () => {
   const navigate = useNavigate();
   const { companyId } = useParams();
+  const location = window.location.pathname;
   
   const menuItems = [
     {
@@ -106,19 +105,28 @@ const CustomSidebar = () => {
 
       {/* Navigation Menu */}
       <nav className="p-4 space-y-2">
-        {menuItems.map((item) => (
-          <button
-            key={item.path}
-            onClick={() => navigate(item.path)}
-            className="w-full flex items-center space-x-3 p-3 text-left rounded-lg hover:bg-gray-50 transition-colors group"
-          >
-            <item.icon className="w-5 h-5 text-gray-500 group-hover:text-blue-600" />
-            <div className="flex-1">
-              <div className="font-medium text-gray-900">{item.label}</div>
-              <div className="text-sm text-gray-500">{item.description}</div>
-            </div>
-          </button>
-        ))}
+        {menuItems.map((item) => {
+          const isActive = location === item.path;
+          return (
+            <button
+              key={item.path}
+              onClick={() => navigate(item.path)}
+              className={`w-full flex items-center space-x-3 p-3 text-left rounded-lg transition-colors group ${
+                isActive 
+                  ? 'bg-blue-100 text-blue-700' 
+                  : 'hover:bg-gray-50 text-gray-700'
+              }`}
+            >
+              <item.icon className={`w-5 h-5 ${
+                isActive ? 'text-blue-600' : 'text-gray-500 group-hover:text-blue-600'
+              }`} />
+              <div className="flex-1">
+                <div className="font-medium">{item.label}</div>
+                <div className="text-sm text-gray-500">{item.description}</div>
+              </div>
+            </button>
+          );
+        })}
       </nav>
 
       {/* Bottom Section */}
@@ -135,92 +143,40 @@ const CustomSidebar = () => {
   );
 };
 
-// Custom Layout with Sidebar
-const CustomLayout = (props) => (
-  <Layout
-    {...props}
-    appBar={CustomAppBar}
-    sidebar={CustomSidebar}
-    sx={{
-      '& .RaLayout-content': {
-        backgroundColor: '#f5f5f5',
-        marginLeft: '256px', // 16rem = 256px
-      },
-      '& .RaLayout-appBar': {
-        marginLeft: '256px',
-      },
-    }}
-  />
-);
-
 const CRMApp = () => {
-  const { companyId } = useParams();
-
-  console.log('CRMApp: companyId =', companyId);
-
-  // Create data provider with company filtering
-  const dataProvider = useMemo(() => {
-    if (!companyId) {
-      console.error('CRMApp: No companyId provided');
-      return null;
-    }
-    return createFirebaseDataProvider(companyId);
-  }, [companyId]);
-
-  // Create auth provider
-  const authProvider = useMemo(() => {
-    return createFirebaseAuthProvider();
-  }, []);
-
-  if (!dataProvider) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <p className="text-red-600">Error: No company ID provided</p>
-        </div>
-      </div>
-    );
-  }
+  const { companyId: _companyId } = useParams();
 
   return (
-    <Admin 
-      dataProvider={dataProvider}
-      authProvider={authProvider}
-      layout={CustomLayout}
-      title="SwedPrime CRM"
-      disableTelemetry
-      dashboard={CRMDashboard}
-    >
-      <Resource
-        name="customers"
-        list={CustomerList}
-        edit={CustomerEdit}
-        show={CustomerShow}
-        create={CustomerCreate}
-        options={{ label: 'Customers' }}
-      />
-      <Resource 
-        name="leads" 
-        list={LeadList} 
-        create={LeadCreate} 
-        edit={LeadEdit}
-        options={{ label: 'Leads' }}
-      />
-      <Resource 
-        name="deals" 
-        list={DealList} 
-        create={DealCreate} 
-        edit={DealEdit}
-        options={{ label: 'Deals' }}
-      />
-      <Resource 
-        name="tasks" 
-        list={TaskList} 
-        create={TaskCreate} 
-        edit={TaskEdit}
-        options={{ label: 'Tasks' }}
-      />
-    </Admin>
+    <div className="flex h-screen bg-gray-50">
+      {/* Sidebar */}
+      <CustomSidebar />
+      
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col">
+        {/* AppBar */}
+        <CustomAppBar />
+        
+        {/* Content Area */}
+        <div className="flex-1 overflow-auto">
+          <Routes>
+            <Route path="/" element={<CRMDashboard />} />
+            <Route path="/customers" element={<CustomerList />} />
+            <Route path="/customers/create" element={<CustomerCreate />} />
+            <Route path="/customers/:id/edit" element={<CustomerEdit />} />
+            <Route path="/customers/:id" element={<CustomerShow />} />
+            <Route path="/leads" element={<LeadList />} />
+            <Route path="/leads/create" element={<LeadCreate />} />
+            <Route path="/leads/:id/edit" element={<LeadEdit />} />
+            <Route path="/deals" element={<DealList />} />
+            <Route path="/deals/create" element={<DealCreate />} />
+            <Route path="/deals/:id/edit" element={<DealEdit />} />
+            <Route path="/tasks" element={<TaskList />} />
+            <Route path="/tasks/create" element={<TaskCreate />} />
+            <Route path="/tasks/:id/edit" element={<TaskEdit />} />
+          </Routes>
+        </div>
+      </div>
+    </div>
   );
 };
 
