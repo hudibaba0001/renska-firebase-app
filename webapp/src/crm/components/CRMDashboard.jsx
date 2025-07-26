@@ -51,7 +51,7 @@ const CRMDashboard = () => {
     }, 1000);
   }, []);
 
-  const StatCard = ({ title, value, icon: Icon, color = 'blue' }) => (
+  const StatCard = ({ title, value, icon: IconComponent, color = 'blue' }) => (
     <Card className="h-full">
       <CardContent className="p-6">
         <div className="flex items-center justify-between">
@@ -60,7 +60,7 @@ const CRMDashboard = () => {
             <p className="text-2xl font-bold text-gray-900">{value}</p>
           </div>
           <div className={`p-3 rounded-full bg-${color}-100`}>
-            <Icon className={`w-6 h-6 text-${color}-600`} />
+            <IconComponent className={`w-6 h-6 text-${color}-600`} />
           </div>
         </div>
       </CardContent>
