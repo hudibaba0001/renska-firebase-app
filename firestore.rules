@@ -118,6 +118,14 @@ service cloud.firestore {
       allow delete: if false; // Disallow direct hard deletes via client (use soft-delete)
     }
 
+    // /companies/{companyId}/calculators/{calculatorId}
+    match /companies/{companyId}/calculators/{calculatorId} {
+      allow read: if (isCompanyAdmin(companyId) || isSuperAdmin()) && isNotDeleted();
+      allow create: if (isCompanyAdmin(companyId) || isSuperAdmin());
+      allow update: if (isCompanyAdmin(companyId) || isSuperAdmin()) && isNotDeleted();
+      allow delete: if false; // Disallow direct hard deletes via client (use soft-delete)
+    }
+
     // --- API Versioning Support ---
     // TODO: Implement version-specific rules as the API evolves
     match /v1/{document=**} {

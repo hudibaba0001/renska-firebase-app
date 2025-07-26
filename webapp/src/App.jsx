@@ -116,19 +116,7 @@ export default function App() {
           <Route path="coupons" element={<AdminCouponsPage />} />
           </Route>
 
-        {/* CRM route is now isolated to prevent double sidebar */}
-        <Route
-          path="/admin/:companyId/crm/*"
-          element={
-            <RequireAuth>
-              <RequireCompanyAccess>
-                <ErrorBoundary showDetails={true}>
-                  <CRMWrapper />
-                </ErrorBoundary>
-              </RequireCompanyAccess>
-            </RequireAuth>
-          }
-        />
+
 
           {/* Legacy Admin Routes */}
         <Route
