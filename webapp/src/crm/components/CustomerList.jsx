@@ -17,11 +17,13 @@ const CustomerList = () => {
 
   const loadCustomers = async () => {
     try {
+      console.log('Loading customers for company:', companyId);
       const querySnapshot = await getDocs(collection(db, `companies/${companyId}/customers`));
       const customersData = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
+      console.log('Loaded customers:', customersData);
       setCustomers(customersData);
     } catch (error) {
       console.error('Error loading customers:', error);

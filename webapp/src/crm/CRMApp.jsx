@@ -54,36 +54,42 @@ const CustomSidebar = () => {
       label: 'Dashboard',
       icon: BarChart3,
       path: `/admin/${companyId}/crm`,
+      relativePath: '',
       description: 'CRM Overview'
     },
     {
       label: 'Customers',
       icon: Users,
       path: `/admin/${companyId}/crm/customers`,
+      relativePath: 'customers',
       description: 'Manage customers'
     },
     {
       label: 'Leads',
       icon: Target,
       path: `/admin/${companyId}/crm/leads`,
+      relativePath: 'leads',
       description: 'Track potential customers'
     },
     {
       label: 'Deals',
       icon: Briefcase,
       path: `/admin/${companyId}/crm/deals`,
+      relativePath: 'deals',
       description: 'Manage sales opportunities'
     },
     {
       label: 'Tasks',
       icon: CheckSquare,
       path: `/admin/${companyId}/crm/tasks`,
+      relativePath: 'tasks',
       description: 'Track follow-ups and tasks'
     },
     {
       label: 'Settings',
       icon: Settings,
       path: `/admin/${companyId}/crm/settings`,
+      relativePath: 'settings',
       description: 'CRM configuration'
     }
   ];
@@ -106,11 +112,11 @@ const CustomSidebar = () => {
       {/* Navigation Menu */}
       <nav className="p-4 space-y-2">
         {menuItems.map((item) => {
-          const isActive = location === item.path;
+          const isActive = location === item.path || location.includes(item.relativePath);
           return (
             <button
               key={item.path}
-              onClick={() => navigate(item.path)}
+              onClick={() => navigate(item.relativePath)}
               className={`w-full flex items-center space-x-3 p-3 text-left rounded-lg transition-colors group ${
                 isActive 
                   ? 'bg-blue-100 text-blue-700' 
@@ -159,20 +165,20 @@ const CRMApp = () => {
         {/* Content Area */}
         <div className="flex-1 overflow-auto">
           <Routes>
-            <Route path="/" element={<CRMDashboard />} />
-            <Route path="/customers" element={<CustomerList />} />
-            <Route path="/customers/create" element={<CustomerCreate />} />
-            <Route path="/customers/:id/edit" element={<CustomerEdit />} />
-            <Route path="/customers/:id" element={<CustomerShow />} />
-            <Route path="/leads" element={<LeadList />} />
-            <Route path="/leads/create" element={<LeadCreate />} />
-            <Route path="/leads/:id/edit" element={<LeadEdit />} />
-            <Route path="/deals" element={<DealList />} />
-            <Route path="/deals/create" element={<DealCreate />} />
-            <Route path="/deals/:id/edit" element={<DealEdit />} />
-            <Route path="/tasks" element={<TaskList />} />
-            <Route path="/tasks/create" element={<TaskCreate />} />
-            <Route path="/tasks/:id/edit" element={<TaskEdit />} />
+            <Route path="" element={<CRMDashboard />} />
+            <Route path="customers" element={<CustomerList />} />
+            <Route path="customers/create" element={<CustomerCreate />} />
+            <Route path="customers/:id/edit" element={<CustomerEdit />} />
+            <Route path="customers/:id" element={<CustomerShow />} />
+            <Route path="leads" element={<LeadList />} />
+            <Route path="leads/create" element={<LeadCreate />} />
+            <Route path="leads/:id/edit" element={<LeadEdit />} />
+            <Route path="deals" element={<DealList />} />
+            <Route path="deals/create" element={<DealCreate />} />
+            <Route path="deals/:id/edit" element={<DealEdit />} />
+            <Route path="tasks" element={<TaskList />} />
+            <Route path="tasks/create" element={<TaskCreate />} />
+            <Route path="tasks/:id/edit" element={<TaskEdit />} />
           </Routes>
         </div>
       </div>

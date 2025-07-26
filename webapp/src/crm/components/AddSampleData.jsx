@@ -165,7 +165,11 @@ const AddSampleData = () => {
       ]);
 
       if (results.every(result => result)) {
-        setMessage('✅ Sample data added successfully! Refresh the page to see the data.');
+        setMessage('✅ Sample data added successfully! Refreshing page...');
+        // Refresh the page after a short delay to show the new data
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
       } else {
         setMessage('⚠️ Some data could not be added. Please check the console for errors.');
       }

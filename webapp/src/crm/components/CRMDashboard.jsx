@@ -6,6 +6,9 @@ import {
   CheckSquare, 
   DollarSign
 } from 'lucide-react';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '../../firebase/init';
+import { useParams } from 'react-router-dom';
 import AddSampleData from './AddSampleData';
 
 const CRMDashboard = () => {
@@ -20,37 +23,54 @@ const CRMDashboard = () => {
   });
   const [hasData, setHasData] = useState(false);
   const [loading, setLoading] = useState(true);
+  const { companyId } = useParams();
 
   useEffect(() => {
-    // Simulate loading data
-    setTimeout(() => {
-      setStats({
-        totalCustomers: 24,
-        activeLeads: 8,
-        totalRevenue: 45600,
-        openTasks: 12,
-        recentCustomers: [
-          { id: 1, name: 'Anna Andersson', email: 'anna@example.com', status: 'active', date: '2024-01-15' },
-          { id: 2, name: 'Erik Svensson', email: 'erik@example.com', status: 'active', date: '2024-01-14' },
-          { id: 3, name: 'Maria Johansson', email: 'maria@example.com', status: 'prospect', date: '2024-01-13' }
-        ],
-        recentLeads: [
-          { id: 1, name: 'Lars Nilsson', company: 'TechCorp AB', status: 'new', value: 15000 },
-          { id: 2, name: 'Sofia Karlsson', company: 'CleanPro', status: 'contacted', value: 8000 },
-          { id: 3, name: 'Johan Berg', company: 'Office Solutions', status: 'qualified', value: 25000 }
-        ],
-        upcomingTasks: [
-          { id: 1, title: 'Follow up with Anna Andersson', due: '2024-01-16', priority: 'high' },
-          { id: 2, title: 'Send proposal to TechCorp', due: '2024-01-17', priority: 'medium' },
-          { id: 3, title: 'Schedule demo with CleanPro', due: '2024-01-18', priority: 'low' }
-        ]
-      });
-      setHasData(true);
-      setLoading(false);
-    }, 1000);
+    loadDashboardData();
   }, []);
 
-  const StatCard = ({ title, value, icon: Icon, color = 'blue' }) => (
+  const loadDashboardData = async () => {
+    try {
+      // Load customers
+      const customersSnapshot = await getDocs(collection(db, `companies/${companyId}/customers`));
+      const customers = customersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      // Load leads
+      const leadsSnapshot = await getDocs(collection(db, `companies/${companyId}/leads`));
+      const leads = leadsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      // Load deals
+      const dealsSnapshot = await getDocs(collection(db, `companies/${companyId}/deals`));
+      const deals = dealsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      // Load tasks
+      const tasksSnapshot = await getDocs(collection(db, `companies/${companyId}/tasks`));
+      const tasks = tasksSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      // Calculate stats
+      const totalRevenue = deals.reduce((sum, deal) => sum + (deal.value || 0), 0);
+      const openTasks = tasks.filter(task => task.status !== 'completed').length;
+      const activeLeads = leads.filter(lead => lead.status !== 'lost').length;
+
+      setStats({
+        totalCustomers: customers.length,
+        activeLeads: activeLeads,
+        totalRevenue: totalRevenue,
+        openTasks: openTasks,
+        recentCustomers: customers.slice(0, 3),
+        recentLeads: leads.slice(0, 3),
+        upcomingTasks: tasks.filter(task => task.status !== 'completed').slice(0, 3)
+      });
+
+      setHasData(customers.length > 0 || leads.length > 0 || deals.length > 0 || tasks.length > 0);
+    } catch (error) {
+      console.error('Error loading dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const StatCard = ({ title, value, icon: IconComponent, color = 'blue' }) => (
     <div className="bg-white rounded-lg shadow p-6 h-full">
       <div className="flex items-center justify-between">
         <div>
@@ -58,7 +78,7 @@ const CRMDashboard = () => {
           <p className="text-2xl font-bold text-gray-900">{value}</p>
         </div>
         <div className={`p-3 rounded-full bg-${color}-100`}>
-          <Icon className={`w-6 h-6 text-${color}-600`} />
+          <IconComponent className={`w-6 h-6 text-${color}-600`} />
         </div>
       </div>
     </div>
