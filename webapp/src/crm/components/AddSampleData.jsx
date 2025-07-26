@@ -20,7 +20,8 @@ const AddSampleData = () => {
       city: 'Stockholm',
       postalCode: '11122',
       country: 'Sweden',
-      notes: 'Regular cleaning customer, prefers eco-friendly products'
+      notes: 'Regular cleaning customer, prefers eco-friendly products',
+      consent: true
     },
     {
       name: 'Erik Svensson',
@@ -31,7 +32,8 @@ const AddSampleData = () => {
       city: 'Göteborg',
       postalCode: '41108',
       country: 'Sweden',
-      notes: 'Business customer, office cleaning twice per week'
+      notes: 'Business customer, office cleaning twice per week',
+      consent: true
     },
     {
       name: 'Maria Johansson',
@@ -42,7 +44,8 @@ const AddSampleData = () => {
       city: 'Malmö',
       postalCode: '21120',
       country: 'Sweden',
-      notes: 'Interested in premium cleaning services'
+      notes: 'Interested in premium cleaning services',
+      consent: true
     }
   ];
 

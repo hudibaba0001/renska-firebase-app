@@ -10,9 +10,7 @@ import {
   TopToolbar,
   FilterButton,
   SearchInput,
-  SelectInput,
-  BooleanField,
-  ReferenceField
+  SelectInput
 } from 'react-admin';
 
 const TaskFilters = [
@@ -21,9 +19,8 @@ const TaskFilters = [
     source="status"
     choices={[
       { id: 'pending', name: 'Pending' },
-      { id: 'in_progress', name: 'In Progress' },
+      { id: 'in-progress', name: 'In Progress' },
       { id: 'completed', name: 'Completed' },
-      { id: 'cancelled', name: 'Cancelled' },
     ]}
   />,
   <SelectInput
@@ -32,7 +29,6 @@ const TaskFilters = [
       { id: 'low', name: 'Low' },
       { id: 'medium', name: 'Medium' },
       { id: 'high', name: 'High' },
-      { id: 'urgent', name: 'Urgent' },
     ]}
   />,
 ];
@@ -48,18 +44,16 @@ const TaskList = () => (
   <List
     filters={TaskFilters}
     actions={<TaskListActions />}
-    sort={{ field: 'dueDate', order: 'ASC' }}
+    sort={{ field: 'createdAt', order: 'DESC' }}
     perPage={25}
   >
     <Datagrid>
-      <TextField source="title" />
-      <TextField source="status" />
+      <TextField source="title" label="Task Title" />
+      <TextField source="description" />
+      <TextField source="assignedTo" label="Assigned To" />
       <TextField source="priority" />
-      <ReferenceField source="customerId" reference="customers" label="Customer">
-        <TextField source="firstName" />
-      </ReferenceField>
+      <TextField source="status" />
       <DateField source="dueDate" label="Due Date" />
-      <BooleanField source="completed" />
       <DateField source="createdAt" label="Created" />
       <EditButton />
       <DeleteButton />

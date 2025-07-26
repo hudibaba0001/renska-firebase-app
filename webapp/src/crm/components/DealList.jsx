@@ -11,8 +11,7 @@ import {
   FilterButton,
   SearchInput,
   SelectInput,
-  NumberField,
-  ReferenceField
+  NumberField
 } from 'react-admin';
 
 const DealFilters = [
@@ -43,10 +42,8 @@ const DealList = () => (
     perPage={25}
   >
     <Datagrid>
-      <TextField source="title" />
-      <ReferenceField source="customerId" reference="customers">
-        <TextField source="firstName" />
-      </ReferenceField>
+      <TextField source="name" label="Deal Name" />
+      <TextField source="customer" label="Customer" />
       <NumberField source="value" label="Value (SEK)" />
       <TextField source="status" />
       <DateField source="expectedCloseDate" label="Expected Close" />

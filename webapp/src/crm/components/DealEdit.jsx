@@ -6,17 +6,14 @@ import {
   SelectInput,
   NumberInput,
   DateInput,
-  ReferenceInput,
   required
 } from 'react-admin';
 
 const DealEdit = () => (
   <Edit>
     <SimpleForm>
-      <TextInput source="title" validate={[required()]} />
-      <ReferenceInput source="customerId" reference="customers">
-        <SelectInput optionText="firstName" />
-      </ReferenceInput>
+      <TextInput source="name" label="Deal Name" validate={[required()]} />
+      <TextInput source="customer" label="Customer Name" validate={[required()]} />
       <NumberInput source="value" label="Value (SEK)" validate={[required()]} />
       <SelectInput
         source="status"
@@ -28,8 +25,7 @@ const DealEdit = () => (
         ]}
       />
       <DateInput source="expectedCloseDate" label="Expected Close Date" />
-      <TextInput source="description" multiline />
-      <TextInput source="notes" multiline />
+      <TextInput source="notes" label="Notes" multiline />
     </SimpleForm>
   </Edit>
 );

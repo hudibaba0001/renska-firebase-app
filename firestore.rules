@@ -126,6 +126,30 @@ service cloud.firestore {
       allow delete: if false; // Disallow direct hard deletes via client (use soft-delete)
     }
 
+    // /companies/{companyId}/leads/{leadId}
+    match /companies/{companyId}/leads/{leadId} {
+      allow read: if (isCompanyAdmin(companyId) || isSuperAdmin()) && isNotDeleted();
+      allow create: if (isCompanyAdmin(companyId) || isSuperAdmin());
+      allow update: if (isCompanyAdmin(companyId) || isSuperAdmin()) && isNotDeleted();
+      allow delete: if false; // Disallow direct hard deletes via client (use soft-delete)
+    }
+
+    // /companies/{companyId}/deals/{dealId}
+    match /companies/{companyId}/deals/{dealId} {
+      allow read: if (isCompanyAdmin(companyId) || isSuperAdmin()) && isNotDeleted();
+      allow create: if (isCompanyAdmin(companyId) || isSuperAdmin());
+      allow update: if (isCompanyAdmin(companyId) || isSuperAdmin()) && isNotDeleted();
+      allow delete: if false; // Disallow direct hard deletes via client (use soft-delete)
+    }
+
+    // /companies/{companyId}/tasks/{taskId}
+    match /companies/{companyId}/tasks/{taskId} {
+      allow read: if (isCompanyAdmin(companyId) || isSuperAdmin()) && isNotDeleted();
+      allow create: if (isCompanyAdmin(companyId) || isSuperAdmin());
+      allow update: if (isCompanyAdmin(companyId) || isSuperAdmin()) && isNotDeleted();
+      allow delete: if false; // Disallow direct hard deletes via client (use soft-delete)
+    }
+
     // --- API Versioning Support ---
     // TODO: Implement version-specific rules as the API evolves
     match /v1/{document=**} {

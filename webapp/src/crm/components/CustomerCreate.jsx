@@ -29,6 +29,7 @@ const CustomerCreate = () => (
       <TextInput source="postalCode" label="Postal Code" />
       <TextInput source="country" label="Country" defaultValue="Sweden" />
       <TextInput source="notes" label="Notes" multiline />
+      <BooleanInput source="consent" label="Customer Consent" defaultValue={true} />
     </SimpleForm>
   </Create>
 );

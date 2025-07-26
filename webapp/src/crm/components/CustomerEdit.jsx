@@ -28,6 +28,7 @@ const CustomerEdit = () => (
       <TextInput source="postalCode" label="Postal Code" />
       <TextInput source="country" label="Country" />
       <TextInput source="notes" label="Notes" multiline />
+      <BooleanInput source="consent" label="Customer Consent" />
     </SimpleForm>
   </Edit>
 );
