@@ -54,13 +54,12 @@ const LeadList = () => (
     perPage={25}
   >
     <Datagrid>
-      <TextField source="firstName" label="First Name" />
-      <TextField source="lastName" label="Last Name" />
+      <TextField source="name" label="Name" />
       <TextField source="email" />
       <TextField source="phone" />
       <TextField source="status" />
       <TextField source="source" />
-      <NumberField source="estimatedValue" label="Est. Value" />
+      <TextField source="priority" />
       <DateField source="createdAt" label="Created" />
       <EditButton />
       <DeleteButton />

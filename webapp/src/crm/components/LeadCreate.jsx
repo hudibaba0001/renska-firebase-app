@@ -13,11 +13,10 @@ import {
 const LeadCreate = () => (
   <Create>
     <SimpleForm>
-      <TextInput source="firstName" validate={[required()]} />
-      <TextInput source="lastName" validate={[required()]} />
+      <TextInput source="name" label="Full Name" validate={[required()]} />
       <TextInput source="email" type="email" validate={[required(), email()]} />
-      <TextInput source="phone" />
-      <TextInput source="company" />
+      <TextInput source="phone" label="Phone Number" />
+      <TextInput source="company" label="Company" />
       <SelectInput
         source="status"
         choices={[
@@ -41,9 +40,16 @@ const LeadCreate = () => (
         ]}
         defaultValue="website"
       />
-      <NumberInput source="estimatedValue" label="Estimated Value (SEK)" />
-      <DateInput source="expectedCloseDate" label="Expected Close Date" />
-      <TextInput source="notes" multiline />
+      <SelectInput
+        source="priority"
+        choices={[
+          { id: 'low', name: 'Low' },
+          { id: 'medium', name: 'Medium' },
+          { id: 'high', name: 'High' },
+        ]}
+        defaultValue="medium"
+      />
+      <TextInput source="notes" label="Notes" multiline />
     </SimpleForm>
   </Create>
 );

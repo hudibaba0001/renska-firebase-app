@@ -1,8 +1,10 @@
 import React, { useMemo } from 'react';
-import { Admin, Resource } from 'react-admin';
-import { useParams } from 'react-router-dom';
+import { Admin, Resource, Layout } from 'react-admin';
+import { useParams, useNavigate } from 'react-router-dom';
 import { createFirebaseDataProvider } from '../utils/firebaseDataProvider';
 import { createFirebaseAuthProvider } from '../utils/firebaseAuthProvider';
+import { AppBar, TitlePortal, Button } from 'react-admin';
+import { ArrowBack } from '@mui/icons-material';
 
 // Import CRM components
 import CustomerList from './components/CustomerList';
@@ -18,6 +20,42 @@ import DealEdit from './components/DealEdit';
 import TaskList from './components/TaskList';
 import TaskCreate from './components/TaskCreate';
 import TaskEdit from './components/TaskEdit';
+
+// Custom AppBar with back button
+const CustomAppBar = () => {
+  const navigate = useNavigate();
+  const { companyId } = useParams();
+  
+  return (
+    <AppBar>
+      <TitlePortal />
+      <Button
+        label="Back to Admin Dashboard"
+        onClick={() => navigate(`/admin/${companyId}`)}
+        startIcon={<ArrowBack />}
+        sx={{ 
+          color: 'white',
+          '&:hover': {
+            backgroundColor: 'rgba(255, 255, 255, 0.1)'
+          }
+        }}
+      />
+    </AppBar>
+  );
+};
+
+// Custom Layout
+const CustomLayout = (props) => (
+  <Layout
+    {...props}
+    appBar={CustomAppBar}
+    sx={{
+      '& .RaLayout-content': {
+        backgroundColor: '#f5f5f5',
+      },
+    }}
+  />
+);
 
 const CRMApp = () => {
   const { companyId } = useParams();
@@ -52,6 +90,7 @@ const CRMApp = () => {
     <Admin 
       dataProvider={dataProvider}
       authProvider={authProvider}
+      layout={CustomLayout}
       title="SwedPrime CRM"
       disableTelemetry
     >

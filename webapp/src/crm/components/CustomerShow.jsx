@@ -18,16 +18,14 @@ const CustomerShowActions = () => (
 const CustomerShow = () => (
   <Show actions={<CustomerShowActions />}>
     <SimpleShowLayout>
-      <TextField source="firstName" label="First Name" />
-      <TextField source="lastName" label="Last Name" />
+      <TextField source="name" label="Full Name" />
       <TextField source="email" />
-      <TextField source="phone" />
-      <TextField source="customerType" label="Type" />
+      <TextField source="phone" label="Phone Number" />
+      <TextField source="status" label="Status" />
       <TextField source="address" />
       <TextField source="city" />
       <TextField source="postalCode" label="Postal Code" />
       <TextField source="country" />
-      <BooleanField source="active" />
       <TextField source="notes" />
       <DateField source="createdAt" label="Created" />
       <DateField source="updatedAt" label="Updated" />

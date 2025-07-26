@@ -41,7 +41,8 @@ import {
   BuildingOfficeIcon,
   QuestionMarkCircleIcon,
   BanknotesIcon,
-  TagIcon
+  TagIcon,
+  UsersIcon
 } from '@heroicons/react/24/outline'
 import { AnimatePresence } from 'framer-motion'
 import toast, { Toaster } from 'react-hot-toast'
@@ -229,9 +230,10 @@ export default function AdminDashboardLayout() {
     {
       label: 'CRM',
       href: `/admin/${companyId}/crm`,
-      icon: UserGroupIcon,
+      icon: UsersIcon,
       badge: null,
-      description: 'Customer Relationship Management'
+      description: 'Customer Relationship Management (Separate App)',
+      external: true
     },
     {
       label: 'Settings',
@@ -291,26 +293,45 @@ export default function AdminDashboardLayout() {
             {/* Navigation */}
             <nav className="space-y-2">
               {navigationItems.map((item) => (
-                <NavLink
-                  key={item.href}
-                  to={item.href}
-                  end={item.exact}
-                  className={({ isActive }) =>
-                  `group flex items-center w-full p-2 text-base font-normal rounded-lg transition duration-75 ${
-                      isActive
-                      ? 'text-black bg-gray-100 dark:bg-gray-700 dark:text-white'
-                      : 'text-black hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'
-                    }`
-                  }
-              >
-                {item.icon && <item.icon className="w-5 h-5 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white" />}
-                  <span className="ml-3 flex-1 whitespace-nowrap">{item.label}</span>
-                  {item.badge && (
-                    <Badge color="info" size="sm">
-                      {item.badge}
-                    </Badge>
-                  )}
-                </NavLink>
+                item.external ? (
+                  <a
+                    key={item.href}
+                    href={item.href}
+                    className="group flex items-center w-full p-2 text-base font-normal rounded-lg transition duration-75 text-black hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {item.icon && <item.icon className="w-5 h-5 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white" />}
+                    <span className="ml-3 flex-1 whitespace-nowrap">{item.label}</span>
+                    {item.badge && (
+                      <Badge color="info" size="sm">
+                        {item.badge}
+                      </Badge>
+                    )}
+                    <span className="ml-2 text-xs text-gray-400">↗</span>
+                  </a>
+                ) : (
+                  <NavLink
+                    key={item.href}
+                    to={item.href}
+                    end={item.exact}
+                    className={({ isActive }) =>
+                    `group flex items-center w-full p-2 text-base font-normal rounded-lg transition duration-75 ${
+                        isActive
+                        ? 'text-black bg-gray-100 dark:bg-gray-700 dark:text-white'
+                        : 'text-black hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'
+                      }`
+                    }
+                >
+                  {item.icon && <item.icon className="w-5 h-5 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white" />}
+                    <span className="ml-3 flex-1 whitespace-nowrap">{item.label}</span>
+                    {item.badge && (
+                      <Badge color="info" size="sm">
+                        {item.badge}
+                      </Badge>
+                    )}
+                  </NavLink>
+                )
               ))}
             </nav>
             {/* Bottom Section */}

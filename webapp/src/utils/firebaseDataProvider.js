@@ -27,10 +27,11 @@ export const createFirebaseDataProvider = (companyId) => {
         const { field, order } = params.sort;
         const { filter } = params;
 
-        let q = collection(db, resource);
+        // Use company subcollections: companies/{companyId}/{resource}
+        let q = collection(db, `companies/${companyId}/${resource}`);
         
-        // Add company filter
-        const constraints = [where('companyId', '==', companyId)];
+        // No need for company filter since we're already in the company's subcollection
+        const constraints = [];
         
         // Add other filters
         Object.keys(filter).forEach(key => {
@@ -69,7 +70,7 @@ export const createFirebaseDataProvider = (companyId) => {
 
     getOne: async (resource, params) => {
       try {
-        const docRef = doc(db, resource, params.id);
+        const docRef = doc(db, `companies/${companyId}/${resource}`, params.id);
         const docSnap = await getDoc(docRef);
         
         if (!docSnap.exists()) {
@@ -90,7 +91,7 @@ export const createFirebaseDataProvider = (companyId) => {
 
     getMany: async (resource, params) => {
       try {
-        const promises = params.ids.map(id => getDoc(doc(db, resource, id)));
+        const promises = params.ids.map(id => getDoc(doc(db, `companies/${companyId}/${resource}`, id)));
         const docs = await Promise.all(promises);
         
         const data = docs
@@ -115,7 +116,6 @@ export const createFirebaseDataProvider = (companyId) => {
         const { filter } = params;
 
         const constraints = [
-          where('companyId', '==', companyId),
           where(target, '==', id)
         ];
         
@@ -136,7 +136,7 @@ export const createFirebaseDataProvider = (companyId) => {
           constraints.push(limit(perPage));
         }
         
-        const q = query(collection(db, resource), ...constraints);
+        const q = query(collection(db, `companies/${companyId}/${resource}`), ...constraints);
         const snapshot = await getDocs(q);
         
         const data = snapshot.docs.map(doc => ({
@@ -158,12 +158,11 @@ export const createFirebaseDataProvider = (companyId) => {
       try {
         const data = {
           ...params.data,
-          companyId,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()
         };
         
-        const docRef = await addDoc(collection(db, resource), data);
+        const docRef = await addDoc(collection(db, `companies/${companyId}/${resource}`), data);
         
         return {
           data: {
@@ -184,7 +183,7 @@ export const createFirebaseDataProvider = (companyId) => {
           updatedAt: serverTimestamp()
         };
         
-        const docRef = doc(db, resource, params.id);
+        const docRef = doc(db, `companies/${companyId}/${resource}`, params.id);
         await updateDoc(docRef, data);
         
         return {
@@ -202,7 +201,7 @@ export const createFirebaseDataProvider = (companyId) => {
     updateMany: async (resource, params) => {
       try {
         const promises = params.ids.map(id => {
-          const docRef = doc(db, resource, id);
+          const docRef = doc(db, `companies/${companyId}/${resource}`, id);
           return updateDoc(docRef, {
             ...params.data,
             updatedAt: serverTimestamp()
@@ -220,7 +219,7 @@ export const createFirebaseDataProvider = (companyId) => {
 
     delete: async (resource, params) => {
       try {
-        const docRef = doc(db, resource, params.id);
+        const docRef = doc(db, `companies/${companyId}/${resource}`, params.id);
         await deleteDoc(docRef);
         
         return {
@@ -235,7 +234,7 @@ export const createFirebaseDataProvider = (companyId) => {
     deleteMany: async (resource, params) => {
       try {
         const promises = params.ids.map(id => {
-          const docRef = doc(db, resource, id);
+          const docRef = doc(db, `companies/${companyId}/${resource}`, id);
           return deleteDoc(docRef);
         });
         

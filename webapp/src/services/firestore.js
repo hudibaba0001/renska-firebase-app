@@ -206,7 +206,7 @@ export const getAllTenants = async (options = {}) => {
     const snapshot = await getDocs(q);
     const tenants = snapshot.docs.map(doc => {
       const tenantData = { id: doc.id, ...doc.data() };
-
+      
       // Defensive fallback for inconsistent subscription data (should be handled on creation)
       if (!tenantData.subscription || tenantData.subscription.active === undefined) {
         console.warn(`Tenant ${doc.id} subscription data inconsistent, setting defaults`);
@@ -796,7 +796,7 @@ export const deleteBooking = async (companyId, bookingId, userId = null) => {
       deleted: true,
       deletedAt: serverTimestamp(),
       deletedBy: userId || getAuth().currentUser?.uid || 'system',
-      updatedAt: serverTimestamp()
+        updatedAt: serverTimestamp()
     });
 
     return true;
@@ -930,7 +930,7 @@ export const getCustomersForCompany = async (companyId, options = {}) => {
 
     const customersRef = collection(db, 'companies', companyId, 'customers');
     let q = query(customersRef);
-
+    
     // Filter out soft-deleted documents
     q = query(q, where('deleted', '==', false));
 
@@ -940,10 +940,10 @@ export const getCustomersForCompany = async (companyId, options = {}) => {
     const sortField = options.sortBy || 'createdAt';
     const sortDirection = options.sortDirection || 'desc';
     q = query(q, orderBy(sortField, sortDirection));
-
+    
     if (options.limit) q = query(q, limit(options.limit));
     if (options.lastDoc) q = query(q, startAfter(options.lastDoc));
-
+    
     const snapshot = await getDocs(q);
     const customers = snapshot.docs.map(doc => {
       // Return full data from Firestore document. Security rules will minimize read costs.

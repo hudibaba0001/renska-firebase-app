@@ -116,6 +116,18 @@ export default function App() {
           <Route path="coupons" element={<AdminCouponsPage />} />
           </Route>
 
+          {/* CRM Routes - Separate App */}
+          <Route
+            path="/admin/:companyId/crm/*"
+            element={
+              <RequireAuth>
+                <RequireCompanyAccess>
+                  <CRMApp />
+                </RequireCompanyAccess>
+              </RequireAuth>
+            }
+          />
+
 
 
           {/* Legacy Admin Routes */}

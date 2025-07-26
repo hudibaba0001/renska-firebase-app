@@ -14,6 +14,8 @@ import {
   SelectInput,
   BooleanField
 } from 'react-admin';
+import { Card, CardContent, Typography, Button } from '@mui/material';
+import { Add as AddIcon } from '@mui/icons-material';
 
 const CustomerFilters = [
   <SearchInput source="q" alwaysOn />,
@@ -33,20 +35,40 @@ const CustomerListActions = () => (
   </TopToolbar>
 );
 
+const EmptyState = () => (
+  <Card>
+    <CardContent style={{ textAlign: 'center', padding: '40px' }}>
+      <Typography variant="h5" gutterBottom>
+        No Customers Yet
+      </Typography>
+      <Typography variant="body1" color="textSecondary" paragraph>
+        Start by adding your first customer to the CRM system.
+      </Typography>
+      <Button
+        variant="contained"
+        color="primary"
+        startIcon={<AddIcon />}
+        onClick={() => window.location.href = window.location.pathname + '/create'}
+      >
+        Add First Customer
+      </Button>
+    </CardContent>
+  </Card>
+);
+
 const CustomerList = () => (
   <List
     filters={CustomerFilters}
     actions={<CustomerListActions />}
     sort={{ field: 'createdAt', order: 'DESC' }}
     perPage={25}
+    empty={<EmptyState />}
   >
     <Datagrid>
-      <TextField source="firstName" label="First Name" />
-      <TextField source="lastName" label="Last Name" />
+      <TextField source="name" label="Name" />
       <TextField source="email" />
       <TextField source="phone" />
-      <TextField source="customerType" label="Type" />
-      <BooleanField source="active" />
+      <TextField source="status" label="Status" />
       <DateField source="createdAt" label="Created" />
       <EditButton />
       <ShowButton />

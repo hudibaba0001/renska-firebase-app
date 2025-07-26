@@ -4,7 +4,7 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // --- Helper functions for common checks ---
-
+    
     function isSignedIn() {
       return request.auth != null;
     }
@@ -31,7 +31,7 @@ service cloud.firestore {
 
     // Function to check if the requesting user is the owner of the document
     function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
+        return isSignedIn() && request.auth.uid == userId;
     }
 
     // Helper for personnummer validation (basic format check)

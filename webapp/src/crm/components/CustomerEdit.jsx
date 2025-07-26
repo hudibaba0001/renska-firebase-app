@@ -12,23 +12,22 @@ import {
 const CustomerEdit = () => (
   <Edit>
     <SimpleForm>
-      <TextInput source="firstName" validate={[required()]} />
-      <TextInput source="lastName" validate={[required()]} />
+      <TextInput source="name" label="Full Name" validate={[required()]} />
       <TextInput source="email" type="email" validate={[required(), email()]} />
-      <TextInput source="phone" />
+      <TextInput source="phone" label="Phone Number" />
       <SelectInput
-        source="customerType"
+        source="status"
         choices={[
-          { id: 'private', name: 'Private' },
-          { id: 'business', name: 'Business' },
+          { id: 'active', name: 'Active' },
+          { id: 'inactive', name: 'Inactive' },
+          { id: 'prospect', name: 'Prospect' },
         ]}
       />
-      <TextInput source="address" multiline />
-      <TextInput source="city" />
-      <TextInput source="postalCode" />
-      <TextInput source="country" />
-      <BooleanInput source="active" />
-      <TextInput source="notes" multiline />
+      <TextInput source="address" label="Address" multiline />
+      <TextInput source="city" label="City" />
+      <TextInput source="postalCode" label="Postal Code" />
+      <TextInput source="country" label="Country" />
+      <TextInput source="notes" label="Notes" multiline />
     </SimpleForm>
   </Edit>
 );
