@@ -10,6 +10,7 @@ import {
   Calendar,
   Phone
 } from 'lucide-react';
+import AddSampleData from './AddSampleData';
 
 const CRMDashboard = () => {
   const [stats, setStats] = useState({
@@ -21,6 +22,8 @@ const CRMDashboard = () => {
     recentLeads: [],
     upcomingTasks: []
   });
+  const [hasData, setHasData] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Simulate loading data
@@ -46,6 +49,8 @@ const CRMDashboard = () => {
           { id: 3, title: 'Schedule demo with CleanPro', due: '2024-01-18', priority: 'low' }
         ]
       });
+      setHasData(true);
+      setLoading(false);
     }, 1000);
   }, []);
 
@@ -103,6 +108,29 @@ const CRMDashboard = () => {
       </CardContent>
     </Card>
   );
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading CRM data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!hasData) {
+    return (
+      <div className="p-6">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome to Your CRM</h1>
+          <p className="text-gray-600">Get started by adding some sample data to see your CRM in action</p>
+        </div>
+        <AddSampleData />
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">
