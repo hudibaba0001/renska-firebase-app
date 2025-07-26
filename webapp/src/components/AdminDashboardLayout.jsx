@@ -229,11 +229,11 @@ export default function AdminDashboardLayout() {
     },
     {
       label: 'CRM',
-      href: `/admin/${companyId}/crm`,
+      href: `/admin/${companyId}/crm-data`,
       icon: UsersIcon,
       badge: null,
-      description: 'Customer Relationship Management (Separate App)',
-      external: true
+      description: 'Customer Relationship Management',
+      external: false
     },
     {
       label: 'Settings',

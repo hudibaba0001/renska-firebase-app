@@ -235,7 +235,7 @@ export default function AdminDashboardPage() {
     {
       title: 'CRM',
       description: 'Customer management',
-      href: `/admin/${companyId}/crm`,
+      href: `/admin/${companyId}/crm-data`,
       icon: UsersIcon,
       color: 'orange',
       bgColor: 'bg-orange-50',
