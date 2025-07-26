@@ -3,6 +3,8 @@ import { db } from "../firebase/init";
 import DOMPurify from 'dompurify';
 import { getAuth } from "firebase/auth"; // For client-side auth checks (UX/UI)
 import toast from 'react-hot-toast';
+import CryptoJS from 'crypto-js';
+
 
 // Note: Offline persistence is now configured in firebase/init.js using the new FirestoreSettings.cache API
 
@@ -11,6 +13,35 @@ const serviceCache = new Map();
 const customerCache = new Map();
 const bookingCache = new Map();
 const CACHE_DURATION = 300000; // 5 minutes
+
+// Encryption utilities for sensitive data (personnummer)
+const ENCRYPTION_KEY = import.meta.env.VITE_ENCRYPTION_KEY || 'swedprime-default-key-change-in-production';
+
+const encryptPersonnummer = (personnummer) => {
+  if (!personnummer || personnummer.trim() === '') return '';
+  
+  try {
+    return CryptoJS.AES.encrypt(personnummer.trim(), ENCRYPTION_KEY).toString();
+  } catch (error) {
+    console.error('Encryption failed for personnummer:', error);
+    logError('encryptPersonnummer', error);
+    throw new Error('Failed to encrypt sensitive data');
+  }
+};
+
+const _decryptPersonnummer = (encryptedPersonnummer) => {
+  if (!encryptedPersonnummer || encryptedPersonnummer.trim() === '') return '';
+  
+  try {
+    const bytes = CryptoJS.AES.decrypt(encryptedPersonnummer, ENCRYPTION_KEY);
+    const decrypted = bytes.toString(CryptoJS.enc.Utf8);
+    return decrypted;
+  } catch (error) {
+    console.error('Decryption failed for personnummer:', error);
+    logError('decryptPersonnummer', error);
+    return ''; // Return empty string on decryption failure
+  }
+};
 
 // IMPORTANT: Firestore Security Rules are the PRIMARY enforcement layer for data access and security.
 // The client-side checks below (e.g., checkAuthAndRole, rateLimit) are for UX/UI and preventing unnecessary API calls,
@@ -816,17 +847,22 @@ export const createCustomer = async (companyId, customerData) => {
       throw new Error('Total spent must be a non-negative number.');
     }
 
+    // Encrypt personnummer before storage
+    const encryptedPersonnummer = customerData.personnummer ? 
+      encryptPersonnummer(sanitizeHtml(customerData.personnummer)) : '';
+
     const sanitizedData = addTimestamps({
       name: sanitizeHtml(customerData.name),
       email: sanitizeHtml(customerData.email),
       status: sanitizeHtml(customerData.status || 'lead'),
       customerType: sanitizeHtml(customerData.customerType || 'private'),
       source: sanitizeHtml(customerData.source || 'unknown'),
-      personnummer: sanitizeHtml(customerData.personnummer || ''), // Store personnummer
+      personnummer: encryptedPersonnummer, // Store encrypted personnummer
       consent: !!customerData.consent,
       consentTimestamp: customerData.consent ? serverTimestamp() : null,
       consentDetails: sanitizeHtml(customerData.consentDetails || ''),
       totalSpent: customerData.totalSpent || 0,
+      companyId: companyId, // Add companyId for collection group queries
       // 'deleted: false' is added by addTimestamps helper for new documents
       // Include other customer-specific fields here, ensuring sanitization for strings
     }, true);

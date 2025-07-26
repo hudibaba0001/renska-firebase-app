@@ -1,10 +1,10 @@
 // webapp/src/firebase/init.js
-import firebase from 'firebase/compat/app';
-import 'firebase/compat/firestore';
-import 'firebase/compat/auth';
-import 'firebase/compat/database'; // Added back for ra-data-firebase-client compatibility
+import { initializeApp } from 'firebase/app';
+import { getFirestore } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
+import { getDatabase } from 'firebase/database';
 
-console.log('🔧 Using Firebase v8 compat init.js');
+console.log('🔧 Using Firebase v9 modular API');
 
 const firebaseConfig = {
   apiKey:            import.meta.env.VITE_FIREBASE_API_KEY,
@@ -17,10 +17,25 @@ const firebaseConfig = {
   // databaseURL intentionally omitted for security
 };
 
-if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+
+// Initialize Firestore with cache configuration for offline persistence
+const db = getFirestore(app);
+
+// Initialize Auth
+const auth = getAuth(app);
+
+// Initialize Realtime Database
+const database = getDatabase(app);
+
+// Connect to emulators in development
+if (import.meta.env.DEV) {
+  // Uncomment these lines if you want to use Firebase emulators
+  // connectFirestoreEmulator(db, 'localhost', 8080);
+  // connectAuthEmulator(auth, 'http://localhost:9099');
+  // connectDatabaseEmulator(database, 'localhost', 9000);
 }
 
-export default firebase;
-export const db = firebase.firestore();
-export const auth = firebase.auth();
+export default app;
+export { db, auth, database };

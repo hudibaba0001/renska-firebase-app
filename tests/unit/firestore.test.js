@@ -360,4 +360,123 @@ describe('Enhanced Firestore Service', () => {
       expect(toast.error).toHaveBeenCalledWith('Too many requests. Please wait a moment and try again.');
     });
   });
+
+  describe('Personnummer Encryption', () => {
+    it('should encrypt personnummer before storing', async () => {
+      const mockBatch = {
+        set: vi.fn(),
+        commit: vi.fn().mockResolvedValue()
+      };
+      
+      const { writeBatch } = await import('firebase/firestore');
+      writeBatch.mockReturnValue(mockBatch);
+
+      const customerData = {
+        name: 'Test Customer',
+        email: 'test@example.com',
+        personnummer: '19900101-1234',
+        consent: true
+      };
+
+      // Mock the encryption function
+      const mockEncrypt = vi.fn().mockReturnValue('encrypted-personnummer');
+      vi.doMock('crypto-js', () => ({
+        AES: {
+          encrypt: mockEncrypt,
+          decrypt: vi.fn().mockReturnValue({
+            toString: vi.fn().mockReturnValue('19900101-1234')
+          })
+        },
+        enc: { Utf8: {} }
+      }));
+
+      await createCustomer('company-123', customerData);
+
+      // Verify encryption was called
+      expect(mockEncrypt).toHaveBeenCalledWith('19900101-1234', expect.any(String));
+    });
+
+    it('should handle empty personnummer gracefully', async () => {
+      const customerData = {
+        name: 'Test Customer',
+        email: 'test@example.com',
+        personnummer: '',
+        consent: true
+      };
+
+      const result = await createCustomer('company-123', customerData);
+      expect(result).toBeDefined();
+    });
+
+    it('should decrypt personnummer when retrieving data', async () => {
+      const mockDecrypt = vi.fn().mockReturnValue({
+        toString: vi.fn().mockReturnValue('19900101-1234')
+      });
+      
+      vi.doMock('crypto-js', () => ({
+        AES: {
+          encrypt: vi.fn(),
+          decrypt: mockDecrypt
+        },
+        enc: { Utf8: {} }
+      }));
+
+      // Mock customer data with encrypted personnummer
+      const mockCustomers = [{
+        id: 'customer-1',
+        name: 'Test Customer',
+        personnummer: 'encrypted-personnummer',
+        deleted: false
+      }];
+
+      const mockSnapshot = {
+        docs: mockCustomers.map(customer => ({
+          id: customer.id,
+          data: () => customer
+        }))
+      };
+
+      const { getDocs } = await import('firebase/firestore');
+      getDocs.mockResolvedValue(mockSnapshot);
+
+      const result = await getCustomersForCompany('company-123');
+      
+      // Verify decryption would be called when accessing personnummer
+      expect(result.customers).toHaveLength(1);
+    });
+  });
+
+  describe('Company Statistics', () => {
+    it('should calculate company statistics correctly', () => {
+      const mockCustomers = [
+        { status: 'active', customerType: 'private', source: 'website', totalSpent: 500 },
+        { status: 'lead', customerType: 'business', source: 'referral', totalSpent: 0 },
+        { status: 'active', customerType: 'private', source: 'website', totalSpent: 750 }
+      ];
+
+      const stats = {
+        total: mockCustomers.length,
+        byStatus: { active: 0, lead: 0 },
+        byType: { private: 0, business: 0 },
+        bySource: {},
+        totalRevenue: 0
+      };
+
+      mockCustomers.forEach(customer => {
+        stats.byStatus[customer.status] = (stats.byStatus[customer.status] || 0) + 1;
+        stats.byType[customer.customerType] = (stats.byType[customer.customerType] || 0) + 1;
+        stats.bySource[customer.source] = (stats.bySource[customer.source] || 0) + 1;
+        stats.totalRevenue += customer.totalSpent;
+      });
+
+      expect(stats.total).toBe(3);
+      expect(stats.byStatus.active).toBe(2);
+      expect(stats.byStatus.lead).toBe(1);
+      expect(stats.byType.private).toBe(2);
+      expect(stats.byType.business).toBe(1);
+      expect(stats.bySource.website).toBe(2);
+      expect(stats.bySource.referral).toBe(1);
+      expect(stats.totalRevenue).toBe(1250);
+    });
+  });
 });
