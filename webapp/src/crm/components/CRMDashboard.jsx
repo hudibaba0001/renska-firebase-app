@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../../firebase/init';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import AddSampleData from './AddSampleData';
 
 const CRMDashboard = () => {
@@ -24,6 +24,7 @@ const CRMDashboard = () => {
   const [hasData, setHasData] = useState(false);
   const [loading, setLoading] = useState(true);
   const { companyId } = useParams();
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadDashboardData();
@@ -70,7 +71,7 @@ const CRMDashboard = () => {
     }
   };
 
-  const StatCard = ({ title, value, icon: IconComponent, color = 'blue' }) => (
+  const StatCard = ({ title, value, icon: Icon, color = 'blue' }) => (
     <div className="bg-white rounded-lg shadow p-6 h-full">
       <div className="flex items-center justify-between">
         <div>
@@ -78,7 +79,7 @@ const CRMDashboard = () => {
           <p className="text-2xl font-bold text-gray-900">{value}</p>
         </div>
         <div className={`p-3 rounded-full bg-${color}-100`}>
-          <IconComponent className={`w-6 h-6 text-${color}-600`} />
+          <Icon className={`w-6 h-6 text-${color}-600`} />
         </div>
       </div>
     </div>
@@ -155,10 +156,16 @@ const CRMDashboard = () => {
           <p className="text-gray-600">Welcome to your customer relationship management system</p>
         </div>
         <div className="flex space-x-3">
-          <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+          <button 
+            onClick={() => navigate('customers/create')}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
             Add Customer
           </button>
-          <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+          <button 
+            onClick={() => navigate('leads/create')}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+          >
             Add Lead
           </button>
         </div>
@@ -218,19 +225,31 @@ const CRMDashboard = () => {
         </div>
         <div className="p-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-center">
+            <button 
+              onClick={() => navigate('customers/create')}
+              className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-center"
+            >
               <Users className="w-8 h-8 mx-auto mb-2 text-blue-600" />
               <p className="font-medium">Add Customer</p>
             </button>
-            <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-center">
+            <button 
+              onClick={() => navigate('leads/create')}
+              className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-center"
+            >
               <Target className="w-8 h-8 mx-auto mb-2 text-green-600" />
               <p className="font-medium">Add Lead</p>
             </button>
-            <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-center">
+            <button 
+              onClick={() => navigate('deals/create')}
+              className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-center"
+            >
               <Briefcase className="w-8 h-8 mx-auto mb-2 text-yellow-600" />
               <p className="font-medium">Create Deal</p>
             </button>
-            <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-center">
+            <button 
+              onClick={() => navigate('tasks/create')}
+              className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-center"
+            >
               <CheckSquare className="w-8 h-8 mx-auto mb-2 text-purple-600" />
               <p className="font-medium">Add Task</p>
             </button>

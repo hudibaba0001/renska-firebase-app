@@ -10,12 +10,15 @@ import CustomerCreate from './components/CustomerCreate';
 import LeadList from './components/LeadList';
 import LeadCreate from './components/LeadCreate';
 import LeadEdit from './components/LeadEdit';
+import LeadShow from './components/LeadShow';
 import DealList from './components/DealList';
 import DealCreate from './components/DealCreate';
 import DealEdit from './components/DealEdit';
+import DealShow from './components/DealShow';
 import TaskList from './components/TaskList';
 import TaskCreate from './components/TaskCreate';
 import TaskEdit from './components/TaskEdit';
+import TaskShow from './components/TaskShow';
 import CRMDashboard from './components/CRMDashboard';
 
 // Custom AppBar with back button
@@ -173,12 +176,15 @@ const CRMApp = () => {
             <Route path="leads" element={<LeadList />} />
             <Route path="leads/create" element={<LeadCreate />} />
             <Route path="leads/:id/edit" element={<LeadEdit />} />
+            <Route path="leads/:id" element={<LeadShow />} />
             <Route path="deals" element={<DealList />} />
             <Route path="deals/create" element={<DealCreate />} />
             <Route path="deals/:id/edit" element={<DealEdit />} />
+            <Route path="deals/:id" element={<DealShow />} />
             <Route path="tasks" element={<TaskList />} />
             <Route path="tasks/create" element={<TaskCreate />} />
             <Route path="tasks/:id/edit" element={<TaskEdit />} />
+            <Route path="tasks/:id" element={<TaskShow />} />
           </Routes>
         </div>
       </div>
