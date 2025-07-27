@@ -2,6 +2,8 @@
 import React from 'react';
 import { Routes, Route, Link, Outlet, Navigate, useParams, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
+import { ApolloProvider } from '@apollo/client';
+import { apolloClient } from './firebase/apollo-client';
 
 // Import Page Components
 import HomePage from './pages/HomePage';
@@ -135,7 +137,9 @@ export default function App() {
             element={
               <RequireAuth>
                 <RequireCompanyAccess>
-                  <DataConnectCRM />
+                  <ApolloProvider client={apolloClient}>
+                    <DataConnectCRM />
+                  </ApolloProvider>
                 </RequireCompanyAccess>
               </RequireAuth>
             }

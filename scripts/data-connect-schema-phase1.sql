@@ -1,4 +1,4 @@
--- SwedPrime CRM Database Schema for Firebase Data Connect - Phase 1
+-- SwedPrime CRM Database Schema for Firebase Data Connect - Phase 1 (FINAL)
 -- Focused on CRM only: companies, users, and customers with all 13 fields
 -- Future phases: leads, deals, tasks, activities will be added later
 
@@ -11,7 +11,6 @@ CREATE TABLE companies (
     name VARCHAR(255) NOT NULL,
     contact_email VARCHAR(255) NOT NULL,
     address TEXT,
-    personnummer VARCHAR(13) NULL, -- Swedish personal identity number (YYYYMMDD-XXXX) - Optional for sole proprietorships
     area_tag VARCHAR(100), -- Regional management (e.g., "Stockholm", "Gothenburg")
     subscription_active BOOLEAN DEFAULT true,
     subscription_plan VARCHAR(50) DEFAULT 'basic',
@@ -73,11 +72,11 @@ CREATE TABLE customers (
     -- GDPR and Regional Management
     consent_given BOOLEAN DEFAULT false, -- GDPR compliance
     consent_timestamp TIMESTAMP, -- Required when consent_given is true
-    consent_details TEXT,
+    consent_details TEXT, -- Required when consent_given is true
     area_tag VARCHAR(100), -- Regional management (e.g., "Stockholm", "Gothenburg")
     
     -- Swedish Personal Identity Number (for individuals)
-    personnummer VARCHAR(13) NULL, -- Swedish personal identity number (YYYYMMDD-XXXX) - for individuals only
+    personnummer VARCHAR(13) NULL, -- Required for individual customers, NULL for companies
     
     -- Future Module Integration Points (Phase 2+)
     -- customer_id UUID, -- For future FMS integration (Phase 2)
@@ -92,9 +91,9 @@ CREATE TABLE customers (
     deleted_by VARCHAR(255)
 );
 
--- Constraint to ensure consent_timestamp is provided when consent_given is true
+-- Constraint to ensure consent_timestamp and consent_details are provided when consent_given is true
 ALTER TABLE customers ADD CONSTRAINT check_consent_timestamp 
-    CHECK (NOT consent_given OR (consent_given AND consent_timestamp IS NOT NULL));
+    CHECK (NOT consent_given OR (consent_given AND consent_timestamp IS NOT NULL AND consent_details IS NOT NULL));
 
 -- Indexes for performance (Phase 1 focus)
 CREATE INDEX idx_customers_company_id ON customers(company_id);
@@ -204,7 +203,7 @@ INSERT INTO companies (name, contact_email, address, area_tag, subscription_plan
 ('Demo Office Solutions', 'demo@officesolutions.se', 'Kungsgatan 5, 111 43 Stockholm', 'Stockholm', 'basic');
 
 -- Sample customers with SwedPrime CRM fields (Phase 1)
-INSERT INTO customers (company_id, name, email, phone, address, multiple_addresses, rut_rot_eligible, property_details, internal_notes, lead_source, preferred_contact_method, customer_tags, booking_frequency, feedback_rating, is_company, contact_person, consent_given, consent_timestamp, area_tag, personnummer) VALUES
+INSERT INTO customers (company_id, name, email, phone, address, multiple_addresses, rut_rot_eligible, property_details, internal_notes, lead_source, preferred_contact_method, customer_tags, booking_frequency, feedback_rating, is_company, contact_person, consent_given, consent_timestamp, consent_details, area_tag, personnummer) VALUES
 (
     (SELECT id FROM companies WHERE name = 'Test Cleaning Company'),
     'Anna Johansson',
@@ -224,6 +223,7 @@ INSERT INTO customers (company_id, name, email, phone, address, multiple_address
     NULL,
     true,
     CURRENT_TIMESTAMP,
+    'Consent given via booking form on 2025-07-27',
     'Stockholm',
     '19851215-1234'
 ),
@@ -246,6 +246,7 @@ INSERT INTO customers (company_id, name, email, phone, address, multiple_address
     'Lars Nilsson',
     true,
     CURRENT_TIMESTAMP,
+    'Consent given via contract signing on 2025-07-27',
     'Stockholm',
     NULL
 );
