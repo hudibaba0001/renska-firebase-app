@@ -417,7 +417,7 @@ export default function AdminDashboardPage() {
               <PlusIcon className="w-4 h-4 mr-2" />
               New Calculator
             </Button>
-            <Button as={Link} to={`/admin/${companyId}/crm`} color="gray" size="sm">
+            <Button as={Link} to={`/admin/${companyId}/crm-data`} color="gray" size="sm">
               <UsersIcon className="w-4 h-4 mr-2" />
               CRM
             </Button>

@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Routes, Route } from 'react-router-dom';
-import { ApolloProvider } from '@apollo/client';
-import { apolloClient } from '../firebase/apollo-client';
 import {
   BarChart3,
   Users,
@@ -23,116 +21,9 @@ import {
   Clock,
   Tag
 } from 'lucide-react';
-
-// GraphQL Queries and Mutations
-import { gql, useQuery, useMutation } from '@apollo/client';
-
-// GraphQL Queries
-const GET_CUSTOMERS = gql`
-  query GetCustomers($companyId: UUID!) {
-    customers(where: { company_id: { _eq: $companyId } }) {
-      id
-      first_name
-      last_name
-      email
-      phone
-      status
-      created_at
-      tags
-      address
-      notes
-    }
-  }
-`;
-
-const GET_LEADS = gql`
-  query GetLeads($companyId: UUID!) {
-    leads(where: { company_id: { _eq: $companyId } }) {
-      id
-      title
-      status
-      priority
-      value
-      expected_close_date
-      assigned_to
-      created_at
-      source
-      description
-    }
-  }
-`;
-
-const GET_DEALS = gql`
-  query GetDeals($companyId: UUID!) {
-    deals(where: { company_id: { _eq: $companyId } }) {
-      id
-      title
-      status
-      value
-      probability
-      expected_close_date
-      actual_close_date
-      assigned_to
-      created_at
-      description
-    }
-  }
-`;
-
-const GET_TASKS = gql`
-  query GetTasks($companyId: UUID!) {
-    tasks(where: { company_id: { _eq: $companyId } }) {
-      id
-      title
-      description
-      status
-      priority
-      type
-      due_date
-      completed_date
-      assigned_to
-      related_to
-      related_type
-      created_at
-    }
-  }
-`;
-
-// Mutations
-const CREATE_CUSTOMER = gql`
-  mutation CreateCustomer($input: customers_insert_input!) {
-    insert_customers_one(object: $input) {
-      id
-      first_name
-      last_name
-      email
-      phone
-      status
-      created_at
-    }
-  }
-`;
-
-const UPDATE_CUSTOMER = gql`
-  mutation UpdateCustomer($id: UUID!, $input: customers_set_input!) {
-    update_customers_by_pk(pk_columns: { id: $id }, _set: $input) {
-      id
-      first_name
-      last_name
-      email
-      phone
-      status
-    }
-  }
-`;
-
-const DELETE_CUSTOMER = gql`
-  mutation DeleteCustomer($id: UUID!) {
-    delete_customers_by_pk(id: $id) {
-      id
-    }
-  }
-`;
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, where } from 'firebase/firestore';
+import { db } from '../firebase/init';
+import toast from 'react-hot-toast';
 
 // Dashboard Component
 const CRMDashboard = () => {
@@ -144,48 +35,55 @@ const CRMDashboard = () => {
     totalRevenue: 0,
     openTasks: 0,
   });
-
-  const { data: customersData, loading: customersLoading } = useQuery(GET_CUSTOMERS, {
-    variables: { companyId },
-    skip: !companyId
-  });
-
-  const { data: leadsData, loading: leadsLoading } = useQuery(GET_LEADS, {
-    variables: { companyId },
-    skip: !companyId
-  });
-
-  const { data: dealsData, loading: dealsLoading } = useQuery(GET_DEALS, {
-    variables: { companyId },
-    skip: !companyId
-  });
-
-  const { data: tasksData, loading: tasksLoading } = useQuery(GET_TASKS, {
-    variables: { companyId },
-    skip: !companyId
-  });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (customersData && leadsData && dealsData && tasksData) {
-      const customers = customersData.customers || [];
-      const leads = leadsData.leads || [];
-      const deals = dealsData.deals || [];
-      const tasks = tasksData.tasks || [];
+    const loadDashboardData = async () => {
+      try {
+        setLoading(true);
+        
+        // Load customers
+        const customersRef = collection(db, 'companies', companyId, 'customers');
+        const customersSnapshot = await getDocs(customersRef);
+        const customers = customersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-      const totalRevenue = deals.reduce((sum, deal) => sum + (deal.value || 0), 0);
-      const openTasks = tasks.filter(task => task.status !== 'completed').length;
-      const activeLeads = leads.filter(lead => lead.status !== 'lost').length;
+        // Load leads
+        const leadsRef = collection(db, 'companies', companyId, 'leads');
+        const leadsSnapshot = await getDocs(leadsRef);
+        const leads = leadsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-      setStats({
-        totalCustomers: customers.length,
-        activeLeads,
-        totalRevenue,
-        openTasks
-      });
+        // Load deals
+        const dealsRef = collection(db, 'companies', companyId, 'deals');
+        const dealsSnapshot = await getDocs(dealsRef);
+        const deals = dealsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        // Load tasks
+        const tasksRef = collection(db, 'companies', companyId, 'tasks');
+        const tasksSnapshot = await getDocs(tasksRef);
+        const tasks = tasksSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        const totalRevenue = deals.reduce((sum, deal) => sum + (deal.value || 0), 0);
+        const openTasks = tasks.filter(task => task.status !== 'completed').length;
+        const activeLeads = leads.filter(lead => lead.status !== 'lost').length;
+
+        setStats({
+          totalCustomers: customers.length,
+          activeLeads,
+          totalRevenue,
+          openTasks
+        });
+      } catch (error) {
+        console.error('Error loading dashboard data:', error);
+        toast.error('Failed to load dashboard data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (companyId) {
+      loadDashboardData();
     }
-  }, [customersData, leadsData, dealsData, tasksData]);
-
-  const loading = customersLoading || leadsLoading || dealsLoading || tasksLoading;
+  }, [companyId]);
 
   if (loading) {
     return (
@@ -319,7 +217,7 @@ const CustomerForm = ({ customer, onSubmit, onCancel }) => {
       <h2 className="text-xl font-semibold text-gray-900 mb-6">
         {customer ? 'Edit Customer' : 'Add New Customer'}
       </h2>
-
+      
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
@@ -335,7 +233,7 @@ const CustomerForm = ({ customer, onSubmit, onCancel }) => {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
-
+          
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Last Name *
@@ -365,7 +263,7 @@ const CustomerForm = ({ customer, onSubmit, onCancel }) => {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
-
+          
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Phone
@@ -409,7 +307,7 @@ const CustomerForm = ({ customer, onSubmit, onCancel }) => {
               <option value="prospect">Prospect</option>
             </select>
           </div>
-
+          
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Tags
@@ -467,68 +365,69 @@ const CustomersList = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [customers, setCustomers] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const { data, loading, error, refetch } = useQuery(GET_CUSTOMERS, {
-    variables: { companyId },
-    skip: !companyId
-  });
+  useEffect(() => {
+    loadCustomers();
+  }, [companyId]);
 
-  const [createCustomer] = useMutation(CREATE_CUSTOMER);
-  const [updateCustomer] = useMutation(UPDATE_CUSTOMER);
-  const [deleteCustomer] = useMutation(DELETE_CUSTOMER);
-
-  const customers = data?.customers || [];
-  const filteredCustomers = customers.filter(customer =>
-    customer.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.email?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const loadCustomers = async () => {
+    try {
+      setLoading(true);
+      const customersRef = collection(db, 'companies', companyId, 'customers');
+      const snapshot = await getDocs(customersRef);
+      const customersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setCustomers(customersData);
+    } catch (error) {
+      console.error('Error loading customers:', error);
+      toast.error('Failed to load customers');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleCreateCustomer = async (formData) => {
     try {
-      await createCustomer({
-        variables: {
-          input: {
-            ...formData,
-            company_id: companyId
-          }
-        }
+      const customersRef = collection(db, 'companies', companyId, 'customers');
+      await addDoc(customersRef, {
+        ...formData,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       });
       setShowCreateForm(false);
-      refetch();
+      loadCustomers();
+      toast.success('Customer created successfully');
     } catch (error) {
       console.error('Error creating customer:', error);
+      toast.error('Failed to create customer');
     }
   };
 
   const handleDeleteCustomer = async (customerId) => {
     if (window.confirm('Are you sure you want to delete this customer?')) {
       try {
-        await deleteCustomer({
-          variables: { id: customerId }
-        });
-        refetch();
+        const customerRef = doc(db, 'companies', companyId, 'customers', customerId);
+        await deleteDoc(customerRef);
+        loadCustomers();
+        toast.success('Customer deleted successfully');
       } catch (error) {
         console.error('Error deleting customer:', error);
+        toast.error('Failed to delete customer');
       }
     }
   };
+
+  const filteredCustomers = customers.filter(customer =>
+    customer.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    customer.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    customer.email?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="p-6">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <h3 className="text-sm font-medium text-red-800">Error loading customers</h3>
-          <p className="mt-2 text-sm text-red-700">{error.message}</p>
-        </div>
       </div>
     );
   }
@@ -641,7 +540,7 @@ const CustomersList = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {new Date(customer.created_at).toLocaleDateString()}
+                    {customer.created_at ? new Date(customer.created_at).toLocaleDateString() : 'N/A'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex items-center justify-end space-x-2">
@@ -709,65 +608,63 @@ const DataConnectCRM = () => {
   ];
 
   return (
-    <ApolloProvider client={apolloClient}>
-      <div className="flex h-screen bg-gray-50">
-        {/* Sidebar */}
-        <div className="w-64 bg-white border-r border-gray-200 h-full">
-          <div className="p-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">CRM System</h2>
-            <p className="text-sm text-gray-600">Customer Relationship Management</p>
-          </div>
-
-          <nav className="p-4 space-y-2">
-            {menuItems.map((item) => (
-              <button
-                key={item.path}
-                onClick={() => navigate(item.path)}
-                className="w-full flex items-center space-x-3 p-3 text-left rounded-lg transition-colors group hover:bg-gray-50 text-gray-700"
-              >
-                <item.icon className="w-5 h-5 text-gray-500 group-hover:text-blue-600" />
-                <div className="flex-1">
-                  <div className="font-medium">{item.label}</div>
-                  <div className="text-sm text-gray-500">{item.description}</div>
-                </div>
-              </button>
-            ))}
-          </nav>
+    <div className="flex h-screen bg-gray-50">
+      {/* Sidebar */}
+      <div className="w-64 bg-white border-r border-gray-200 h-full">
+        <div className="p-4 border-b border-gray-200">
+          <h2 className="text-lg font-semibold text-gray-900">CRM System</h2>
+          <p className="text-sm text-gray-600">Customer Relationship Management</p>
         </div>
 
-        {/* Main Content */}
-        <div className="flex-1 flex flex-col">
-          {/* Header */}
-          <header className="bg-white border-b border-gray-200 px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-xl font-semibold text-gray-900">CRM System</h1>
-                <p className="text-sm text-gray-600">Company ID: {companyId}</p>
+        <nav className="p-4 space-y-2">
+          {menuItems.map((item) => (
+            <button
+              key={item.path}
+              onClick={() => navigate(item.path)}
+              className="w-full flex items-center space-x-3 p-3 text-left rounded-lg transition-colors group hover:bg-gray-50 text-gray-700"
+            >
+              <item.icon className="w-5 h-5 text-gray-500 group-hover:text-blue-600" />
+              <div className="flex-1">
+                <div className="font-medium">{item.label}</div>
+                <div className="text-sm text-gray-500">{item.description}</div>
               </div>
-              <div className="flex items-center space-x-4">
-                <div className="text-sm text-gray-600">
-                  Professional CRM Platform
-                </div>
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col">
+        {/* Header */}
+        <header className="bg-white border-b border-gray-200 px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-xl font-semibold text-gray-900">CRM System</h1>
+              <p className="text-sm text-gray-600">Company ID: {companyId}</p>
+            </div>
+            <div className="flex items-center space-x-4">
+              <div className="text-sm text-gray-600">
+                Professional CRM Platform
               </div>
             </div>
-          </header>
-
-          {/* Content Area */}
-          <div className="flex-1 overflow-auto">
-            <Routes>
-              <Route path="" element={<CRMDashboard />} />
-              <Route path="customers" element={<CustomersList />} />
-              <Route path="customers/create" element={<div className="p-6"><CustomerForm onSubmit={() => {}} onCancel={() => navigate('customers')} /></div>} />
-              <Route path="customers/:id" element={<div className="p-6">Customer Details (Coming Soon)</div>} />
-              <Route path="customers/:id/edit" element={<div className="p-6">Edit Customer Form (Coming Soon)</div>} />
-              <Route path="leads" element={<div className="p-6">Leads List (Coming Soon)</div>} />
-              <Route path="deals" element={<div className="p-6">Deals List (Coming Soon)</div>} />
-              <Route path="tasks" element={<div className="p-6">Tasks List (Coming Soon)</div>} />
-            </Routes>
           </div>
+        </header>
+
+        {/* Content Area */}
+        <div className="flex-1 overflow-auto">
+          <Routes>
+            <Route path="" element={<CRMDashboard />} />
+            <Route path="customers" element={<CustomersList />} />
+            <Route path="customers/create" element={<div className="p-6"><CustomerForm onSubmit={() => {}} onCancel={() => navigate('customers')} /></div>} />
+            <Route path="customers/:id" element={<div className="p-6">Customer Details (Coming Soon)</div>} />
+            <Route path="customers/:id/edit" element={<div className="p-6">Edit Customer Form (Coming Soon)</div>} />
+            <Route path="leads" element={<div className="p-6">Leads List (Coming Soon)</div>} />
+            <Route path="deals" element={<div className="p-6">Deals List (Coming Soon)</div>} />
+            <Route path="tasks" element={<div className="p-6">Tasks List (Coming Soon)</div>} />
+          </Routes>
         </div>
       </div>
-    </ApolloProvider>
+    </div>
   );
 };
 
