@@ -31,6 +31,7 @@ import AdminCouponsPage from './pages/AdminCouponsPage';
 import CustomersPage from './pages/CustomersPage';
 import CRMApp from './crm/CRMApp';
 import DataConnectCRM from './crm/DataConnectCRM';
+import CRMPage from './pages/CRMPage';
 import BookingCalculator from './components/BookingCalculator';
 import EmbedCalculatorPage from './pages/EmbedCalculatorPage';
 
@@ -115,6 +116,7 @@ export default function App() {
           <Route path="bookings" element={<BookingManagementPage />} />
             <Route path="analytics" element={<AdminAnalyticsPage />} />
             <Route path="customers" element={<CustomersPage />} />
+            <Route path="crm" element={<CRMPage />} />
           <Route path="payment-settings" element={<AdminPaymentSettings />} /> {/* CORRECTED ROUTE */}
           <Route path="coupons" element={<AdminCouponsPage />} />
           </Route>

@@ -14,7 +14,9 @@ const db = admin.firestore();
 /**
  * Scheduled function to update company statistics every 5 minutes
  * Computes customer metrics, revenue data, and business analytics
+ * TEMPORARILY DISABLED - pubsub.schedule not available in current version
  */
+/*
 exports.updateCompanyStats = functions.pubsub
   .schedule('every 5 minutes')
   .timeZone('Europe/Stockholm')
@@ -158,6 +160,7 @@ exports.updateCompanyStats = functions.pubsub
       throw error;
     }
   });
+*/
 
 /**
  * HTTP callable function to manually trigger statistics update for a specific company

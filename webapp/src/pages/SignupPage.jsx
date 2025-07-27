@@ -90,6 +90,7 @@ export default function SignupPage() {
         zipAreas: [],
         rutEnabled: false,
         subscriptionStatus: 'pending', // Add subscription status
+        isPublic: false, // Default to false for security
       });
       
       // Create a customer document for Stripe extension
@@ -113,54 +114,6 @@ export default function SignupPage() {
         role: 'admin',
         created: serverTimestamp(),
       });
-      
-      // Log batch data for debugging
-      console.log('Batch write data:', {
-        company: {
-          id: companyId,
-          data: {
-            companyName,
-            address,
-            orgNumber,
-            adminName,
-            adminEmail: email,
-            adminPhone: phone,
-            adminUid: user.uid,
-            created: new Date(),
-            plan: selectedPlan || 'starter',
-            pricePerSqm: 0,
-            services: [],
-            frequencyMultiplier: {},
-            addOns: {},
-            windowCleaningPrices: {},
-            zipAreas: [],
-            rutEnabled: false,
-            subscriptionStatus: 'pending',
-          }
-        },
-        customer: {
-          id: user.uid,
-          data: {
-            email: email,
-            stripeLink: companyId,
-            metadata: {
-              companyId: companyId,
-              companyName: companyName
-            }
-          }
-        },
-        user: {
-          id: user.uid,
-          data: {
-            name: adminName,
-            email,
-            phone,
-            companyId,
-            role: 'admin',
-            created: new Date(),
-          }
-        }
-      });
 
       try {
         await batch.commit();
@@ -181,15 +134,6 @@ export default function SignupPage() {
       const message = e.message.replace('Firebase:', '');
       if (e.code === 'auth/email-already-in-use') {
          setError('This email address is already in use by another account.');
-      } else if (e.code === 'permission-denied') {
-         // If we know customers are still being created in Stripe despite the permission error,
-         // we can show a more reassuring message or even ignore the error
-         console.warn("Permission error during signup, but customer may have been created:", e);
-         setSuccess('Account created! Redirecting to payment setup...');
-         
-         // Use the companyId from the higher scope
-         setTimeout(() => navigate(`/payment?companyId=${companyId}&plan=${selectedPlan || 'starter'}`), 1500);
-         return; // Skip the error state
       } else {
          setError(`Error creating account: ${message}`);
       }

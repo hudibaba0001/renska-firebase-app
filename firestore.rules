@@ -50,13 +50,24 @@ service cloud.firestore {
       allow delete: if false; // Disallow direct hard deletes via client for safety
     }
 
+    // --- /customers/{customerId} Collection ---
+    // Allow users to create their own customer document during signup
+    match /customers/{customerId} {
+      allow read: if isOwner(customerId) || isSuperAdmin();
+      allow create: if isSignedIn() && isOwner(customerId);
+      allow update: if isOwner(customerId) || isSuperAdmin();
+      allow delete: if false;
+    }
+
     // --- /companies/{companyId} Collection (Tenants) ---
     match /companies/{companyId} {
-      // Only super admins can create new companies.
-      allow create: if isSuperAdmin();
+      // TEMPORARY: Allow any signed-in user to create companies (for signup)
+      allow create: if isSignedIn();
 
       // Company admins can read their own company's data if not deleted. Super admins can read all.
-      allow read: if (isCompanyAdmin(companyId) || isSuperAdmin()) && isNotDeleted();
+      // Also allow public read access if company has isPublic flag set to true
+      allow read: if (isCompanyAdmin(companyId) || isSuperAdmin() || 
+                       (resource.data.isPublic == true)) && isNotDeleted();
 
       // Company admins can update their company's details, if not deleted. Super admins can update all.
       // IMPORTANT: Stricter update rule to prevent arbitrary changes to 'deleted' field
