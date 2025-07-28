@@ -59,7 +59,7 @@ const DealList = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Deals</h1>
         <button
-          onClick={() => navigate('deals/create')}
+          onClick={() => navigate(`/admin/${companyId}/crm-data/deals/create`)}
           className="bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 transition-colors flex items-center space-x-2"
         >
           <Plus className="w-5 h-5" />
@@ -71,7 +71,7 @@ const DealList = () => {
         <div className="text-center py-12">
           <p className="text-gray-500 mb-4">No deals found</p>
           <button
-            onClick={() => navigate('deals/create')}
+            onClick={() => navigate(`/admin/${companyId}/crm-data/deals/create`)}
             className="bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 transition-colors"
           >
             Add Your First Deal
