@@ -30,7 +30,8 @@ import { createService, updateService, deleteService as deleteServiceFromFiresto
 
 // 1. Update the default service structure to support all SwedPrime models and options
 const defaultService = () => ({
-  name: '',
+  name: 'New Service',
+  price: 3000, // Add a default price to pass validation
   pricingModel: 'fixed-tier', // SwedPrime models: fixed-tier, tiered-multiplier, universal, window, hourly, per-room
   tiers: [{ min: 1, max: 50, price: 3000 }], // for fixed-tier and tiered-multiplier
   universalRate: 50, // for universal multiplier
@@ -62,7 +63,7 @@ const sanitizeConfig = (config) => {
   return config;
 };
 
-export default function ConfigForm({ initialConfig, onSave, onChange, refreshServices }) {
+export default function ConfigForm({ initialConfig, companyId, onSave, onChange, refreshServices }) {
   const [config, setConfig] = useState({
     services: [],
     frequencyMultiplier: { weekly: 1, biweekly: 1.15, monthly: 1.4 },
@@ -137,16 +138,19 @@ export default function ConfigForm({ initialConfig, onSave, onChange, refreshSer
 
   // Service management
   const addService = async () => {
-    const companyId = initialConfig?.id;
     if (!companyId) {
       toast.error('Missing company ID');
       return;
     }
     try {
       const newService = defaultService();
-      await createService(companyId, newService);
+      const createdService = await createService(companyId, newService);
       if (typeof refreshServices === 'function') {
         await refreshServices();
+      }
+      // Auto-expand the newly created service for editing
+      if (createdService && createdService.id) {
+        setExpandedServiceId(createdService.id);
       }
       toast.success('New service added');
     } catch {
@@ -155,7 +159,6 @@ export default function ConfigForm({ initialConfig, onSave, onChange, refreshSer
   };
 
   const saveService = async (service) => {
-    const companyId = initialConfig?.id;
     if (!companyId) {
       toast.error('Missing company ID');
       return;
@@ -172,7 +175,6 @@ export default function ConfigForm({ initialConfig, onSave, onChange, refreshSer
   };
 
   const deleteService = async (serviceId) => {
-    const companyId = initialConfig?.id;
     if (!companyId) {
       toast.error('Missing company ID');
       return;

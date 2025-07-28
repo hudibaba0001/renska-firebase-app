@@ -102,7 +102,7 @@ export default function FormBuilderPage() {
         setConfig(prev => ({
           ...prev,
           zipAreas: (companyConfig && companyConfig.zipAreas) ? companyConfig.zipAreas : prev.zipAreas,
-          services: services.length > 0 ? services : prev.services
+          services: services.services || []
         }));
       } catch (error) {
         console.error('Error fetching company config/services:', error);
@@ -144,7 +144,7 @@ export default function FormBuilderPage() {
             ...prevConfig,
             ...formData,
             // Use ALL services for the form builder (ServiceSelectionStep will handle selection)
-            services: allServices,
+            services: allServices.services || [],
             fieldOrder: formData.fieldOrder || prevConfig.fieldOrder || ['name', 'email', 'phone'],
             fieldLabels: formData.fieldLabels || prevConfig.fieldLabels || {},
             fieldHelp: formData.fieldHelp || prevConfig.fieldHelp || {},

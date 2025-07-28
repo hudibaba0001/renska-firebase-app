@@ -43,7 +43,8 @@ export default function BookingPage() {
         }
 
         // Fetch all services for this company.
-        const allServices = await getAllServicesForCompany(companyId);
+        const allServicesResult = await getAllServicesForCompany(companyId);
+        const allServices = allServicesResult.services || [];
         console.log('🔧 Fetched services:', allServices);
 
         // If a specific formSlug is provided, load the form configuration from calculators collection

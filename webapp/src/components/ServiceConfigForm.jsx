@@ -64,7 +64,7 @@ export default function ServiceConfigForm({ initialConfig }) {
             try {
                 const fetchedServices = await getAllServicesForCompany(companyId);
             console.log('Fetched services:', fetchedServices);
-            setServices(fetchedServices);
+            setServices(fetchedServices.services || []);
             } catch (error) {
                 toast.error(`Failed to load services: ${error.message}`);
             } finally {

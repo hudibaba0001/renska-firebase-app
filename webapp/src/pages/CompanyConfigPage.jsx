@@ -121,6 +121,7 @@ export default function CompanyConfigPage({ companyId: propCompanyId }) {
         <div className="lg:col-span-3">
           <ConfigForm 
             initialConfig={config}
+            companyId={companyId}
             onSave={handleSave}
             onChange={handleConfigChange}
             refreshServices={refreshServices}

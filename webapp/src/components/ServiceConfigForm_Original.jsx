@@ -104,7 +104,7 @@ export default function ServiceConfigForm_Original({ initialConfig }) {
         try {
             const fetchedServices = await getAllServicesForCompany(companyId);
             console.log('Fetched services from Firestore:', fetchedServices); // Debug log
-            setServices(fetchedServices);
+            setServices(fetchedServices.services || []);
         } catch (error) {
             toast.error(`Failed to load services: ${error.message}`);
         } finally {

@@ -29,7 +29,7 @@ export default function DefineServicesStep({ config, updateConfig, onNext, onPre
       setServicesError('');
       try {
         const services = await getAllServicesForCompany(companyId);
-        setAvailableServices(services);
+        setAvailableServices(services.services || []);
       } catch (error) {
         console.error('Error fetching company services:', error);
         setServicesError('Failed to load company services');

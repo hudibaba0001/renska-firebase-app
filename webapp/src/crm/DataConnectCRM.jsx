@@ -3,9 +3,6 @@ import { useParams, useNavigate, Routes, Route } from 'react-router-dom';
 import {
   BarChart3,
   Users,
-  Target,
-  DollarSign,
-  CheckSquare,
   Plus,
   Search,
   Filter,
@@ -22,7 +19,6 @@ import {
   Tag
 } from 'lucide-react';
 import { useQuery, useMutation, gql } from '@apollo/client';
-import { apolloClient } from '../firebase/apollo-client';
 import toast from 'react-hot-toast';
 
 // GraphQL Queries
@@ -34,73 +30,23 @@ const GET_CUSTOMERS = gql`
       email
       phone
       address
-      multiple_addresses
-      rut_rot_eligible
-      property_details
-      internal_notes
-      lead_source
-      preferred_contact_method
-      customer_tags
-      booking_frequency
-      feedback_rating
-      is_company
-      contact_person
-      secondary_phone
-      secondary_email
-      company_size
-      branch_count
-      created_at
-      updated_at
-    }
-  }
-`;
-
-const GET_LEADS = gql`
-  query GetLeads($companyId: ID!) {
-    leads(companyId: $companyId) {
-      id
-      title
-      description
-      status
-      priority
-      value
-      currency
-      expected_close_date
-      created_at
-      updated_at
-    }
-  }
-`;
-
-const GET_DEALS = gql`
-  query GetDeals($companyId: ID!) {
-    deals(companyId: $companyId) {
-      id
-      title
-      description
-      status
-      value
-      currency
-      probability
-      expected_close_date
-      created_at
-      updated_at
-    }
-  }
-`;
-
-const GET_TASKS = gql`
-  query GetTasks($companyId: ID!) {
-    tasks(companyId: $companyId) {
-      id
-      title
-      description
-      status
-      priority
-      due_date
-      assigned_to
-      created_at
-      updated_at
+      multipleAddresses
+      rutRotEligible
+      propertyDetails
+      internalNotes
+      leadSource
+      preferredContactMethod
+      customerTags
+      bookingFrequency
+      feedbackRating
+      isCompany
+      contactPerson
+      secondaryPhone
+      secondaryEmail
+      companySize
+      branchCount
+      createdAt
+      updatedAt
     }
   }
 `;
@@ -152,12 +98,11 @@ const DELETE_CUSTOMER = gql`
 // Dashboard Component
 const CRMDashboard = () => {
   const { companyId } = useParams();
-  const navigate = useNavigate();
   const [stats, setStats] = useState({
     totalCustomers: 0,
-    activeLeads: 0,
     totalRevenue: 0,
     openTasks: 0,
+    activeLeads: 0,
   });
 
   // GraphQL Queries
@@ -166,42 +111,24 @@ const CRMDashboard = () => {
     skip: !companyId,
   });
 
-  const { data: leadsData, loading: leadsLoading } = useQuery(GET_LEADS, {
-    variables: { companyId },
-    skip: !companyId,
-  });
-
-  const { data: dealsData, loading: dealsLoading } = useQuery(GET_DEALS, {
-    variables: { companyId },
-    skip: !companyId,
-  });
-
-  const { data: tasksData, loading: tasksLoading } = useQuery(GET_TASKS, {
-    variables: { companyId },
-    skip: !companyId,
-  });
-
   useEffect(() => {
-    if (customersData && leadsData && dealsData && tasksData) {
+    if (customersData) {
       const customers = customersData.customers || [];
-      const leads = leadsData.leads || [];
-      const deals = dealsData.deals || [];
-      const tasks = tasksData.tasks || [];
 
-      const totalRevenue = deals.reduce((sum, deal) => sum + (deal.value || 0), 0);
-      const openTasks = tasks.filter(task => task.status !== 'completed').length;
-      const activeLeads = leads.filter(lead => lead.status !== 'lost').length;
+      const totalRevenue = 0; // No deals data yet
+      const openTasks = 0; // No tasks data yet
+      const activeLeads = 0; // No leads data yet
 
       setStats({
         totalCustomers: customers.length,
-        activeLeads,
-        totalRevenue,
-        openTasks
+        totalRevenue: totalRevenue,
+        openTasks: openTasks,
+        activeLeads: activeLeads,
       });
     }
-  }, [customersData, leadsData, dealsData, tasksData]);
+  }, [customersData]);
 
-  const loading = customersLoading || leadsLoading || dealsLoading || tasksLoading;
+  const loading = customersLoading;
 
   if (loading) {
     return (
@@ -213,12 +140,30 @@ const CRMDashboard = () => {
 
   return (
     <div className="p-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">CRM Dashboard</h1>
-        <p className="text-gray-600 mt-2">Manage your customer relationships and sales pipeline</p>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">CRM Dashboard</h1>
+        <p className="text-gray-600">Customer Relationship Management Overview</p>
       </div>
 
-      {/* Stats Cards */}
+      {/* Phase 1 Notice */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+        <div className="flex">
+          <div className="flex-shrink-0">
+            <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <div className="ml-3">
+            <h3 className="text-sm font-medium text-blue-800">Phase 1 CRM - Customers Only</h3>
+            <div className="mt-2 text-sm text-blue-700">
+              <p>This is Phase 1 of the CRM system. Currently, only customer management is available.</p>
+              <p className="mt-1">Leads, Deals, and Tasks will be added in future phases.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center">
@@ -227,40 +172,49 @@ const CRMDashboard = () => {
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Total Customers</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.totalCustomers}</p>
+              <p className="text-2xl font-semibold text-gray-900">{stats.totalCustomers}</p>
             </div>
           </div>
         </div>
+
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center">
             <div className="p-2 bg-green-100 rounded-lg">
-              <Target className="h-6 w-6 text-green-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Active Leads</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.activeLeads}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center">
-            <div className="p-2 bg-yellow-100 rounded-lg">
-              <DollarSign className="h-6 w-6 text-yellow-600" />
+              <svg className="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+              </svg>
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Total Revenue</p>
-              <p className="text-2xl font-bold text-gray-900">SEK {stats.totalRevenue.toLocaleString()}</p>
+              <p className="text-2xl font-semibold text-gray-900">Coming Soon</p>
             </div>
           </div>
         </div>
+
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center">
+            <div className="p-2 bg-yellow-100 rounded-lg">
+              <svg className="h-6 w-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">Active Leads</p>
+              <p className="text-2xl font-semibold text-gray-900">Coming Soon</p>
+            </div>
+          </div>
+        </div>
+
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center">
             <div className="p-2 bg-purple-100 rounded-lg">
-              <CheckSquare className="h-6 w-6 text-purple-600" />
+              <svg className="h-6 w-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Open Tasks</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.openTasks}</p>
+              <p className="text-2xl font-semibold text-gray-900">Coming Soon</p>
             </div>
           </div>
         </div>
@@ -268,36 +222,38 @@ const CRMDashboard = () => {
 
       {/* Quick Actions */}
       <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <button
-            onClick={() => navigate('customers/create')}
-            className="flex items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors"
+            onClick={() => window.location.href = `/admin/${companyId}/crm-data/customers`}
+            className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
           >
-            <Plus className="h-5 w-5 text-gray-400 mr-2" />
-            <span className="text-gray-600">Add Customer</span>
+            <Users className="h-5 w-5 text-blue-600 mr-3" />
+            <div className="text-left">
+              <p className="font-medium text-gray-900">Manage Customers</p>
+              <p className="text-sm text-gray-600">View and edit customer information</p>
+            </div>
           </button>
-          <button
-            onClick={() => navigate('leads/create')}
-            className="flex items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-green-500 hover:bg-green-50 transition-colors"
-          >
-            <Plus className="h-5 w-5 text-gray-400 mr-2" />
-            <span className="text-gray-600">Add Lead</span>
-          </button>
-          <button
-            onClick={() => navigate('deals/create')}
-            className="flex items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-yellow-500 hover:bg-yellow-50 transition-colors"
-          >
-            <Plus className="h-5 w-5 text-gray-400 mr-2" />
-            <span className="text-gray-600">Add Deal</span>
-          </button>
-          <button
-            onClick={() => navigate('tasks/create')}
-            className="flex items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-colors"
-          >
-            <Plus className="h-5 w-5 text-gray-400 mr-2" />
-            <span className="text-gray-600">Add Task</span>
-          </button>
+          
+          <div className="flex items-center p-4 border border-gray-200 rounded-lg bg-gray-50 opacity-50">
+            <svg className="h-5 w-5 text-gray-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            <div className="text-left">
+              <p className="font-medium text-gray-500">Manage Leads</p>
+              <p className="text-sm text-gray-400">Coming in Phase 2</p>
+            </div>
+          </div>
+          
+          <div className="flex items-center p-4 border border-gray-200 rounded-lg bg-gray-50 opacity-50">
+            <svg className="h-5 w-5 text-gray-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+            </svg>
+            <div className="text-left">
+              <p className="font-medium text-gray-500">Manage Deals</p>
+              <p className="text-sm text-gray-400">Coming in Phase 2</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -902,9 +858,9 @@ const CustomersList = () => {
         variables: {
           input: {
             ...formData,
-            company_id: companyId,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
+            companyId: companyId,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
           }
         }
       });
@@ -1156,776 +1112,14 @@ const CustomersList = () => {
   );
 };
 
-// Leads List Component
-const LeadsList = () => {
-  const { companyId } = useParams();
-  const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [showCreateForm, setShowCreateForm] = useState(false);
-
-  // GraphQL Queries
-  const { data: leadsData, loading, refetch } = useQuery(GET_LEADS, {
-    variables: { companyId },
-    skip: !companyId,
-  });
-
-  // GraphQL Mutations
-  const [createLead] = useMutation(gql`
-    mutation CreateLead($input: LeadInput!) {
-      createLead(input: $input) {
-        id
-        title
-        description
-        status
-        priority
-        value
-        currency
-        expected_close_date
-        created_at
-        updated_at
-      }
-    }
-  `, {
-    onCompleted: () => {
-      refetch();
-      setShowCreateForm(false);
-      toast.success('Lead created successfully');
-    },
-    onError: (error) => {
-      console.error('Error creating lead:', error);
-      toast.error('Failed to create lead');
-    }
-  });
-
-  const [deleteLead] = useMutation(gql`
-    mutation DeleteLead($id: ID!) {
-      deleteLead(id: $id) {
-        id
-      }
-    }
-  `, {
-    onCompleted: () => {
-      refetch();
-      toast.success('Lead deleted successfully');
-    },
-    onError: (error) => {
-      console.error('Error deleting lead:', error);
-      toast.error('Failed to delete lead');
-    }
-  });
-
-  const handleCreateLead = async (formData) => {
-    try {
-      await createLead({
-        variables: {
-          input: {
-            ...formData,
-            company_id: companyId,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          }
-        }
-      });
-    } catch (error) {
-      console.error('Error creating lead:', error);
-      toast.error('Failed to create lead');
-    }
-  };
-
-  const handleDeleteLead = async (leadId) => {
-    if (window.confirm('Are you sure you want to delete this lead?')) {
-      try {
-        await deleteLead({
-          variables: { id: leadId }
-        });
-      } catch (error) {
-        console.error('Error deleting lead:', error);
-        toast.error('Failed to delete lead');
-      }
-    }
-  };
-
-  const leads = leadsData?.leads || [];
-  const filteredLeads = leads.filter(lead =>
-    lead.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    lead.description?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Leads</h1>
-          <p className="text-gray-600">Track and manage your leads</p>
-        </div>
-        <button
-          onClick={() => setShowCreateForm(true)}
-          className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Lead
-        </button>
-      </div>
-
-      {/* Search and Filters */}
-      <div className="bg-white rounded-lg shadow mb-6">
-        <div className="p-4 border-b border-gray-200">
-          <div className="flex items-center space-x-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search leads..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                />
-              </div>
-            </div>
-            <button className="p-2 text-gray-400 hover:text-gray-600">
-              <Filter className="h-5 w-5" />
-            </button>
-          </div>
-        </div>
-
-        {/* Leads Table */}
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Title
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Priority
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Value
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Expected Close
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredLeads.map((lead) => (
-                <tr key={lead.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">{lead.title}</div>
-                      <div className="text-sm text-gray-500">{lead.description}</div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      lead.status === 'new' ? 'bg-blue-100 text-blue-800' :
-                      lead.status === 'contacted' ? 'bg-yellow-100 text-yellow-800' :
-                      lead.status === 'qualified' ? 'bg-green-100 text-green-800' :
-                      lead.status === 'proposal' ? 'bg-purple-100 text-purple-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {lead.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      lead.priority === 'high' ? 'bg-red-100 text-red-800' :
-                      lead.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-green-100 text-green-800'
-                    }`}>
-                      {lead.priority}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {lead.value ? `${lead.currency || 'SEK'} ${lead.value.toLocaleString()}` : 'N/A'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {lead.expected_close_date ? new Date(lead.expected_close_date).toLocaleDateString() : 'N/A'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex items-center justify-end space-x-2">
-                      <button
-                        onClick={() => navigate(`leads/${lead.id}`)}
-                        className="text-blue-600 hover:text-blue-900"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => navigate(`leads/${lead.id}/edit`)}
-                        className="text-gray-600 hover:text-gray-900"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteLead(lead.id)}
-                        className="text-red-600 hover:text-red-900"
-                      >
-                        <Trash className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {filteredLeads.length === 0 && (
-          <div className="text-center py-12">
-            <Target className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No leads found</h3>
-            <p className="mt-1 text-sm text-gray-500">
-              {searchTerm ? 'Try adjusting your search terms.' : 'Get started by creating your first lead.'}
-            </p>
-            {!searchTerm && (
-              <div className="mt-6">
-                <button
-                  onClick={() => setShowCreateForm(true)}
-                  className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
-                >
-                  Add Lead
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
-// Deals List Component
-const DealsList = () => {
-  const { companyId } = useParams();
-  const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [showCreateForm, setShowCreateForm] = useState(false);
-
-  // GraphQL Queries
-  const { data: dealsData, loading, refetch } = useQuery(GET_DEALS, {
-    variables: { companyId },
-    skip: !companyId,
-  });
-
-  // GraphQL Mutations
-  const [createDeal] = useMutation(gql`
-    mutation CreateDeal($input: DealInput!) {
-      createDeal(input: $input) {
-        id
-        title
-        description
-        status
-        value
-        currency
-        probability
-        expected_close_date
-        created_at
-        updated_at
-      }
-    }
-  `, {
-    onCompleted: () => {
-      refetch();
-      setShowCreateForm(false);
-      toast.success('Deal created successfully');
-    },
-    onError: (error) => {
-      console.error('Error creating deal:', error);
-      toast.error('Failed to create deal');
-    }
-  });
-
-  const [deleteDeal] = useMutation(gql`
-    mutation DeleteDeal($id: ID!) {
-      deleteDeal(id: $id) {
-        id
-      }
-    }
-  `, {
-    onCompleted: () => {
-      refetch();
-      toast.success('Deal deleted successfully');
-    },
-    onError: (error) => {
-      console.error('Error deleting deal:', error);
-      toast.error('Failed to delete deal');
-    }
-  });
-
-  const handleCreateDeal = async (formData) => {
-    try {
-      await createDeal({
-        variables: {
-          input: {
-            ...formData,
-            company_id: companyId,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          }
-        }
-      });
-    } catch (error) {
-      console.error('Error creating deal:', error);
-      toast.error('Failed to create deal');
-    }
-  };
-
-  const handleDeleteDeal = async (dealId) => {
-    if (window.confirm('Are you sure you want to delete this deal?')) {
-      try {
-        await deleteDeal({
-          variables: { id: dealId }
-        });
-      } catch (error) {
-        console.error('Error deleting deal:', error);
-        toast.error('Failed to delete deal');
-      }
-    }
-  };
-
-  const deals = dealsData?.deals || [];
-  const filteredDeals = deals.filter(deal =>
-    deal.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    deal.description?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Deals</h1>
-          <p className="text-gray-600">Manage your sales pipeline</p>
-        </div>
-        <button
-          onClick={() => setShowCreateForm(true)}
-          className="bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 flex items-center"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Deal
-        </button>
-      </div>
-
-      {/* Search and Filters */}
-      <div className="bg-white rounded-lg shadow mb-6">
-        <div className="p-4 border-b border-gray-200">
-          <div className="flex items-center space-x-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search deals..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
-                />
-              </div>
-            </div>
-            <button className="p-2 text-gray-400 hover:text-gray-600">
-              <Filter className="h-5 w-5" />
-            </button>
-          </div>
-        </div>
-
-        {/* Deals Table */}
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Title
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Value
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Probability
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Expected Close
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredDeals.map((deal) => (
-                <tr key={deal.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">{deal.title}</div>
-                      <div className="text-sm text-gray-500">{deal.description}</div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      deal.status === 'draft' ? 'bg-gray-100 text-gray-800' :
-                      deal.status === 'sent' ? 'bg-blue-100 text-blue-800' :
-                      deal.status === 'negotiated' ? 'bg-yellow-100 text-yellow-800' :
-                      deal.status === 'won' ? 'bg-green-100 text-green-800' :
-                      'bg-red-100 text-red-800'
-                    }`}>
-                      {deal.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {deal.value ? `${deal.currency || 'SEK'} ${deal.value.toLocaleString()}` : 'N/A'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="w-16 bg-gray-200 rounded-full h-2 mr-2">
-                        <div 
-                          className="bg-blue-600 h-2 rounded-full" 
-                          style={{ width: `${deal.probability || 0}%` }}
-                        ></div>
-                      </div>
-                      <span className="text-sm text-gray-900">{deal.probability || 0}%</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {deal.expected_close_date ? new Date(deal.expected_close_date).toLocaleDateString() : 'N/A'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex items-center justify-end space-x-2">
-                      <button
-                        onClick={() => navigate(`deals/${deal.id}`)}
-                        className="text-blue-600 hover:text-blue-900"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => navigate(`deals/${deal.id}/edit`)}
-                        className="text-gray-600 hover:text-gray-900"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteDeal(deal.id)}
-                        className="text-red-600 hover:text-red-900"
-                      >
-                        <Trash className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {filteredDeals.length === 0 && (
-          <div className="text-center py-12">
-            <DollarSign className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No deals found</h3>
-            <p className="mt-1 text-sm text-gray-500">
-              {searchTerm ? 'Try adjusting your search terms.' : 'Get started by creating your first deal.'}
-            </p>
-            {!searchTerm && (
-              <div className="mt-6">
-                <button
-                  onClick={() => setShowCreateForm(true)}
-                  className="bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700"
-                >
-                  Add Deal
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
-// Tasks List Component
-const TasksList = () => {
-  const { companyId } = useParams();
-  const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [showCreateForm, setShowCreateForm] = useState(false);
-
-  // GraphQL Queries
-  const { data: tasksData, loading, refetch } = useQuery(GET_TASKS, {
-    variables: { companyId },
-    skip: !companyId,
-  });
-
-  // GraphQL Mutations
-  const [createTask] = useMutation(gql`
-    mutation CreateTask($input: TaskInput!) {
-      createTask(input: $input) {
-        id
-        title
-        description
-        status
-        priority
-        due_date
-        assigned_to
-        created_at
-        updated_at
-      }
-    }
-  `, {
-    onCompleted: () => {
-      refetch();
-      setShowCreateForm(false);
-      toast.success('Task created successfully');
-    },
-    onError: (error) => {
-      console.error('Error creating task:', error);
-      toast.error('Failed to create task');
-    }
-  });
-
-  const [deleteTask] = useMutation(gql`
-    mutation DeleteTask($id: ID!) {
-      deleteTask(id: $id) {
-        id
-      }
-    }
-  `, {
-    onCompleted: () => {
-      refetch();
-      toast.success('Task deleted successfully');
-    },
-    onError: (error) => {
-      console.error('Error deleting task:', error);
-      toast.error('Failed to delete task');
-    }
-  });
-
-  const handleCreateTask = async (formData) => {
-    try {
-      await createTask({
-        variables: {
-          input: {
-            ...formData,
-            company_id: companyId,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          }
-        }
-      });
-    } catch (error) {
-      console.error('Error creating task:', error);
-      toast.error('Failed to create task');
-    }
-  };
-
-  const handleDeleteTask = async (taskId) => {
-    if (window.confirm('Are you sure you want to delete this task?')) {
-      try {
-        await deleteTask({
-          variables: { id: taskId }
-        });
-      } catch (error) {
-        console.error('Error deleting task:', error);
-        toast.error('Failed to delete task');
-      }
-    }
-  };
-
-  const tasks = tasksData?.tasks || [];
-  const filteredTasks = tasks.filter(task =>
-    task.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    task.description?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Tasks</h1>
-          <p className="text-gray-600">Track and manage your tasks</p>
-        </div>
-        <button
-          onClick={() => setShowCreateForm(true)}
-          className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 flex items-center"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Task
-        </button>
-      </div>
-
-      {/* Search and Filters */}
-      <div className="bg-white rounded-lg shadow mb-6">
-        <div className="p-4 border-b border-gray-200">
-          <div className="flex items-center space-x-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search tasks..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                />
-              </div>
-            </div>
-            <button className="p-2 text-gray-400 hover:text-gray-600">
-              <Filter className="h-5 w-5" />
-            </button>
-          </div>
-        </div>
-
-        {/* Tasks Table */}
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Title
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Priority
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Due Date
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Assigned To
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredTasks.map((task) => (
-                <tr key={task.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">{task.title}</div>
-                      <div className="text-sm text-gray-500">{task.description}</div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      task.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                      task.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
-                      task.status === 'completed' ? 'bg-green-100 text-green-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {task.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      task.priority === 'high' ? 'bg-red-100 text-red-800' :
-                      task.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-green-100 text-green-800'
-                    }`}>
-                      {task.priority}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {task.due_date ? new Date(task.due_date).toLocaleDateString() : 'N/A'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {task.assigned_to || 'Unassigned'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex items-center justify-end space-x-2">
-                      <button
-                        onClick={() => navigate(`tasks/${task.id}`)}
-                        className="text-blue-600 hover:text-blue-900"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => navigate(`tasks/${task.id}/edit`)}
-                        className="text-gray-600 hover:text-gray-900"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteTask(task.id)}
-                        className="text-red-600 hover:text-red-900"
-                      >
-                        <Trash className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {filteredTasks.length === 0 && (
-          <div className="text-center py-12">
-            <CheckSquare className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No tasks found</h3>
-            <p className="mt-1 text-sm text-gray-500">
-              {searchTerm ? 'Try adjusting your search terms.' : 'Get started by creating your first task.'}
-            </p>
-            {!searchTerm && (
-              <div className="mt-6">
-                <button
-                  onClick={() => setShowCreateForm(true)}
-                  className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700"
-                >
-                  Add Task
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
 // Main CRM Component
 const DataConnectCRM = () => {
   const { companyId } = useParams();
   const navigate = useNavigate();
 
   const menuItems = [
-    { label: 'Dashboard', icon: BarChart3, path: '', description: 'CRM Overview' },
-    { label: 'Customers', icon: Users, path: 'customers', description: 'Manage customers' },
-    { label: 'Leads', icon: Target, path: 'leads', description: 'Track leads' },
-    { label: 'Deals', icon: DollarSign, path: 'deals', description: 'Manage deals' },
-    { label: 'Tasks', icon: CheckSquare, path: 'tasks', description: 'Track tasks' },
+    { label: 'Dashboard', icon: BarChart3, path: `/admin/${companyId}/crm-data`, description: 'CRM Overview' },
+    { label: 'Customers', icon: Users, path: `/admin/${companyId}/crm-data/customers`, description: 'Manage customers' },
   ];
 
   return (
@@ -1979,9 +1173,6 @@ const DataConnectCRM = () => {
             <Route path="customers/create" element={<div className="p-6"><CustomerForm onSubmit={() => {}} onCancel={() => navigate('customers')} /></div>} />
             <Route path="customers/:id" element={<div className="p-6">Customer Details (Coming Soon)</div>} />
             <Route path="customers/:id/edit" element={<div className="p-6">Edit Customer Form (Coming Soon)</div>} />
-            <Route path="leads" element={<LeadsList />} />
-            <Route path="deals" element={<DealsList />} />
-            <Route path="tasks" element={<TasksList />} />
           </Routes>
         </div>
       </div>
