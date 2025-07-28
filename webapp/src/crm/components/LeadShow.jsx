@@ -1,35 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../../firebase/init';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useQuery } from '@apollo/client';
+import { GET_LEAD } from '../DataConnectCRM';
+import { format } from 'date-fns';
 import { ArrowLeft, Edit, Trash2 } from 'lucide-react';
 
 const LeadShow = () => {
   const [lead, setLead] = useState(null);
   const [loading, setLoading] = useState(true);
-  const { id, companyId } = useParams();
+  const { companyId, leadId } = useParams();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    loadLead();
-  }, [id]);
+  const { loading: queryLoading, error, data } = useQuery(GET_LEAD, {
+    variables: { id: leadId },
+  });
 
-  const loadLead = async () => {
-    try {
-      const docRef = doc(db, `companies/${companyId}/leads`, id);
-      const docSnap = await getDoc(docRef);
-      
-      if (docSnap.exists()) {
-        setLead({ id: docSnap.id, ...docSnap.data() });
-      } else {
-        console.log('No such lead!');
-      }
-    } catch (error) {
-      console.error('Error loading lead:', error);
-    } finally {
+  useEffect(() => {
+    if (!queryLoading && !error && data) {
+      setLead(data.lead);
       setLoading(false);
     }
-  };
+  }, [queryLoading, error, data]);
 
   if (loading) {
     return (
@@ -42,6 +33,23 @@ const LeadShow = () => {
     );
   }
 
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Error</h1>
+          <p className="text-gray-600 mb-4">An error occurred while loading the lead: {error.message}</p>
+          <button
+            onClick={() => navigate(`/admin/${companyId}/leads`)}
+            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+          >
+            Back to Leads
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (!lead) {
     return (
       <div className="p-6">
@@ -49,7 +57,7 @@ const LeadShow = () => {
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Lead Not Found</h1>
           <p className="text-gray-600 mb-4">The lead you're looking for doesn't exist.</p>
           <button
-            onClick={() => navigate('leads')}
+            onClick={() => navigate(`/admin/${companyId}/leads`)}
             className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
           >
             Back to Leads
@@ -65,7 +73,7 @@ const LeadShow = () => {
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center space-x-4">
           <button
-            onClick={() => navigate('leads')}
+            onClick={() => navigate(`/admin/${companyId}/leads`)}
             className="flex items-center space-x-2 text-gray-600 hover:text-gray-900"
           >
             <ArrowLeft className="w-5 h-5" />
@@ -74,7 +82,7 @@ const LeadShow = () => {
         </div>
         <div className="flex space-x-3">
           <button
-            onClick={() => navigate(`leads/${id}/edit`)}
+            onClick={() => navigate(`/admin/${companyId}/leads/${leadId}/edit`)}
             className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
           >
             <Edit className="w-4 h-4" />
@@ -86,7 +94,7 @@ const LeadShow = () => {
       {/* Lead Details */}
       <div className="bg-white rounded-lg shadow">
         <div className="p-6 border-b border-gray-200">
-          <h1 className="text-2xl font-bold text-gray-900">{lead.name}</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{lead.title}</h1>
           <p className="text-gray-600">{lead.email}</p>
         </div>
         
@@ -132,16 +140,32 @@ const LeadShow = () => {
                 <div>
                   <label className="text-sm font-medium text-gray-500">Potential Value</label>
                   <p className="text-gray-900 font-semibold">
-                    {lead.value ? `${lead.value.toLocaleString()} kr` : 'Not specified'}
+                    {lead.value ? `${lead.value.toLocaleString()} ${lead.currency}` : 'Not specified'}
                   </p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-500">Created</label>
-                  <p className="text-gray-900">{lead.createdAt?.toDate?.()?.toLocaleDateString() || 'N/A'}</p>
+                  <p className="text-gray-900">{lead.createdAt ? format(new Date(lead.createdAt), 'yyyy-MM-dd HH:mm') : 'N/A'}</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-500">Last Updated</label>
-                  <p className="text-gray-900">{lead.updatedAt?.toDate?.()?.toLocaleDateString() || 'N/A'}</p>
+                  <p className="text-gray-900">{lead.updatedAt ? format(new Date(lead.updatedAt), 'yyyy-MM-dd HH:mm') : 'N/A'}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Expected Close Date</label>
+                  <p className="text-gray-900">{lead.expectedCloseDate ? format(new Date(lead.expectedCloseDate), 'yyyy-MM-dd') : 'N/A'}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Source</label>
+                  <p className="text-gray-900">{lead.source}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Area Tag</label>
+                  <p className="text-gray-900">{lead.areaTag}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Description</label>
+                  <p className="text-gray-900">{lead.description}</p>
                 </div>
               </div>
             </div>
@@ -159,4 +183,4 @@ const LeadShow = () => {
   );
 };
 
-export default LeadShow; 
+export default LeadShow;

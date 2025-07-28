@@ -164,13 +164,15 @@ export default function ConfigForm({ initialConfig, companyId, onSave, onChange,
       return;
     }
     try {
+      console.log('💾 Saving service:', service);
       await updateService(companyId, service.id, service);
       if (typeof refreshServices === 'function') {
         await refreshServices();
       }
       toast.success('Service saved!');
-    } catch {
-      toast.error('Failed to save service');
+    } catch (error) {
+      console.error('❌ Error saving service:', error);
+      toast.error(`Failed to save service: ${error.message || 'Unknown error'}`);
     }
   };
 
@@ -182,7 +184,12 @@ export default function ConfigForm({ initialConfig, companyId, onSave, onChange,
     try {
       console.log('🗑️ Attempting to delete service:', serviceId);
       await deleteServiceFromFirestore(companyId, serviceId);
+      
+      // Wait a moment for Firestore to update
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       if (typeof refreshServices === 'function') {
+        console.log('🔄 Refreshing services list...');
         await refreshServices();
       }
       toast.success('Service deleted successfully');
@@ -554,7 +561,7 @@ export default function ConfigForm({ initialConfig, companyId, onSave, onChange,
                       </div>
                       <button 
                         type="button" 
-                        onClick={() => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, tiers: [...s.tiers, { min: 0, max: 0, price: 0 }] } : s) }))} 
+                        onClick={() => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, tiers: [...(s.tiers || []), { min: 0, max: 0, price: 0 }] } : s) }))} 
                         className="flex items-center px-4 py-2 rounded-full bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium shadow-sm transition"
                       >
                         <PlusIcon className="h-4 w-4 mr-1" /> Add Tier
@@ -615,7 +622,7 @@ export default function ConfigForm({ initialConfig, companyId, onSave, onChange,
                           </div>
                           <button 
                             type="button" 
-                            onClick={() => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, tiers: [...s.tiers, { min: 0, max: 0, price: 0 }] } : s) }))} 
+                            onClick={() => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, tiers: [...(s.tiers || []), { min: 0, max: 0, price: 0 }] } : s) }))} 
                             className="mt-2 inline-flex items-center px-4 py-2 rounded-md bg-amber-50 hover:bg-amber-100 text-amber-700 text-sm font-medium"
                           >
                             <PlusIcon className="h-4 w-4 mr-1" /> Add Your First Tier
@@ -644,7 +651,7 @@ export default function ConfigForm({ initialConfig, companyId, onSave, onChange,
                   <div className="rounded-lg bg-gray-50 p-4 mb-4 border border-gray-200">
                     <div className="flex items-center justify-between mb-2">
                       <h3 className="text-lg font-semibold text-gray-900">Window Types</h3>
-                      <button type="button" onClick={() => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, windowTypes: [...s.windowTypes, { name: '', price: 0 }] } : s) }))} className="flex items-center px-4 py-2 rounded bg-primary-600 hover:bg-primary-700 text-black text-sm font-bold shadow-sm transition ml-2">
+                      <button type="button" onClick={() => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, windowTypes: [...(s.windowTypes || []), { name: '', price: 0 }] } : s) }))} className="flex items-center px-4 py-2 rounded bg-primary-600 hover:bg-primary-700 text-black text-sm font-bold shadow-sm transition ml-2">
                         <PlusIcon className="h-4 w-4 mr-1" /> Add Window Type
                       </button>
                     </div>
@@ -657,7 +664,7 @@ export default function ConfigForm({ initialConfig, companyId, onSave, onChange,
                         </tr>
                       </thead>
                       <tbody>
-                        {service.windowTypes.map((type, wIdx) => (
+                        {(service.windowTypes || []).map((type, wIdx) => (
                           <tr key={wIdx}>
                             <td className="border px-3 py-2 text-left align-middle"><input value={type.name} onChange={e => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, windowTypes: s.windowTypes.map((t, i) => i === wIdx ? { ...t, name: e.target.value } : t) } : s) }))} className="w-32 border rounded" /></td>
                             <td className="border px-3 py-2 text-left align-middle"><input type="number" value={type.price} onChange={e => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, windowTypes: s.windowTypes.map((t, i) => i === wIdx ? { ...t, price: Number(e.target.value) } : t) } : s) }))} className="w-20 border rounded" /></td>
@@ -811,7 +818,7 @@ export default function ConfigForm({ initialConfig, companyId, onSave, onChange,
                   <div className="rounded-lg bg-gray-50 p-4 mb-4 border border-gray-200">
                     <div className="flex items-center justify-between mb-2">
                       <h3 className="text-lg font-semibold text-gray-900">Room Types</h3>
-                      <button type="button" onClick={() => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, perRoomRates: [...s.perRoomRates, { type: '', price: 0 }] } : s) }))} className="flex items-center px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 text-red-500 text-sm font-bold shadow-sm transition ml-2">
+                      <button type="button" onClick={() => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, perRoomRates: [...(s.perRoomRates || []), { type: '', price: 0 }] } : s) }))} className="flex items-center px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 text-red-500 text-sm font-bold shadow-sm transition ml-2">
                         <PlusIcon className="h-4 w-4 mr-1" /> Add Room Type
                       </button>
                     </div>
@@ -824,7 +831,7 @@ export default function ConfigForm({ initialConfig, companyId, onSave, onChange,
                         </tr>
                       </thead>
                       <tbody>
-                        {service.perRoomRates.map((type, rIdx) => (
+                        {(service.perRoomRates || []).map((type, rIdx) => (
                           <tr key={rIdx}>
                             <td className="border px-3 py-2 text-left align-middle"><input value={type.type} onChange={e => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, perRoomRates: s.perRoomRates.map((r, i) => i === rIdx ? { ...r, type: e.target.value } : r) } : s) }))} className="w-32 border rounded" /></td>
                             <td className="border px-3 py-2 text-left align-middle"><input type="number" value={type.price} onChange={e => setConfig(prev => ({ ...prev, services: prev.services.map(s => s.id === service.id ? { ...s, perRoomRates: s.perRoomRates.map((r, i) => i === rIdx ? { ...r, price: Number(e.target.value) } : r) } : s) }))} className="w-20 border rounded" /></td>

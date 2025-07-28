@@ -19,6 +19,17 @@ import {
   Tag
 } from 'lucide-react';
 import { useQuery, useMutation, gql } from '@apollo/client';
+import { 
+  GET_CUSTOMERS, 
+  GET_LEADS, 
+  GET_LEAD, 
+  CREATE_CUSTOMER, 
+  UPDATE_CUSTOMER, 
+  DELETE_CUSTOMER, 
+  CREATE_LEAD, 
+  UPDATE_LEAD, 
+  DELETE_LEAD 
+} from './graphql';
 import toast from 'react-hot-toast';
 
 // GraphQL Queries
@@ -45,6 +56,44 @@ const GET_CUSTOMERS = gql`
       secondaryEmail
       companySize
       branchCount
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+const GET_LEADS = gql`
+  query GetLeads($companyId: ID!, $filter: LeadFilter) {
+    leads(companyId: $companyId, filter: $filter) {
+      id
+      title
+      status
+      priority
+      value
+      currency
+      expectedCloseDate
+      assignedTo
+      source
+      createdAt
+    }
+  }
+`;
+
+const GET_LEAD = gql`
+  query GetLead($id: ID!) {
+    lead(id: $id) {
+      id
+      title
+      description
+      status
+      priority
+      value
+      currency
+      expectedCloseDate
+      assignedTo
+      source
+      areaTag
+      notes
       createdAt
       updatedAt
     }
@@ -92,6 +141,32 @@ const DELETE_CUSTOMER = gql`
     deleteCustomer(id: $id) {
       id
     }
+  }
+`;
+
+const CREATE_LEAD = gql`
+  mutation CreateLead($input: CreateLeadInput!) {
+    createLead(input: $input) {
+      id
+      title
+      status
+    }
+  }
+`;
+
+const UPDATE_LEAD = gql`
+  mutation UpdateLead($id: ID!, $input: UpdateLeadInput!) {
+    updateLead(id: $id, input: $input) {
+      id
+      title
+      status
+    }
+  }
+`;
+
+const DELETE_LEAD = gql`
+  mutation DeleteLead($id: ID!) {
+    deleteLead(id: $id)
   }
 `;
 
@@ -195,7 +270,7 @@ const CRMDashboard = () => {
           <div className="flex items-center">
             <div className="p-2 bg-yellow-100 rounded-lg">
               <svg className="h-6 w-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
             </div>
             <div className="ml-4">
@@ -1180,4 +1255,4 @@ const DataConnectCRM = () => {
   );
 };
 
-export default DataConnectCRM; 
+export default DataConnectCRM;

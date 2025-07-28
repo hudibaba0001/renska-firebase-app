@@ -44,7 +44,7 @@ service cloud.firestore {
     // Users can only read/write their own profile (if not deleted), super admins can manage all user profiles.
     match /users/{userId} {
       allow read: if isOwner(userId) && isNotDeleted() || isSuperAdmin();
-      allow create: if isSignedIn(); // Allow any signed-in user to create their own user document
+      allow create: if isSignedIn() && isOwner(userId); // Allow signed-in user to create their own user document
       allow update: if isOwner(userId) && isNotDeleted() || isSuperAdmin(); // Owner or super admin can update
       // Soft-delete is handled by setting 'deleted: true' in app logic
       allow delete: if false; // Disallow direct hard deletes via client for safety
@@ -61,8 +61,10 @@ service cloud.firestore {
 
     // --- /companies/{companyId} Collection (Tenants) ---
     match /companies/{companyId} {
-      // TEMPORARY: Allow any signed-in user to create companies (for signup)
-      allow create: if isSignedIn();
+      // Allow signed-in users to create companies during signup
+      // The user must be the adminUid specified in the company document
+      allow create: if isSignedIn() && 
+                       request.resource.data.adminUid == request.auth.uid;
 
       // Company admins can read their own company's data if not deleted. Super admins can read all.
       // Also allow public read access if company has isPublic flag set to true

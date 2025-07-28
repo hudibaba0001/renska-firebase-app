@@ -468,6 +468,15 @@ export const updateService = async (companyId, serviceId, serviceData) => {
       price: serviceData.price,
       duration: serviceData.duration,
       RUTEligible: serviceData.RUTEligible,
+      pricingModel: serviceData.pricingModel,
+      tiers: serviceData.tiers,
+      addOns: serviceData.addOns,
+      customFees: serviceData.customFees,
+      perRoomRates: serviceData.perRoomRates,
+      windowTypes: serviceData.windowTypes,
+      frequencyMultipliers: serviceData.frequencyMultipliers,
+      zipAreas: serviceData.zipAreas,
+      description: sanitizeHtml(serviceData.description || ''),
       // Include other service-specific fields here, ensuring sanitization for strings
     }, false);
 
@@ -477,6 +486,10 @@ export const updateService = async (companyId, serviceId, serviceData) => {
 
     const serviceDocRef = doc(db, 'companies', companyId, 'services', serviceId);
     await updateDoc(serviceDocRef, sanitizedData);
+
+    // Clear the services cache to force a fresh fetch
+    console.log('🧹 Clearing services cache after update');
+    serviceCache.clear();
 
     return true;
   } catch (error) {
@@ -536,7 +549,6 @@ export const getAllServicesForCompany = async (companyId, options = {}) => {
     // Get all services first, then filter in memory to handle services without 'deleted' field
     let q = query(
       servicesRef,
-      orderBy('createdAt', 'desc'),
       limit(options.limit || 50)
     );
 
@@ -552,11 +564,21 @@ export const getAllServicesForCompany = async (companyId, options = {}) => {
     
     // Filter out soft-deleted services (including those without 'deleted' field)
     const services = allServices.filter(service => service.deleted !== true);
+    
+    // Sort services by createdAt if available, otherwise by updatedAt, otherwise by id
+    services.sort((a, b) => {
+      const aTime = a.createdAt?.toDate?.() || a.updatedAt?.toDate?.() || new Date(0);
+      const bTime = b.createdAt?.toDate?.() || b.updatedAt?.toDate?.() || new Date(0);
+      return bTime - aTime; // Descending order (newest first)
+    });
 
     const result = { services, lastDoc: snapshot.docs[snapshot.docs.length - 1] || null };
     
     // Cache the result
     setCacheWithExpiry(serviceCache, cacheKey, result);
+    
+    // Clear cache to force fresh fetch for old services
+    serviceCache.clear();
 
     console.log(`✅ Fetched ${services.length} services for company ${companyId}`);
     return result;

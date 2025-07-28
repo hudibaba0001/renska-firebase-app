@@ -1,11 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../../firebase/init';
+import { useMutation, useQuery } from '@apollo/client';
+import { GET_LEAD, UPDATE_LEAD } from '../DataConnectCRM';
+import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Save } from 'lucide-react';
 
 const LeadEdit = () => {
-  const [lead, setLead] = useState({
+  const { companyId, leadId } = useParams();
+  const navigate = useNavigate();
+  const [updateLead] = useMutation(UPDATE_LEAD);
+  const { loading, error, data } = useQuery(GET_LEAD, {
+    variables: { id: leadId },
+  });
+
+  const [formData, setFormData] = useState({
     name: '',
     email: '',
     phone: '',
@@ -14,64 +21,15 @@ const LeadEdit = () => {
     value: '',
     notes: ''
   });
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const { id, companyId } = useParams();
-  const navigate = useNavigate();
 
   useEffect(() => {
-    loadLead();
-  }, [id]);
-
-  const loadLead = async () => {
-    try {
-      const docRef = doc(db, `companies/${companyId}/leads`, id);
-      const docSnap = await getDoc(docRef);
-      
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        setLead({ 
-          ...data,
-          value: data.value ? data.value.toString() : ''
-        });
-      } else {
-        console.log('No such lead!');
-        navigate('leads');
-      }
-    } catch (error) {
-      console.error('Error loading lead:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSaving(true);
-
-    try {
-      const docRef = doc(db, `companies/${companyId}/leads`, id);
-      await updateDoc(docRef, {
-        ...lead,
-        value: parseFloat(lead.value) || 0,
-        updatedAt: serverTimestamp()
+    if (data && data.lead) {
+      setFormData({ 
+        ...data.lead,
+        value: data.lead.value ? data.lead.value.toString() : ''
       });
-      
-      navigate(`leads/${id}`);
-    } catch (error) {
-      console.error('Error updating lead:', error);
-    } finally {
-      setSaving(false);
     }
-  };
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setLead(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
+  }, [data]);
 
   if (loading) {
     return (
@@ -84,13 +42,40 @@ const LeadEdit = () => {
     );
   }
 
+  if (error) return <p>Error: {error.message}</p>;
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await updateLead({
+        variables: {
+          id: leadId,
+          input: {
+            ...formData,
+            value: parseFloat(formData.value) || 0,
+            updatedAt: new Date().toISOString()
+          }
+        }
+      });
+      
+      navigate(`leads/${leadId}`);
+    } catch (error) {
+      console.error('Error updating lead:', error);
+    }
+  };
+
   return (
     <div className="p-6">
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center space-x-4">
           <button
-            onClick={() => navigate(`leads/${id}`)}
+            onClick={() => navigate(`leads/${leadId}`)}
             className="flex items-center space-x-2 text-gray-600 hover:text-gray-900"
           >
             <ArrowLeft className="w-5 h-5" />
@@ -115,7 +100,7 @@ const LeadEdit = () => {
                 <input
                   type="text"
                   name="name"
-                  value={lead.name}
+                  value={formData.name}
                   onChange={handleChange}
                   required
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -129,7 +114,7 @@ const LeadEdit = () => {
                 <input
                   type="email"
                   name="email"
-                  value={lead.email}
+                  value={formData.email}
                   onChange={handleChange}
                   required
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -143,7 +128,7 @@ const LeadEdit = () => {
                 <input
                   type="tel"
                   name="phone"
-                  value={lead.phone}
+                  value={formData.phone}
                   onChange={handleChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
@@ -156,7 +141,7 @@ const LeadEdit = () => {
                 <input
                   type="text"
                   name="company"
-                  value={lead.company}
+                  value={formData.company}
                   onChange={handleChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
@@ -173,7 +158,7 @@ const LeadEdit = () => {
                 </label>
                 <select
                   name="status"
-                  value={lead.status}
+                  value={formData.status}
                   onChange={handleChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
@@ -194,7 +179,7 @@ const LeadEdit = () => {
                 <input
                   type="number"
                   name="value"
-                  value={lead.value}
+                  value={formData.value}
                   onChange={handleChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Enter potential value"
@@ -207,7 +192,7 @@ const LeadEdit = () => {
                 </label>
                 <textarea
                   name="notes"
-                  value={lead.notes}
+                  value={formData.notes}
                   onChange={handleChange}
                   rows="4"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -221,18 +206,17 @@ const LeadEdit = () => {
           <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
             <button
               type="button"
-              onClick={() => navigate(`leads/${id}`)}
+              onClick={() => navigate(`leads/${leadId}`)}
               className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
-              disabled={saving}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2 disabled:opacity-50"
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
             >
               <Save className="w-4 h-4" />
-              <span>{saving ? 'Saving...' : 'Save Changes'}</span>
+              <span>Save Changes</span>
             </button>
           </div>
         </form>

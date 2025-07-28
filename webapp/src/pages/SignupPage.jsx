@@ -4,6 +4,7 @@ import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, writeBatch, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../firebase/init';
 import { nanoid } from 'nanoid';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 
 export default function SignupPage() {
   const [companyName, setCompanyName] = useState('');
@@ -117,6 +118,23 @@ export default function SignupPage() {
 
       try {
         await batch.commit();
+        
+        // Set user claims to make them admin of the company
+        const functions = getFunctions();
+        const setUserClaims = httpsCallable(functions, 'setUserClaims');
+        
+        try {
+          await setUserClaims({
+            userId: user.uid,
+            role: 'companyAdmin',
+            companyId: companyId
+          });
+          console.log('✅ User claims set successfully');
+        } catch (claimsError) {
+          console.warn('⚠️ Failed to set user claims:', claimsError);
+          // Don't fail the signup if claims setting fails - user can still access via direct Firestore
+        }
+        
         setSuccess('Account created! Redirecting to payment setup...');
         // Redirect to payment page with company ID and plan information
         setTimeout(() => navigate(`/payment?companyId=${companyId}&plan=${selectedPlan || 'starter'}`), 1500);

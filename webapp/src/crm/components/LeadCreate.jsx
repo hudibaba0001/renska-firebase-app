@@ -1,51 +1,46 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../../firebase/init';
-import { useParams } from 'react-router-dom';
+import { useMutation } from '@apollo/client';
+import { CREATE_LEAD } from '../DataConnectCRM';
+import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Save } from 'lucide-react';
 
 const LeadCreate = () => {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    company: '',
-    status: 'new',
-    source: 'website',
-    priority: 'medium',
-    notes: ''
-  });
-  const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
   const { companyId } = useParams();
+  const navigate = useNavigate();
+  const [createLead] = useMutation(CREATE_LEAD);
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    status: 'new',
+    priority: 'medium',
+    value: '',
+    currency: 'SEK',
+    expectedCloseDate: '',
+    source: '',
+    notes: '',
+  });
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-
     try {
-      const leadData = {
-        ...formData,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      };
-
-      await addDoc(collection(db, `companies/${companyId}/leads`), leadData);
-      navigate('leads');
+      const { data } = await createLead({
+        variables: {
+          input: {
+            companyId,
+            ...formData,
+            value: parseFloat(formData.value),
+          },
+        },
+      });
+      navigate(`/admin/${companyId}/leads/${data.createLead.id}`);
     } catch (error) {
       console.error('Error creating lead:', error);
       alert('Error creating lead. Please try again.');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -67,13 +62,14 @@ const LeadCreate = () => {
         <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow p-6 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Full Name *
+              <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
+                Title *
               </label>
               <input
                 type="text"
-                name="name"
-                value={formData.name}
+                id="title"
+                name="title"
+                value={formData.title}
                 onChange={handleChange}
                 required
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -81,50 +77,24 @@ const LeadCreate = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email *
+              <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+                Description
               </label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Phone Number
-              </label>
-              <input
-                type="tel"
-                name="phone"
-                value={formData.phone}
+              <textarea
+                id="description"
+                name="description"
+                value={formData.description}
                 onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Company
-              </label>
-              <input
-                type="text"
-                name="company"
-                value={formData.company}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-2">
                 Status
               </label>
               <select
+                id="status"
                 name="status"
                 value={formData.status}
                 onChange={handleChange}
@@ -140,28 +110,11 @@ const LeadCreate = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Source
-              </label>
-              <select
-                name="source"
-                value={formData.source}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="website">Website</option>
-                <option value="referral">Referral</option>
-                <option value="social">Social Media</option>
-                <option value="advertising">Advertising</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="priority" className="block text-sm font-medium text-gray-700 mb-2">
                 Priority
               </label>
               <select
+                id="priority"
                 name="priority"
                 value={formData.priority}
                 onChange={handleChange}
@@ -170,21 +123,79 @@ const LeadCreate = () => {
                 <option value="low">Low</option>
                 <option value="medium">Medium</option>
                 <option value="high">High</option>
+                <option value="urgent">Urgent</option>
               </select>
             </div>
-          </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Notes
-            </label>
-            <textarea
-              name="notes"
-              value={formData.notes}
-              onChange={handleChange}
-              rows={4}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            <div>
+              <label htmlFor="value" className="block text-sm font-medium text-gray-700 mb-2">
+                Value
+              </label>
+              <input
+                type="number"
+                id="value"
+                name="value"
+                value={formData.value}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="currency" className="block text-sm font-medium text-gray-700 mb-2">
+                Currency
+              </label>
+              <input
+                type="text"
+                id="currency"
+                name="currency"
+                value={formData.currency}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="expectedCloseDate" className="block text-sm font-medium text-gray-700 mb-2">
+                Expected Close Date
+              </label>
+              <input
+                type="date"
+                id="expectedCloseDate"
+                name="expectedCloseDate"
+                value={formData.expectedCloseDate}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="source" className="block text-sm font-medium text-gray-700 mb-2">
+                Source
+              </label>
+              <input
+                type="text"
+                id="source"
+                name="source"
+                value={formData.source}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-2">
+                Notes
+              </label>
+              <textarea
+                id="notes"
+                name="notes"
+                value={formData.notes}
+                onChange={handleChange}
+                rows={4}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
           </div>
 
           <div className="flex justify-end space-x-4">
@@ -197,11 +208,10 @@ const LeadCreate = () => {
             </button>
             <button
               type="submit"
-              disabled={loading}
-              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 flex items-center space-x-2"
+              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center space-x-2"
             >
               <Save className="w-4 h-4" />
-              <span>{loading ? 'Saving...' : 'Save Lead'}</span>
+              <span>Create Lead</span>
             </button>
           </div>
         </form>
