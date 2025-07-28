@@ -91,7 +91,8 @@ service cloud.firestore {
       // For creation, consent is required.
       allow create: if (isCompanyAdmin(companyId) || isSuperAdmin()) && 
                        request.resource.data.get('consent', false) == true;
-      allow update: if (isCompanyAdmin(companyId) || isSuperAdmin()) && isNotDeleted();
+      // Allow updates for company admins and super admins (including soft-deletes)
+      allow update: if (isCompanyAdmin(companyId) || isSuperAdmin());
       allow delete: if false; // Disallow direct hard deletes via client (use soft-delete)
     }
 

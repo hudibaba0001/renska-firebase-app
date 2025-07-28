@@ -180,13 +180,15 @@ export default function ConfigForm({ initialConfig, companyId, onSave, onChange,
       return;
     }
     try {
+      console.log('🗑️ Attempting to delete service:', serviceId);
       await deleteServiceFromFirestore(companyId, serviceId);
       if (typeof refreshServices === 'function') {
         await refreshServices();
       }
-      toast.success('Service deleted');
-    } catch {
-      toast.error('Failed to delete service');
+      toast.success('Service deleted successfully');
+    } catch (error) {
+      console.error('❌ Error deleting service:', error);
+      toast.error(`Failed to delete service: ${error.message || 'Unknown error'}`);
     }
   };
 
@@ -560,7 +562,7 @@ export default function ConfigForm({ initialConfig, companyId, onSave, onChange,
                     </div>
                     
                     <div className="space-y-3">
-                        {service.tiers.map((tier, tIdx) => (
+                        {(service.tiers || []).map((tier, tIdx) => (
                         <div key={tIdx} className="bg-white rounded-lg p-4 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
                           <div className="flex items-center justify-between">
                             <div className="flex-grow grid grid-cols-3 gap-4">
@@ -605,7 +607,7 @@ export default function ConfigForm({ initialConfig, companyId, onSave, onChange,
                         </div>
                       ))}
                       
-                      {service.tiers.length === 0 && (
+                      {(service.tiers || []).length === 0 && (
                         <div className="bg-white rounded-lg p-6 border border-dashed border-gray-300 text-center">
                           <div className="text-gray-400 mb-2">
                             <MapIcon className="h-8 w-8 mx-auto mb-2" />

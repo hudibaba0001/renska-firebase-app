@@ -121,11 +121,11 @@ const rateLimit = (userId) => {
   const now = Date.now();
   // This Map should persist for the session, e.g., defined outside this function in module scope
   rateLimit.limits = rateLimit.limits || new Map();
-  const userLimit = rateLimit.limits.get(userId) || { tokens: 10, lastReset: now };
+  const userLimit = rateLimit.limits.get(userId) || { tokens: 50, lastReset: now };
 
   // Reset tokens every 60 seconds (1 minute)
   if (now - userLimit.lastReset > 60000) {
-    userLimit.tokens = 10;
+    userLimit.tokens = 50;
     userLimit.lastReset = now;
   }
 
@@ -491,6 +491,8 @@ export const deleteService = async (companyId, serviceId, userId = null) => {
     await checkAuthAndRole(companyId, 'adminOf'); // Only admins of this company can soft-delete services
     rateLimit(getAuth().currentUser.uid); // Apply client-side rate limit
 
+    console.log(`🗑️ Soft-deleting service ${serviceId} for company ${companyId}`);
+
     const serviceDocRef = doc(db, 'companies', companyId, 'services', serviceId);
     await updateDoc(serviceDocRef, {
       deleted: true,
@@ -499,8 +501,14 @@ export const deleteService = async (companyId, serviceId, userId = null) => {
       updatedAt: serverTimestamp()
     });
 
+    // Clear the services cache to force a fresh fetch
+    console.log('🧹 Clearing services cache after deletion');
+    serviceCache.clear();
+
+    console.log(`✅ Service ${serviceId} soft-deleted successfully`);
     return true;
   } catch (error) {
+    console.error(`❌ Error deleting service ${serviceId}:`, error);
     logError('deleteService', error, { companyId, serviceId, userId });
     throw error;
   }
@@ -525,9 +533,9 @@ export const getAllServicesForCompany = async (companyId, options = {}) => {
     const servicesRef = collection(db, 'companies', companyId, 'services');
     console.log('📄 Attempting to fetch services from:', `companies/${companyId}/services`);
     
+    // Get all services first, then filter in memory to handle services without 'deleted' field
     let q = query(
       servicesRef,
-      where('deleted', '==', false), // Filter out soft-deleted services
       orderBy('createdAt', 'desc'),
       limit(options.limit || 50)
     );
@@ -537,10 +545,13 @@ export const getAllServicesForCompany = async (companyId, options = {}) => {
     }
 
     const snapshot = await getDocs(q);
-    const services = snapshot.docs.map(doc => {
+    const allServices = snapshot.docs.map(doc => {
       // Return full data from Firestore document. Security rules will minimize read costs.
       return { id: doc.id, ...doc.data() };
     });
+    
+    // Filter out soft-deleted services (including those without 'deleted' field)
+    const services = allServices.filter(service => service.deleted !== true);
 
     const result = { services, lastDoc: snapshot.docs[snapshot.docs.length - 1] || null };
     
