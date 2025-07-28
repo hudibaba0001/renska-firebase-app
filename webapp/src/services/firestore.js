@@ -387,7 +387,7 @@ export const getTenant = async (tenantId) => {
     console.log('📄 Document exists:', tenantSnap.exists());
 
     // Client-side filtering of soft-deleted documents (Security Rules should also enforce this)
-    if (tenantSnap.exists() && tenantSnap.data().deleted === false) { 
+    if (tenantSnap.exists() && tenantSnap.data().deleted !== true) { 
       const data = tenantSnap.data();
       console.log('✅ Company found and not soft-deleted:', { name: data.name, deleted: data.deleted });
       // Return full data from Firestore document. Security rules will minimize read costs.
@@ -428,6 +428,7 @@ export const createService = async (companyId, serviceData) => {
       price: serviceData.price,
       duration: serviceData.duration || 0,
       RUTEligible: !!serviceData.RUTEligible,
+      consent: true, // Required by Firestore security rules
       // 'deleted: false' is added by addTimestamps helper for new documents
       // Include other service-specific fields here, ensuring sanitization for strings
     }, true);
