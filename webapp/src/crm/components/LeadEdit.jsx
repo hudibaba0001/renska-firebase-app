@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useMutation, useQuery } from '@apollo/client';
-import { GET_LEAD, UPDATE_LEAD } from '../DataConnectCRM';
+import { GET_LEAD, UPDATE_LEAD } from '../graphql';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Save } from 'lucide-react';
 

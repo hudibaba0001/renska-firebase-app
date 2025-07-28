@@ -53,7 +53,7 @@ const LeadList = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Leads</h1>
         <button
-          onClick={() => navigate(`/admin/${companyId}/leads/create`)}
+          onClick={() => navigate(`/admin/${companyId}/crm-data/leads/create`)}
           className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
         >
           <Plus className="w-5 h-5" />
@@ -65,7 +65,7 @@ const LeadList = () => {
         <div className="text-center py-12">
           <p className="text-gray-500 mb-4">No leads found</p>
           <button
-            onClick={() => navigate(`/admin/${companyId}/leads/create`)}
+            onClick={() => navigate(`/admin/${companyId}/crm-data/leads/create`)}
             className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
           >
             Add Your First Lead

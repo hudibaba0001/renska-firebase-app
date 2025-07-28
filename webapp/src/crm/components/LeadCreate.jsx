@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
+import { CREATE_LEAD } from '../graphql';
 import { useMutation } from '@apollo/client';
-import { CREATE_LEAD } from '../DataConnectCRM';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Save } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 const LeadCreate = () => {
   const { companyId } = useParams();

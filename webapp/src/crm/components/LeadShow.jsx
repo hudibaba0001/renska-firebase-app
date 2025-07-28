@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@apollo/client';
-import { GET_LEAD } from '../DataConnectCRM';
+import { GET_LEAD } from '../graphql';
 import { format } from 'date-fns';
 import { ArrowLeft, Edit, Trash2 } from 'lucide-react';
 
