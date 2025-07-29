@@ -24,7 +24,6 @@ import toast from 'react-hot-toast';
 
 // Import existing CRM components
 import TaskList from './components/TaskList';
-import DealList from './components/DealList';
 
 // Import new modular Customer components
 import { 
@@ -41,6 +40,14 @@ import {
   LeadEdit, 
   LeadShow 
 } from './modules/leads';
+
+// Import new modular Deal components
+import { 
+  DealList, 
+  DealCreate, 
+  DealEdit, 
+  DealShow 
+} from './modules/deals';
 
 
 // Dashboard Component
@@ -409,174 +416,7 @@ const TaskCreateForm = ({ companyId }) => {
   );
 };
 
-// Deal Create Form Component
-const DealCreateForm = ({ companyId }) => {
-  const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    name: '',
-    customer: '',
-    value: '',
-    stage: 'prospecting',
-    expectedCloseDate: '',
-    description: '',
-  });
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    try {
-      await addDoc(collection(db, `companies/${companyId}/deals`), {
-        ...formData,
-        value: parseFloat(formData.value) || 0,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      });
-      
-      toast.success('Deal created successfully');
-      navigate(`/admin/${companyId}/crm-data/deals`);
-    } catch (error) {
-      console.error('Error creating deal:', error);
-      toast.error('Failed to create deal');
-    }
-  };
-
-  return (
-    <div className="p-6">
-      <div className="max-w-2xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Create New Deal</h1>
-          <button
-            onClick={() => navigate(`/admin/${companyId}/crm-data/deals`)}
-            className="text-gray-600 hover:text-gray-900"
-          >
-            ← Back to Deals
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow p-6">
-          <div className="grid grid-cols-1 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Deal Name *
-              </label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                placeholder="Enter deal name"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Customer
-              </label>
-              <input
-                type="text"
-                name="customer"
-                value={formData.customer}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                placeholder="Enter customer name"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Value (SEK)
-                </label>
-                <input
-                  type="number"
-                  name="value"
-                  value={formData.value}
-                  onChange={handleChange}
-                  min="0"
-                  step="0.01"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                  placeholder="Enter deal value"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Stage
-                </label>
-                <select
-                  name="stage"
-                  value={formData.stage}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                >
-                  <option value="prospecting">Prospecting</option>
-                  <option value="qualification">Qualification</option>
-                  <option value="proposal">Proposal</option>
-                  <option value="negotiation">Negotiation</option>
-                  <option value="closed-won">Closed Won</option>
-                  <option value="closed-lost">Closed Lost</option>
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Expected Close Date
-              </label>
-              <input
-                type="date"
-                name="expectedCloseDate"
-                value={formData.expectedCloseDate}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Description
-              </label>
-              <textarea
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                placeholder="Enter deal description"
-              />
-            </div>
-          </div>
-
-          <div className="flex justify-end space-x-4 mt-6">
-            <button
-              type="button"
-              onClick={() => navigate(`/admin/${companyId}/crm-data/deals`)}
-              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
-            >
-              Create Deal
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
 
 // Main CRM Component
 const DataConnectCRM = () => {
@@ -653,7 +493,9 @@ const DataConnectCRM = () => {
             <Route path="tasks" element={<TaskList companyId={companyId} />} />
             <Route path="tasks/create" element={<TaskCreateForm companyId={companyId} />} />
             <Route path="deals" element={<DealList companyId={companyId} />} />
-            <Route path="deals/create" element={<DealCreateForm companyId={companyId} />} />
+            <Route path="deals/create" element={<DealCreate companyId={companyId} />} />
+            <Route path="deals/:id" element={<DealShow companyId={companyId} />} />
+            <Route path="deals/:id/edit" element={<DealEdit companyId={companyId} />} />
           </Routes>
         </div>
       </div>
