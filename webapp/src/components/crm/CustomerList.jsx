@@ -81,7 +81,7 @@ const CustomerList = () => {
     // Simulate API call
     setTimeout(() => {
       setCustomers(mockCustomers);
-      setLoading(false);
+    setLoading(false);
     }, 1000);
   }, []);
 
