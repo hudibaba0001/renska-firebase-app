@@ -258,7 +258,7 @@ export const exportCustomers = async (companyId, format = 'csv') => {
         'RUT/ROT-berättigad': customer.rut_rot_eligible ? 'Ja' : 'Nej',
         'Leadkälla': customer.lead_source || '',
         'Bokningsfrekvens': customer.booking_frequency || '',
-        'Kundbetyg': customer.feedback_rating || '',
+        // 'Kundbetyg': customer.feedback_rating || '', // Removed rating system
         'Skapad': customer.createdAt ? new Date(customer.createdAt).toLocaleDateString('sv-SE') : '',
         'Status': customer.status || 'active'
       }));

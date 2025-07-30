@@ -18,12 +18,9 @@ import {
   Clock,
   Tag
 } from 'lucide-react';
-import { collection, getDocs, addDoc } from 'firebase/firestore';
+import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../firebase/init';
 import toast from 'react-hot-toast';
-
-// Import existing CRM components
-import TaskList from './components/TaskList';
 
 // Import new modular Customer components
 import { 
@@ -48,6 +45,14 @@ import {
   DealEdit, 
   DealShow 
 } from './modules/deals';
+
+// Import new modular Task components
+import { 
+  TaskList, 
+  TaskCreate, 
+  TaskEdit, 
+  TaskShow 
+} from './modules/tasks';
 
 
 // Dashboard Component
@@ -251,170 +256,7 @@ const CRMDashboard = () => {
   );
 };
 
-// Task Create Form Component
-const TaskCreateForm = ({ companyId }) => {
-  const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    assignedTo: '',
-    priority: 'medium',
-    status: 'pending',
-    dueDate: '',
-  });
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    try {
-      await addDoc(collection(db, `companies/${companyId}/tasks`), {
-        ...formData,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      });
-      
-      toast.success('Task created successfully');
-      navigate(`/admin/${companyId}/crm-data/tasks`);
-    } catch (error) {
-      console.error('Error creating task:', error);
-      toast.error('Failed to create task');
-    }
-  };
-
-  return (
-    <div className="p-6">
-      <div className="max-w-2xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Create New Task</h1>
-          <button
-            onClick={() => navigate(`/admin/${companyId}/crm-data/tasks`)}
-            className="text-gray-600 hover:text-gray-900"
-          >
-            ← Back to Tasks
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow p-6">
-          <div className="grid grid-cols-1 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Task Title *
-              </label>
-              <input
-                type="text"
-                name="title"
-                value={formData.title}
-                onChange={handleChange}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                placeholder="Enter task title"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Description
-              </label>
-              <textarea
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                placeholder="Enter task description"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Assigned To
-              </label>
-              <input
-                type="text"
-                name="assignedTo"
-                value={formData.assignedTo}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                placeholder="Enter assignee name"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Priority
-                </label>
-                <select
-                  name="priority"
-                  value={formData.priority}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                >
-                  <option value="low">Low</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Status
-                </label>
-                <select
-                  name="status"
-                  value={formData.status}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                >
-                  <option value="pending">Pending</option>
-                  <option value="in-progress">In Progress</option>
-                  <option value="completed">Completed</option>
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Due Date
-              </label>
-              <input
-                type="date"
-                name="dueDate"
-                value={formData.dueDate}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-              />
-            </div>
-          </div>
-
-          <div className="flex justify-end space-x-4 mt-6">
-            <button
-              type="button"
-              onClick={() => navigate(`/admin/${companyId}/crm-data/tasks`)}
-              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors"
-            >
-              Create Task
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
 
 
 
@@ -491,7 +333,9 @@ const DataConnectCRM = () => {
             <Route path="leads/:id" element={<LeadShow companyId={companyId} />} />
             <Route path="leads/:id/edit" element={<LeadEdit companyId={companyId} />} />
             <Route path="tasks" element={<TaskList companyId={companyId} />} />
-            <Route path="tasks/create" element={<TaskCreateForm companyId={companyId} />} />
+            <Route path="tasks/create" element={<TaskCreate companyId={companyId} />} />
+            <Route path="tasks/:id" element={<TaskShow companyId={companyId} />} />
+            <Route path="tasks/:id/edit" element={<TaskEdit companyId={companyId} />} />
             <Route path="deals" element={<DealList companyId={companyId} />} />
             <Route path="deals/create" element={<DealCreate companyId={companyId} />} />
             <Route path="deals/:id" element={<DealShow companyId={companyId} />} />

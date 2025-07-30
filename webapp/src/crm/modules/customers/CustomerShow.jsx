@@ -259,24 +259,7 @@ const CustomerShow = () => {
                     </div>
                   )}
 
-                  {customer.feedback_rating && (
-                    <div>
-                      <p className="text-sm text-gray-500">Kundbetyg</p>
-                      <div className="flex items-center">
-                        {[1, 2, 3, 4, 5].map(star => (
-                          <Star
-                            key={star}
-                            className={`w-5 h-5 ${
-                              star <= customer.feedback_rating
-                                ? 'text-yellow-400 fill-current'
-                                : 'text-gray-300'
-                            }`}
-                          />
-                        ))}
-                        <span className="ml-2 text-gray-900">{customer.feedback_rating}/5</span>
-                      </div>
-                    </div>
-                  )}
+                  {/* Rating section removed - replaced with flexible tags */}
 
                   {customer.customer_tags && customer.customer_tags.length > 0 && (
                     <div>

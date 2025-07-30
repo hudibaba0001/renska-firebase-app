@@ -2,23 +2,11 @@ import React from 'react';
 import { useParams, useNavigate, Routes, Route } from 'react-router-dom';
 import { ArrowLeft, Users, Target, Briefcase, CheckSquare, BarChart3, Settings } from 'lucide-react';
 
-// Import CRM components
-import CustomerList from './components/CustomerList';
-import CustomerEdit from './components/CustomerEdit';
-import CustomerShow from './components/CustomerShow';
-import CustomerCreate from './components/CustomerCreate';
-import LeadList from './components/LeadList';
-import LeadCreate from './components/LeadCreate';
-import LeadEdit from './components/LeadEdit';
-import LeadShow from './components/LeadShow';
-import DealList from './components/DealList';
-import DealCreate from './components/DealCreate';
-import DealEdit from './components/DealEdit';
-import DealShow from './components/DealShow';
-import TaskList from './components/TaskList';
-import TaskCreate from './components/TaskCreate';
-import TaskEdit from './components/TaskEdit';
-import TaskShow from './components/TaskShow';
+// Import CRM components from modular structure
+import { CustomerList, CustomerCreate, CustomerEdit, CustomerShow } from './modules/customers';
+import { LeadList, LeadCreate, LeadEdit, LeadShow } from './modules/leads';
+import { DealList, DealCreate, DealEdit, DealShow } from './modules/deals';
+import { TaskList, TaskCreate, TaskEdit, TaskShow } from './modules/tasks';
 import CRMDashboard from './components/CRMDashboard';
 
 // Custom AppBar with back button
@@ -27,19 +15,29 @@ const CustomAppBar = () => {
   const { companyId } = useParams();
   
   return (
-    <div className="bg-blue-600 text-white px-6 py-4 shadow-md">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <button
-            onClick={() => navigate(`/admin/${companyId}`)}
-            className="flex items-center space-x-2 hover:bg-blue-700 px-3 py-2 rounded-lg transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <span>Back to Admin Dashboard</span>
-          </button>
-        </div>
-        <div className="flex items-center space-x-4">
-          <h1 className="text-xl font-semibold">SwedPrime CRM</h1>
+    <div className="bg-gradient-to-r from-slate-800 to-slate-900 text-white shadow-lg border-b border-slate-700">
+      <div className="px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={() => navigate(`/admin/${companyId}`)}
+              className="flex items-center space-x-2 hover:bg-slate-700 px-4 py-2 rounded-lg transition-all duration-200 group"
+            >
+              <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform duration-200" />
+              <span className="font-medium">Tillbaka till Admin</span>
+            </button>
+          </div>
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-xl flex items-center justify-center shadow-lg">
+                <Users className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold">SwedPrime CRM</h1>
+                <p className="text-slate-300 text-sm">Customer Relationship Management</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -58,56 +56,62 @@ const CustomSidebar = () => {
       icon: BarChart3,
       path: `/admin/${companyId}/crm`,
       relativePath: '',
-      description: 'CRM Overview'
+      description: 'CRM Översikt',
+      color: 'from-blue-500 to-indigo-500'
     },
     {
-      label: 'Customers',
+      label: 'Kunder',
       icon: Users,
       path: `/admin/${companyId}/crm/customers`,
       relativePath: 'customers',
-      description: 'Manage customers'
+      description: 'Hantera kunder',
+      color: 'from-green-500 to-emerald-500'
     },
     {
       label: 'Leads',
       icon: Target,
       path: `/admin/${companyId}/crm/leads`,
       relativePath: 'leads',
-      description: 'Track potential customers'
+      description: 'Spåra potentiella kunder',
+      color: 'from-orange-500 to-red-500'
     },
     {
-      label: 'Deals',
+      label: 'Affärer',
       icon: Briefcase,
       path: `/admin/${companyId}/crm/deals`,
       relativePath: 'deals',
-      description: 'Manage sales opportunities'
+      description: 'Hantera försäljningsmöjligheter',
+      color: 'from-purple-500 to-violet-500'
     },
     {
-      label: 'Tasks',
+      label: 'Uppgifter',
       icon: CheckSquare,
       path: `/admin/${companyId}/crm/tasks`,
       relativePath: 'tasks',
-      description: 'Track follow-ups and tasks'
+      description: 'Spåra uppföljningar och uppgifter',
+      color: 'from-indigo-500 to-blue-500'
     },
     {
-      label: 'Settings',
+      label: 'Inställningar',
       icon: Settings,
       path: `/admin/${companyId}/crm/settings`,
       relativePath: 'settings',
-      description: 'CRM configuration'
+      description: 'CRM-konfiguration',
+      color: 'from-gray-500 to-slate-500'
     }
   ];
 
   return (
-    <div className="w-64 bg-white border-r border-gray-200 h-full">
+    <div className="w-72 bg-white border-r border-gray-200 h-full shadow-lg">
       {/* CRM Header */}
-      <div className="p-4 border-b border-gray-200">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-            <Users className="w-6 h-6 text-white" />
+      <div className="p-6 border-b border-gray-200 bg-gradient-to-br from-slate-50 to-blue-50">
+        <div className="flex items-center space-x-4">
+          <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+            <Users className="w-7 h-7 text-white" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">SwedPrime CRM</h2>
-            <p className="text-sm text-gray-500">Customer Management</p>
+            <h2 className="text-xl font-bold text-gray-900">SwedPrime CRM</h2>
+            <p className="text-sm text-gray-600">Kundhantering</p>
           </div>
         </div>
       </div>
@@ -120,18 +124,26 @@ const CustomSidebar = () => {
             <button
               key={item.path}
               onClick={() => navigate(item.relativePath)}
-              className={`w-full flex items-center space-x-3 p-3 text-left rounded-lg transition-colors group ${
+              className={`w-full flex items-center space-x-4 p-4 text-left rounded-xl transition-all duration-200 group ${
                 isActive 
-                  ? 'bg-blue-100 text-blue-700' 
-                  : 'hover:bg-gray-50 text-gray-700'
+                  ? 'bg-gradient-to-r ' + item.color + ' text-white shadow-lg transform scale-105' 
+                  : 'hover:bg-gray-50 text-gray-700 hover:shadow-md'
               }`}
             >
-              <item.icon className={`w-5 h-5 ${
-                isActive ? 'text-blue-600' : 'text-gray-500 group-hover:text-blue-600'
-              }`} />
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                isActive 
+                  ? 'bg-white bg-opacity-20' 
+                  : 'bg-gray-100 group-hover:bg-gray-200'
+              }`}>
+                <item.icon className={`w-5 h-5 ${
+                  isActive ? 'text-white' : 'text-gray-600 group-hover:text-gray-800'
+                }`} />
+              </div>
               <div className="flex-1">
-                <div className="font-medium">{item.label}</div>
-                <div className="text-sm text-gray-500">{item.description}</div>
+                <div className="font-semibold text-left">{item.label}</div>
+                <div className={`text-sm ${
+                  isActive ? 'text-white text-opacity-80' : 'text-gray-500'
+                }`}>{item.description}</div>
               </div>
             </button>
           );
@@ -139,12 +151,12 @@ const CustomSidebar = () => {
       </nav>
 
       {/* Bottom Section */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200">
-        <div className="bg-blue-50 rounded-lg p-3">
-          <h4 className="text-sm font-semibold text-gray-900 mb-1">Need Help?</h4>
-          <p className="text-xs text-gray-600 mb-2">Get support with your CRM</p>
-          <button className="w-full bg-blue-600 text-white text-xs py-2 px-3 rounded hover:bg-blue-700 transition-colors">
-            Contact Support
+      <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-blue-100">
+          <h4 className="text-sm font-semibold text-gray-900 mb-2">Behöver hjälp?</h4>
+          <p className="text-xs text-gray-600 mb-3">Få support med din CRM</p>
+          <button className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm py-2 px-3 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 font-medium shadow-sm">
+            Kontakta Support
           </button>
         </div>
       </div>
@@ -156,7 +168,7 @@ const CRMApp = () => {
   const { companyId: _companyId } = useParams();
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       {/* Sidebar */}
       <CustomSidebar />
       
@@ -166,26 +178,28 @@ const CRMApp = () => {
         <CustomAppBar />
         
         {/* Content Area */}
-        <div className="flex-1 overflow-auto">
-          <Routes>
-            <Route path="" element={<CRMDashboard />} />
-            <Route path="customers" element={<CustomerList />} />
-            <Route path="customers/create" element={<CustomerCreate />} />
-            <Route path="customers/:id/edit" element={<CustomerEdit />} />
-            <Route path="customers/:id" element={<CustomerShow />} />
-            <Route path="leads" element={<LeadList />} />
-            <Route path="leads/create" element={<LeadCreate />} />
-            <Route path="leads/:id/edit" element={<LeadEdit />} />
-            <Route path="leads/:id" element={<LeadShow />} />
-            <Route path="deals" element={<DealList />} />
-            <Route path="deals/create" element={<DealCreate />} />
-            <Route path="deals/:id/edit" element={<DealEdit />} />
-            <Route path="deals/:id" element={<DealShow />} />
-            <Route path="tasks" element={<TaskList />} />
-            <Route path="tasks/create" element={<TaskCreate />} />
-            <Route path="tasks/:id/edit" element={<TaskEdit />} />
-            <Route path="tasks/:id" element={<TaskShow />} />
-          </Routes>
+        <div className="flex-1 overflow-auto p-6">
+          <div className="max-w-7xl mx-auto">
+            <Routes>
+              <Route path="" element={<CRMDashboard />} />
+              <Route path="customers" element={<CustomerList companyId={_companyId} />} />
+              <Route path="customers/create" element={<CustomerCreate companyId={_companyId} />} />
+              <Route path="customers/:id/edit" element={<CustomerEdit companyId={_companyId} />} />
+              <Route path="customers/:id" element={<CustomerShow companyId={_companyId} />} />
+              <Route path="leads" element={<LeadList companyId={_companyId} />} />
+              <Route path="leads/create" element={<LeadCreate companyId={_companyId} />} />
+              <Route path="leads/:id/edit" element={<LeadEdit companyId={_companyId} />} />
+              <Route path="leads/:id" element={<LeadShow companyId={_companyId} />} />
+              <Route path="deals" element={<DealList companyId={_companyId} />} />
+              <Route path="deals/create" element={<DealCreate companyId={_companyId} />} />
+              <Route path="deals/:id/edit" element={<DealEdit companyId={_companyId} />} />
+              <Route path="deals/:id" element={<DealShow companyId={_companyId} />} />
+              <Route path="tasks" element={<TaskList companyId={_companyId} />} />
+              <Route path="tasks/create" element={<TaskCreate companyId={_companyId} />} />
+              <Route path="tasks/:id/edit" element={<TaskEdit companyId={_companyId} />} />
+              <Route path="tasks/:id" element={<TaskShow companyId={_companyId} />} />
+            </Routes>
+          </div>
         </div>
       </div>
     </div>
