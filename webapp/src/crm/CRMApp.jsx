@@ -178,28 +178,26 @@ const CRMApp = () => {
         <CustomAppBar />
         
         {/* Content Area */}
-        <div className="flex-1 overflow-auto p-6">
-          <div className="max-w-7xl mx-auto">
-            <Routes>
-              <Route path="" element={<CRMDashboard />} />
-              <Route path="customers" element={<CustomerList companyId={_companyId} />} />
-              <Route path="customers/create" element={<CustomerCreate companyId={_companyId} />} />
-              <Route path="customers/:id/edit" element={<CustomerEdit companyId={_companyId} />} />
-              <Route path="customers/:id" element={<CustomerShow companyId={_companyId} />} />
-              <Route path="leads" element={<LeadList companyId={_companyId} />} />
-              <Route path="leads/create" element={<LeadCreate companyId={_companyId} />} />
-              <Route path="leads/:id/edit" element={<LeadEdit companyId={_companyId} />} />
-              <Route path="leads/:id" element={<LeadShow companyId={_companyId} />} />
-              <Route path="deals" element={<DealList companyId={_companyId} />} />
-              <Route path="deals/create" element={<DealCreate companyId={_companyId} />} />
-              <Route path="deals/:id/edit" element={<DealEdit companyId={_companyId} />} />
-              <Route path="deals/:id" element={<DealShow companyId={_companyId} />} />
-              <Route path="tasks" element={<TaskList companyId={_companyId} />} />
-              <Route path="tasks/create" element={<TaskCreate companyId={_companyId} />} />
-              <Route path="tasks/:id/edit" element={<TaskEdit companyId={_companyId} />} />
-              <Route path="tasks/:id" element={<TaskShow companyId={_companyId} />} />
-            </Routes>
-          </div>
+        <div className="flex-1 overflow-auto">
+          <Routes>
+            <Route path="" element={<CRMDashboard />} />
+            <Route path="customers" element={<CustomerList companyId={_companyId} />} />
+            <Route path="customers/create" element={<CustomerCreate companyId={_companyId} />} />
+            <Route path="customers/:id/edit" element={<CustomerEdit companyId={_companyId} />} />
+            <Route path="customers/:id" element={<CustomerShow companyId={_companyId} />} />
+            <Route path="leads" element={<LeadList companyId={_companyId} />} />
+            <Route path="leads/create" element={<LeadCreate companyId={_companyId} />} />
+            <Route path="leads/:id/edit" element={<LeadEdit companyId={_companyId} />} />
+            <Route path="leads/:id" element={<LeadShow companyId={_companyId} />} />
+            <Route path="deals" element={<DealList companyId={_companyId} />} />
+            <Route path="deals/create" element={<DealCreate companyId={_companyId} />} />
+            <Route path="deals/:id/edit" element={<DealEdit companyId={_companyId} />} />
+            <Route path="deals/:id" element={<DealShow companyId={_companyId} />} />
+            <Route path="tasks" element={<TaskList companyId={_companyId} />} />
+            <Route path="tasks/create" element={<TaskCreate companyId={_companyId} />} />
+            <Route path="tasks/:id/edit" element={<TaskEdit companyId={_companyId} />} />
+            <Route path="tasks/:id" element={<TaskShow companyId={_companyId} />} />
+          </Routes>
         </div>
       </div>
     </div>
