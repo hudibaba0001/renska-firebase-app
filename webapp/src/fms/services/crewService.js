@@ -1,31 +1,105 @@
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import { 
+  collection, 
+  doc, 
+  getDoc,
+  getDocs,
+  query,
+  where,
+  orderBy,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  serverTimestamp 
+} from 'firebase/firestore';
 import { db } from '../../firebase/init';
 
-const crewCollection = (companyId) => collection(db, 'companies', companyId, 'crews');
-const crewDoc = (companyId, crewId) => doc(db, 'companies', companyId, 'crews', crewId);
-
 export const crewService = {
-  async fetchCrews(companyId) {
-    const snapshot = await getDocs(crewCollection(companyId));
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  async fetchCrews(companyId, options = {}) {
+    try {
+      const crewsRef = collection(db, `companies/${companyId}/crews`);
+      let q = query(crewsRef, orderBy('name'));
+
+      // Apply filters if provided
+      if (options.active !== undefined) {
+        q = query(q, where('active', '==', options.active));
+      }
+
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+    } catch (error) {
+      console.error('Error fetching crews:', error);
+      throw error;
+    }
   },
 
-  async createCrew(companyId, name) {
-    const docRef = await addDoc(crewCollection(companyId), { 
-      name,
-      createdAt: new Date().toISOString()
-    });
-    return { id: docRef.id, name };
+  async fetchCrew(companyId, crewId) {
+    try {
+      const crewRef = doc(db, `companies/${companyId}/crews/${crewId}`);
+      const snapshot = await getDoc(crewRef);
+      
+      if (!snapshot.exists()) {
+        return null;
+      }
+
+      return {
+        id: snapshot.id,
+        ...snapshot.data()
+      };
+    } catch (error) {
+      console.error('Error fetching crew:', error);
+      throw error;
+    }
   },
 
-  async updateCrew(companyId, crewId, name) {
-    await updateDoc(crewDoc(companyId, crewId), { 
-      name,
-      updatedAt: new Date().toISOString()
-    });
+  async createCrew(companyId, crewData) {
+    try {
+      const crewsRef = collection(db, `companies/${companyId}/crews`);
+      const docRef = await addDoc(crewsRef, {
+        ...crewData,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        active: crewData.active ?? true
+      });
+
+      return {
+        id: docRef.id,
+        ...crewData
+      };
+    } catch (error) {
+      console.error('Error creating crew:', error);
+      throw error;
+    }
+  },
+
+  async updateCrew(companyId, crewId, updates) {
+    try {
+      const crewRef = doc(db, `companies/${companyId}/crews/${crewId}`);
+      await updateDoc(crewRef, {
+        ...updates,
+        updatedAt: serverTimestamp()
+      });
+
+      return {
+        id: crewId,
+        ...updates
+      };
+    } catch (error) {
+      console.error('Error updating crew:', error);
+      throw error;
+    }
   },
 
   async deleteCrew(companyId, crewId) {
-    await deleteDoc(crewDoc(companyId, crewId));
+    try {
+      const crewRef = doc(db, `companies/${companyId}/crews/${crewId}`);
+      await deleteDoc(crewRef);
+      return true;
+    } catch (error) {
+      console.error('Error deleting crew:', error);
+      throw error;
+    }
   }
 };

@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../../firebase/init';
-import { DashboardCard } from '../ui/DashboardCard';
+import { DashboardCard } from '../../components/ui/DashboardCard';
 import toast from 'react-hot-toast';
 
-const CRMDashboard = () => {
+export default function CRMDashboard() {
   const { companyId } = useParams();
   const [stats, setStats] = useState({
     totalRevenue: 0,

@@ -1,10 +1,10 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
 import JobsDashboard from './pages/JobsDashboard';
 import JobDetail from './pages/JobDetail';
 import CrewsDashboard from './pages/CrewsDashboard';
 import ScheduleCalendar from './pages/ScheduleCalendar';
-import { useAuth } from '../hooks/useAuth';
 
 export default function FMSApp() {
   const { user, loading } = useAuth();

@@ -42,7 +42,8 @@ import {
   QuestionMarkCircleIcon,
   BanknotesIcon,
   TagIcon,
-  UsersIcon
+  UsersIcon,
+  ClockIcon
 } from '@heroicons/react/24/outline'
 import { AnimatePresence } from 'framer-motion'
 import toast, { Toaster } from 'react-hot-toast'
@@ -128,6 +129,8 @@ export default function AdminDashboardLayout() {
       items.push({ label: 'Configuration', href: `/admin/${companyId}/config` })
     } else if (pathSegments.includes('bookings')) {
       items.push({ label: 'Bookings', href: `/admin/${companyId}/bookings` })
+    } else if (pathSegments.includes('fms')) {
+      items.push({ label: 'Field Management', href: `/admin/${companyId}/fms` })
     } else if (pathSegments.includes('analytics')) {
       items.push({ label: 'Analytics', href: `/admin/${companyId}/analytics` })
     } else if (pathSegments.includes('billing')) {
@@ -147,6 +150,7 @@ export default function AdminDashboardLayout() {
     const path = location.pathname
     if (path.includes('/config')) return 'Calculator Configuration'
     if (path.includes('/bookings')) return 'Booking Management'
+    if (path.includes('/fms')) return 'Field Management System'
     if (path.includes('/analytics')) return 'Analytics & Reports'
     if (path.includes('/billing')) return 'Billing & Subscriptions'
     if (path.includes('/customers')) return 'Customer Management'
@@ -212,6 +216,13 @@ export default function AdminDashboardLayout() {
       icon: DocumentTextIcon,
       badge: '12',
       description: 'Manage customer bookings'
+    },
+    {
+      label: 'Field Management',
+      href: `/admin/${companyId}/fms`,
+      icon: ClockIcon,
+      badge: null,
+      description: 'Manage jobs and crews'
     },
     {
       label: 'Analytics',

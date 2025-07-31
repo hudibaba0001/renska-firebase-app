@@ -1,75 +1,32 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../hooks/useAuth';
+import { Card, Button, Badge, Spinner } from 'flowbite-react';
+import { 
+  ClockIcon, 
+  MapPinIcon, 
+  UserGroupIcon,
+  PhoneIcon,
+  EnvelopeIcon,
+  PencilIcon,
+  TrashIcon
+} from '@heroicons/react/24/outline';
 import { jobService } from '../services/jobService';
-import { crewService } from '../services/crewService';
-import LoadingOverlay from '../components/LoadingOverlay';
-
-function CrewAssignment({ job, onUpdate }) {
-  const { user } = useAuth();
-  const [crews, setCrews] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    loadCrews();
-  }, []);
-
-  async function loadCrews() {
-    try {
-      const fetchedCrews = await crewService.fetchCrews(user.companyId);
-      setCrews(fetchedCrews);
-    } catch (error) {
-      console.error('Error loading crews:', error);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleAssignCrew(crewId) {
-    try {
-      setSaving(true);
-      await jobService.updateJob(user.companyId, job.id, { crewId });
-      onUpdate();
-    } catch (error) {
-      console.error('Error assigning crew:', error);
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  if (loading) return <div>Loading crews...</div>;
-
-  return (
-    <div className="flex gap-4 items-center">
-      <select
-        value={job.crewId || ''}
-        onChange={(e) => handleAssignCrew(e.target.value)}
-        disabled={saving}
-        className="border rounded px-3 py-1.5"
-      >
-        <option value="">Select Crew</option>
-        {crews.map(crew => (
-          <option key={crew.id} value={crew.id}>
-            {crew.name}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
-}
 
 export default function JobDetail() {
-  const { user } = useAuth();
-  const { jobId } = useParams();
+  const { jobId, companyId } = useParams();
   const navigate = useNavigate();
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    loadJob();
+  }, [jobId, companyId]);
+
   async function loadJob() {
     try {
-      const data = await jobService.fetchJob(user.companyId, jobId);
-      setJob(data);
+      setLoading(true);
+      const jobData = await jobService.fetchJob(companyId, jobId);
+      setJob(jobData);
     } catch (error) {
       console.error('Error loading job:', error);
     } finally {
@@ -77,44 +34,155 @@ export default function JobDetail() {
     }
   }
 
-  useEffect(() => {
-    loadJob();
-  }, [jobId, user?.companyId]);
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Spinner size="xl" />
+      </div>
+    );
+  }
 
-  if (loading) return <LoadingOverlay message="Loading job details..." />;
-  if (!job) return <div>Job not found</div>;
+  if (!job) {
+    return (
+      <div className="text-center py-12">
+        <h2 className="text-2xl font-bold text-gray-900">Job not found</h2>
+        <Button onClick={() => navigate('/fms/jobs')} color="gray" className="mt-4">
+          Back to Jobs
+        </Button>
+      </div>
+    );
+  }
 
   return (
-    <div className="p-6">
-      <button onClick={() => navigate(-1)} className="mb-4 text-blue-600">← Back to Jobs</button>
-      
-      <h1 className="text-2xl font-bold mb-4">Job Details</h1>
-      
-      <div className="space-y-6">
-        {/* Basic Job Info */}
-        <div className="space-y-2">
-          <div><strong>Booking ID:</strong> {job.bookingId}</div>
-          <div><strong>Customer:</strong> {job.customerName}</div>
-          <div><strong>Status:</strong> {job.status}</div>
-          <div><strong>Scheduled For:</strong> {new Date(job.scheduledAt).toLocaleString()}</div>
-        </div>
-
-        {/* Crew Assignment Section */}
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-start">
         <div>
-          <h2 className="text-lg font-medium mb-2">Crew Assignment</h2>
-          <div className="bg-gray-50 border border-gray-200 rounded p-4">
-            <CrewAssignment job={job} onUpdate={loadJob} />
-          </div>
+          <h1 className="text-2xl font-bold text-gray-900">{job.customerName}</h1>
+          <p className="mt-1 text-sm text-gray-600">{job.serviceName}</p>
+        </div>
+        <div className="flex items-center space-x-3">
+          <Button color="gray">
+            <PencilIcon className="h-5 w-5 mr-2" />
+            Edit
+          </Button>
+          <Button color="failure">
+            <TrashIcon className="h-5 w-5 mr-2" />
+            Delete
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Main Info */}
+        <div className="lg:col-span-2 space-y-6">
+          <Card>
+            <div className="flex justify-between items-start mb-4">
+              <h2 className="text-lg font-semibold">Job Details</h2>
+              <Badge color={getStatusColor(job.status)}>{job.status}</Badge>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center">
+                <ClockIcon className="h-5 w-5 text-gray-400 mr-3" />
+                <div>
+                  <p className="text-sm font-medium text-gray-900">Scheduled For</p>
+                  <p className="text-sm text-gray-600">
+                    {new Date(job.scheduledAt).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center">
+                <MapPinIcon className="h-5 w-5 text-gray-400 mr-3" />
+                <div>
+                  <p className="text-sm font-medium text-gray-900">Location</p>
+                  <p className="text-sm text-gray-600">{job.address}</p>
+                </div>
+              </div>
+
+              {job.crewName && (
+                <div className="flex items-center">
+                  <UserGroupIcon className="h-5 w-5 text-gray-400 mr-3" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">Assigned Crew</p>
+                    <p className="text-sm text-gray-600">{job.crewName}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </Card>
+
+          <Card>
+            <h2 className="text-lg font-semibold mb-4">Service Notes</h2>
+            <p className="text-gray-600 whitespace-pre-wrap">
+              {job.notes || 'No notes provided.'}
+            </p>
+          </Card>
         </div>
 
-        {/* Notes if any */}
-        {job.notes && (
-          <div>
-            <h2 className="text-lg font-medium mb-2">Notes</h2>
-            <div className="bg-gray-50 rounded p-4">{job.notes}</div>
-          </div>
-        )}
+        {/* Customer Info Sidebar */}
+        <div className="space-y-6">
+          <Card>
+            <h2 className="text-lg font-semibold mb-4">Customer Information</h2>
+            <div className="space-y-4">
+              <div className="flex items-center">
+                <PhoneIcon className="h-5 w-5 text-gray-400 mr-3" />
+                <div>
+                  <p className="text-sm font-medium text-gray-900">Phone</p>
+                  <p className="text-sm text-gray-600">{job.contactPhone}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center">
+                <EnvelopeIcon className="h-5 w-5 text-gray-400 mr-3" />
+                <div>
+                  <p className="text-sm font-medium text-gray-900">Email</p>
+                  <p className="text-sm text-gray-600">{job.contactEmail}</p>
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          <Card>
+            <h2 className="text-lg font-semibold mb-4">Job Summary</h2>
+            <div className="space-y-3">
+              <div className="flex justify-between">
+                <span className="text-sm text-gray-600">Service Type</span>
+                <span className="text-sm font-medium">{job.serviceName}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-gray-600">Duration</span>
+                <span className="text-sm font-medium">{job.estimatedDuration}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-gray-600">Price</span>
+                <span className="text-sm font-medium">
+                  {new Intl.NumberFormat('sv-SE', {
+                    style: 'currency',
+                    currency: job.currency || 'SEK'
+                  }).format(job.price)}
+                </span>
+              </div>
+            </div>
+          </Card>
+        </div>
       </div>
     </div>
   );
+}
+
+function getStatusColor(status) {
+  switch (status?.toLowerCase()) {
+    case 'completed':
+      return 'success';
+    case 'in_progress':
+      return 'info';
+    case 'pending':
+      return 'warning';
+    case 'cancelled':
+      return 'failure';
+    default:
+      return 'gray';
+  }
 }

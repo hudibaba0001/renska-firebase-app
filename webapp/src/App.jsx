@@ -31,6 +31,7 @@ import AdminCouponsPage from './pages/AdminCouponsPage';
 import CustomersPage from './pages/CustomersPage';
 import CRMApp from './crm/CRMApp';
 import DataConnectCRM from './crm/DataConnectCRM';
+import FMSApp from './fms/FMSApp';
 import CRMPage from './pages/CRMPage';
 import BookingCalculator from './components/BookingCalculator';
 import EmbedCalculatorPage from './pages/EmbedCalculatorPage';
@@ -120,6 +121,18 @@ export default function App() {
           <Route path="payment-settings" element={<AdminPaymentSettings />} /> {/* CORRECTED ROUTE */}
           <Route path="coupons" element={<AdminCouponsPage />} />
           </Route>
+
+          {/* FMS Routes */}
+          <Route
+            path="/admin/:companyId/fms/*"
+            element={
+              <RequireAuth>
+                <RequireCompanyAccess>
+                  <FMSApp />
+                </RequireCompanyAccess>
+              </RequireAuth>
+            }
+          />
 
           {/* CRM Routes - Separate App */}
           <Route

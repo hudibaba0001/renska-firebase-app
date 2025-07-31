@@ -224,13 +224,13 @@ export default function AdminDashboardPage() {
       textColor: 'text-green-600'
     },
     {
-      title: 'Manage Bookings',
-      description: 'Review customer bookings',
-      href: `/admin/${companyId}/bookings`,
-      icon: DocumentTextIcon,
-      color: 'purple',
-      bgColor: 'bg-purple-50',
-      textColor: 'text-purple-600'
+      title: 'Field Management',
+      description: 'Manage jobs and crews',
+      href: `/admin/${companyId}/fms`,
+      icon: ClockIcon,
+      color: 'indigo',
+      bgColor: 'bg-indigo-50',
+      textColor: 'text-indigo-600'
     },
     {
       title: 'CRM',
@@ -240,6 +240,15 @@ export default function AdminDashboardPage() {
       color: 'orange',
       bgColor: 'bg-orange-50',
       textColor: 'text-orange-600'
+    },
+    {
+      title: 'Manage Bookings',
+      description: 'Review customer bookings',
+      href: `/admin/${companyId}/bookings`,
+      icon: DocumentTextIcon,
+      color: 'purple',
+      bgColor: 'bg-purple-50',
+      textColor: 'text-purple-600'
     }
   ];
 
@@ -416,6 +425,10 @@ export default function AdminDashboardPage() {
             <Button as={Link} to={`/admin/${companyId}/forms/new`} color="blue" size="sm">
               <PlusIcon className="w-4 h-4 mr-2" />
               New Calculator
+            </Button>
+            <Button as={Link} to={`/admin/${companyId}/fms`} color="indigo" size="sm">
+              <ClockIcon className="w-4 h-4 mr-2" />
+              Field Management
             </Button>
             <Button as={Link} to={`/admin/${companyId}/crm-data`} color="gray" size="sm">
               <UsersIcon className="w-4 h-4 mr-2" />

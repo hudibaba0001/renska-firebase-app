@@ -7,7 +7,7 @@ import { CustomerList, CustomerCreate, CustomerEdit, CustomerShow } from './modu
 import { LeadList, LeadCreate, LeadEdit, LeadShow } from './modules/leads';
 import { DealList, DealCreate, DealEdit, DealShow } from './modules/deals';
 import { TaskList, TaskCreate, TaskEdit, TaskShow } from './modules/tasks';
-import CRMDashboard from './components/CRMDashboard';
+import CRMDashboard from './components/CRMDashboard.jsx';
 
 // Custom AppBar with back button
 const CustomAppBar = () => {
@@ -56,7 +56,7 @@ const CustomSidebar = () => {
       icon: BarChart3,
       path: `/admin/${companyId}/crm`,
       relativePath: '',
-      description: 'CRM Översikt',
+      description: 'CRM & FMS Översikt',
       color: 'from-blue-500 to-indigo-500'
     },
     {
