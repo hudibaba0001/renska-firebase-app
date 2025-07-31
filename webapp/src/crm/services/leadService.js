@@ -312,3 +312,118 @@ export const convertLeadToCustomer = async (companyId, leadId, customerData) => 
     throw error;
   }
 };
+
+// Create lead from booking calculator submission
+export const createLeadFromBooking = async (companyId, bookingData) => {
+  try {
+    checkRateLimit();
+    
+    // Extract customer information from booking data
+    const customerInfo = bookingData.customerInfo || {};
+    const serviceInfo = bookingData.serviceInfo || {};
+    const pricingInfo = bookingData.pricingInfo || {};
+    
+    // Validate required fields
+    if (!customerInfo.name?.trim()) {
+      throw new Error('Customer name is required');
+    }
+    
+    if (!customerInfo.email?.trim()) {
+      throw new Error('Customer email is required');
+    }
+    
+    // Create lead data structure
+    const leadData = {
+      name: customerInfo.name.trim(),
+      email: customerInfo.email.trim(),
+      phone: customerInfo.phone?.trim() || '',
+      address: customerInfo.address?.trim() || '',
+      personnummer: customerInfo.personnummer?.trim() || '',
+      useRut: !!customerInfo.useRut,
+      
+      // Booking-specific information
+      source: 'booking-calculator',
+      status: 'new',
+      value: pricingInfo.finalPrice || pricingInfo.totalPrice || 0,
+      
+      // Service details
+      serviceId: serviceInfo.serviceId || '',
+      serviceName: serviceInfo.serviceName || '',
+      serviceType: serviceInfo.serviceType || '',
+      
+      // Booking configuration
+      area: bookingData.area || '',
+      rooms: bookingData.rooms || '',
+      frequency: bookingData.frequency || 'one-time',
+      zipCode: bookingData.zipCode || '',
+      
+      // Pricing breakdown
+      originalPrice: pricingInfo.originalPrice || 0,
+      finalPrice: pricingInfo.finalPrice || 0,
+      rutDiscount: pricingInfo.rutDiscount || 0,
+      customFees: pricingInfo.customFees || [],
+      addOns: bookingData.addOns || [],
+      
+      // Additional metadata
+      bookingConfig: {
+        area: bookingData.area,
+        rooms: bookingData.rooms,
+        frequency: bookingData.frequency,
+        zipCode: bookingData.zipCode,
+        windowTypes: bookingData.windowTypes || {},
+        timePreference: bookingData.timePreference || '',
+        specialInstructions: bookingData.specialInstructions || ''
+      },
+      
+      // Internal notes for sales team
+      internal_notes: `Booking calculator submission. Original price: ${pricingInfo.originalPrice}, Final price: ${pricingInfo.finalPrice}. RUT applied: ${customerInfo.useRut ? 'Yes' : 'No'}`,
+      
+      // Timestamps
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      submittedAt: new Date().toISOString()
+    };
+    
+    // Create the lead
+    const lead = await createLead(companyId, leadData);
+    
+    console.log('✅ Lead created from booking submission:', lead.id);
+    return lead;
+    
+  } catch (error) {
+    console.error('Error creating lead from booking:', error);
+    toast.error('Failed to create lead from booking submission');
+    throw error;
+  }
+};
+
+// Get leads by source (useful for filtering booking calculator leads)
+export const getLeadsBySource = async (companyId, source) => {
+  try {
+    checkRateLimit();
+    
+    const q = query(
+      collection(db, `companies/${companyId}/leads`),
+      where('source', '==', source),
+      where('deleted', '!=', true),
+      orderBy('createdAt', 'desc')
+    );
+    
+    const snapshot = await getDocs(q);
+    const leads = snapshot.docs.map(doc => ({ 
+      id: doc.id, 
+      ...doc.data() 
+    }));
+    
+    return leads;
+  } catch (error) {
+    console.error('Error fetching leads by source:', error);
+    toast.error('Failed to load leads');
+    throw error;
+  }
+};
+
+// Get booking calculator leads specifically
+export const getBookingLeads = async (companyId, options = {}) => {
+  return getLeadsBySource(companyId, 'booking-calculator');
+};

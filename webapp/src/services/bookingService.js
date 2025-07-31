@@ -1,377 +1,221 @@
-// webapp/src/services/bookingService.js
 import { 
   collection, 
   query, 
-  where, 
-  orderBy, 
   getDocs, 
-  doc, 
-  updateDoc, 
-  addDoc,
-  serverTimestamp,
+  addDoc, 
+  updateDoc,
+  doc,
+  where,
+  orderBy,
   limit,
-  startAfter
+  startAfter,
+  serverTimestamp
 } from 'firebase/firestore';
 import { db } from '../firebase/init';
 import toast from 'react-hot-toast';
 
-/**
- * Booking Service - Handles all booking-related operations
- */
-class BookingService {
-  
-  /**
-   * Get all bookings for a company with optional filtering
-   */
-  static async getBookingsForCompany(companyId, filters = {}) {
-    try {
-      const bookingsRef = collection(db, 'companies', companyId, 'bookings');
-      let q = query(
-        bookingsRef, 
-        orderBy('createdAt', 'desc')
+// Create a new booking
+export const createBooking = async (companyId, bookingData) => {
+  try {
+    const bookingToCreate = {
+      ...bookingData,
+      status: 'pending',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      deleted: false,
+      
+      // Customer information
+      customerName: bookingData.customerName,
+      customerEmail: bookingData.customerEmail,
+      customerPhone: bookingData.customerPhone,
+      customerAddress: bookingData.customerAddress,
+      
+      // Service details
+      serviceId: bookingData.serviceId,
+      serviceName: bookingData.serviceName,
+      
+      // Booking specifics
+      date: bookingData.date,
+      time: bookingData.time,
+      duration: bookingData.duration,
+      area: bookingData.area,
+      rooms: bookingData.rooms,
+      
+      // RUT details if applicable
+      useRut: bookingData.useRut || false,
+      personnummer: bookingData.personnummer,
+      
+      // Pricing
+      originalPrice: bookingData.originalPrice,
+      finalPrice: bookingData.finalPrice,
+      rutDiscount: bookingData.rutDiscount || 0,
+      
+      // Optional fields
+      addOns: bookingData.addOns || [],
+      specialInstructions: bookingData.specialInstructions,
+      frequency: bookingData.frequency || 'one-time',
+      
+      // Reference to lead if exists
+      leadId: bookingData.leadId || null
+    };
+
+    const docRef = await addDoc(
+      collection(db, `companies/${companyId}/bookings`),
+      bookingToCreate
+    );
+
+    toast.success('Booking created successfully');
+    return { id: docRef.id, ...bookingToCreate };
+  } catch (error) {
+    console.error('Error creating booking:', error);
+    toast.error('Failed to create booking');
+    throw error;
+  }
+};
+
+// Get all bookings with filtering and pagination
+export const getBookings = async (companyId, options = {}) => {
+  try {
+    const {
+      status,
+      date,
+      pageSize = 20,
+      lastDoc,
+      searchTerm,
+      sortBy = 'date',
+      sortOrder = 'desc'
+    } = options;
+
+    let q = collection(db, `companies/${companyId}/bookings`);
+
+    // Base query - exclude deleted bookings
+    q = query(q, where('deleted', '==', false));
+
+    // Apply filters
+    if (status) {
+      q = query(q, where('status', '==', status));
+    }
+    if (date) {
+      // For date filtering, assume date is a Date object for start of day
+      const endDate = new Date(date);
+      endDate.setDate(endDate.getDate() + 1);
+      q = query(q, 
+        where('date', '>=', date),
+        where('date', '<', endDate)
       );
-
-      // Apply status filter
-      if (filters.status && filters.status !== 'all') {
-        q = query(q, where('status', '==', filters.status));
-      }
-
-      // Apply date range filter
-      if (filters.startDate && filters.endDate) {
-        q = query(q, 
-          where('bookingDate', '>=', filters.startDate),
-          where('bookingDate', '<=', filters.endDate)
-        );
-      }
-
-      // Apply pagination
-      if (filters.lastDoc) {
-        q = query(q, startAfter(filters.lastDoc));
-      }
-
-      if (filters.limit) {
-        q = query(q, limit(filters.limit));
-      }
-
-      const snapshot = await getDocs(q);
-      const bookings = [];
-      
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        bookings.push({
-          id: doc.id,
-          ...data,
-          // Convert Firestore timestamps to JavaScript dates
-          createdAt: data.createdAt?.toDate(),
-          updatedAt: data.updatedAt?.toDate(),
-          bookingDate: data.bookingDate?.toDate(),
-        });
-      });
-
-      return {
-        bookings,
-        lastDoc: snapshot.docs[snapshot.docs.length - 1],
-        hasMore: snapshot.docs.length === (filters.limit || 50)
-      };
-    } catch (error) {
-      console.error('Error fetching bookings:', error);
-      toast.error('Fel vid hämtning av bokningar');
-      return { bookings: [], lastDoc: null, hasMore: false };
     }
-  }
 
-  /**
-   * Update booking status
-   */
-  static async updateBookingStatus(companyId, bookingId, newStatus, adminNote = '') {
-    try {
-      const bookingRef = doc(db, 'companies', companyId, 'bookings', bookingId);
-      
-      const updateData = {
-        status: newStatus,
-        updatedAt: serverTimestamp(),
-      };
+    // Apply sorting
+    q = query(q, orderBy(sortBy, sortOrder));
 
-      // Add status history entry
-      const statusHistoryEntry = {
-        status: newStatus,
-        timestamp: serverTimestamp(),
-        note: adminNote,
-        updatedBy: 'admin' // TODO: Replace with actual admin user ID
-      };
-
-      // If status history doesn't exist, create it
-      updateData.statusHistory = [statusHistoryEntry];
-
-      await updateDoc(bookingRef, updateData);
-      
-      toast.success(`Bokningsstatus uppdaterad till ${this.getStatusLabel(newStatus)}`);
-      return true;
-    } catch (error) {
-      console.error('Error updating booking status:', error);
-      toast.error('Fel vid uppdatering av bokningsstatus');
-      return false;
+    // Apply pagination
+    q = query(q, limit(pageSize));
+    if (lastDoc) {
+      q = query(q, startAfter(lastDoc));
     }
-  }
 
-  /**
-   * Search bookings by text (customer name, email, phone, service)
-   */
-  static async searchBookings(companyId, searchTerm) {
-    try {
-      // Note: Firestore doesn't support full-text search natively
-      // This is a simplified implementation - in production, consider using Algolia or similar
-      const bookings = await this.getBookingsForCompany(companyId);
-      
-      const filteredBookings = bookings.bookings.filter(booking => {
-        const searchLower = searchTerm.toLowerCase();
-        return (
-          booking.customerName?.toLowerCase().includes(searchLower) ||
-          booking.customerEmail?.toLowerCase().includes(searchLower) ||
-          booking.customerPhone?.includes(searchTerm) ||
-          booking.serviceName?.toLowerCase().includes(searchLower) ||
-          booking.id.toLowerCase().includes(searchLower)
-        );
-      });
+    const snapshot = await getDocs(q);
+    let bookings = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
 
-      return { bookings: filteredBookings, lastDoc: null, hasMore: false };
-    } catch (error) {
-      console.error('Error searching bookings:', error);
-      toast.error('Fel vid sökning av bokningar');
-      return { bookings: [], lastDoc: null, hasMore: false };
+    // Apply search filter client-side if needed
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      bookings = bookings.filter(booking => 
+        booking.customerName?.toLowerCase().includes(term) ||
+        booking.customerEmail?.toLowerCase().includes(term) ||
+        booking.customerPhone?.includes(term)
+      );
     }
-  }
 
-  /**
-   * Get booking statistics for dashboard
-   */
-  static async getBookingStats(companyId) {
-    try {
-      const bookings = await this.getBookingsForCompany(companyId);
-      const allBookings = bookings.bookings;
-
-      const stats = {
-        total: allBookings.length,
-        pending: allBookings.filter(b => b.status === 'pending').length,
-        confirmed: allBookings.filter(b => b.status === 'confirmed').length,
-        completed: allBookings.filter(b => b.status === 'completed').length,
-        cancelled: allBookings.filter(b => b.status === 'cancelled').length,
-        totalRevenue: allBookings
-          .filter(b => b.status === 'completed')
-          .reduce((sum, b) => sum + (b.totalAmount || 0), 0),
-        averageBookingValue: 0
-      };
-
-      if (stats.completed > 0) {
-        stats.averageBookingValue = stats.totalRevenue / stats.completed;
-      }
-
-      return stats;
-    } catch (error) {
-      console.error('Error fetching booking stats:', error);
-      return {
-        total: 0,
-        pending: 0,
-        confirmed: 0,
-        completed: 0,
-        cancelled: 0,
-        totalRevenue: 0,
-      };
-    }
-  }
-
-  /**
-   * Export bookings to CSV
-   */
-  static async exportBookingsToCSV(bookings) {
-    try {
-      const headers = [
-        'Boknings-ID',
-        'Kundnamn',
-        'E-post',
-        'Telefon',
-        'Tjänst',
-        'Bokningsdatum',
-        'Tid',
-        'Status',
-        'Belopp (kr)',
-        'Skapad',
-        'Uppdaterad'
-      ];
-
-      const csvData = bookings.map(booking => [
-        booking.id,
-        booking.customerName || '',
-        booking.customerEmail || '',
-        booking.customerPhone || '',
-        booking.serviceName || '',
-        booking.bookingDate ? new Date(booking.bookingDate).toLocaleDateString('sv-SE') : '',
-        booking.bookingTime || '',
-        this.getStatusLabel(booking.status),
-        booking.totalAmount || 0,
-        booking.createdAt ? new Date(booking.createdAt).toLocaleDateString('sv-SE') : '',
-        booking.updatedAt ? new Date(booking.updatedAt).toLocaleDateString('sv-SE') : ''
-      ]);
-
-      const csvContent = [headers, ...csvData]
-        .map(row => row.map(field => `"${field}"`).join(','))
-        .join('\n');
-
-      // Create and download file
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
-      const url = URL.createObjectURL(blob);
-      link.setAttribute('href', url);
-      link.setAttribute('download', `bokningar_${new Date().toISOString().split('T')[0]}.csv`);
-      link.style.visibility = 'hidden';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      toast.success('Bokningar exporterade till CSV');
-      return true;
-    } catch (error) {
-      console.error('Error exporting bookings:', error);
-      toast.error('Fel vid export av bokningar');
-      return false;
-    }
-  }
-
-  /**
-   * Get human-readable status label
-   */
-  static getStatusLabel(status) {
-    const statusLabels = {
-      'pending': 'Väntande',
-      'confirmed': 'Bekräftad',
-      'completed': 'Slutförd',
-      'cancelled': 'Avbokad'
+    return {
+      bookings,
+      lastDoc: snapshot.docs[snapshot.docs.length - 1] || null
     };
-    return statusLabels[status] || status;
+  } catch (error) {
+    console.error('Error fetching bookings:', error);
+    toast.error('Failed to load bookings');
+    throw error;
   }
+};
 
-  /**
-   * Get status color for UI
-   */
-  static getStatusColor(status) {
-    const statusColors = {
-      'pending': 'yellow',
-      'confirmed': 'blue',
-      'completed': 'green',
-      'cancelled': 'red'
+// Update a booking
+export const updateBooking = async (companyId, bookingId, updates) => {
+  try {
+    const bookingRef = doc(db, `companies/${companyId}/bookings`, bookingId);
+    
+    const updatedData = {
+      ...updates,
+      updatedAt: serverTimestamp()
     };
-    return statusColors[status] || 'gray';
+
+    await updateDoc(bookingRef, updatedData);
+    toast.success('Booking updated successfully');
+    
+    return true;
+  } catch (error) {
+    console.error('Error updating booking:', error);
+    toast.error('Failed to update booking');
+    throw error;
   }
+};
 
-  /**
-   * Send notification to customer (placeholder for future implementation)
-   */
-  static async sendCustomerNotification(bookingId, type, message) {
-    try {
-      // TODO: Implement email/SMS notification service
-      console.log('Sending notification:', { bookingId, type, message });
-      
-      // For now, just log the notification
-      const notificationRef = collection(db, 'notifications');
-      await addDoc(notificationRef, {
-        bookingId,
-        type,
-        message,
-        status: 'sent',
-        createdAt: serverTimestamp()
-      });
+// Soft delete a booking
+export const deleteBooking = async (companyId, bookingId) => {
+  try {
+    const bookingRef = doc(db, `companies/${companyId}/bookings`, bookingId);
+    
+    await updateDoc(bookingRef, {
+      deleted: true,
+      deletedAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
 
-      toast.success('Meddelande skickat till kund');
-      return true;
-    } catch (error) {
-      console.error('Error sending notification:', error);
-      toast.error('Fel vid skickande av meddelande');
-      return false;
-    }
+    toast.success('Booking deleted successfully');
+    return true;
+  } catch (error) {
+    console.error('Error deleting booking:', error);
+    toast.error('Failed to delete booking');
+    throw error;
   }
+};
 
-  /**
-   * Update a booking (e.g., status, notes, etc.)
-   */
-  static async updateBooking(companyId, bookingId, updates) {
-    try {
-      console.log('🔄 BookingService: Updating booking', bookingId, updates);
-      
-      const bookingRef = doc(db, 'companies', companyId, 'bookings', bookingId);
-      
-      // Add timestamp for when the update occurred
-      const updateData = {
-        ...updates,
-        updatedAt: serverTimestamp()
-      };
-      
-      await updateDoc(bookingRef, updateData);
-      
-      console.log('✅ BookingService: Booking updated successfully');
-      
-      // Show success toast for status updates
-      if (updates.status) {
-        const statusText = {
-          'pending': 'Väntande',
-          'confirmed': 'Bekräftad',
-          'completed': 'Slutförd',
-          'cancelled': 'Avbokad'
-        };
-        toast.success(`Status uppdaterad till: ${statusText[updates.status] || updates.status}`);
-      }
-      
-      return true;
-    } catch (error) {
-      console.error('❌ BookingService: Error updating booking:', error);
-      toast.error('Kunde inte uppdatera bokning. Försök igen.');
-      throw error;
-    }
+// Get booking statuses for filtering
+export const getBookingStatuses = () => {
+  return [
+    { value: 'pending', label: 'Pending', color: 'bg-yellow-100 text-yellow-800' },
+    { value: 'confirmed', label: 'Confirmed', color: 'bg-green-100 text-green-800' },
+    { value: 'completed', label: 'Completed', color: 'bg-blue-100 text-blue-800' },
+    { value: 'cancelled', label: 'Cancelled', color: 'bg-red-100 text-red-800' }
+  ];
+};
+
+// Get booking statistics
+export const getBookingStats = async (companyId) => {
+  try {
+    const snapshot = await getDocs(
+      query(
+        collection(db, `companies/${companyId}/bookings`),
+        where('deleted', '==', false)
+      )
+    );
+
+    const bookings = snapshot.docs.map(doc => doc.data());
+    
+    return {
+      total: bookings.length,
+      pending: bookings.filter(b => b.status === 'pending').length,
+      confirmed: bookings.filter(b => b.status === 'confirmed').length,
+      completed: bookings.filter(b => b.status === 'completed').length,
+      cancelled: bookings.filter(b => b.status === 'cancelled').length,
+      totalRevenue: bookings.reduce((sum, b) => sum + (b.finalPrice || 0), 0),
+      rutTotal: bookings.reduce((sum, b) => sum + (b.rutDiscount || 0), 0)
+    };
+  } catch (error) {
+    console.error('Error fetching booking stats:', error);
+    toast.error('Failed to load booking statistics');
+    throw error;
   }
-
-  /**
-   * Get all customers for a company (placeholder - customers are extracted from bookings)
-   */
-  static async getCustomersForCompany(companyId) {
-    try {
-      console.log('Loading customers for company:', companyId);
-      // For now, return empty array since we extract customers from bookings
-      // In the future, this could query a dedicated customers collection
-      return [];
-    } catch (error) {
-      console.error('Error loading customers:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Create a new customer (placeholder for future implementation)
-   */
-  static async createCustomer(customerData) {
-    try {
-      // For now, just return the customer data
-      // In the future, this would save to a customers collection
-      console.log('Creating customer:', customerData);
-      return customerData;
-    } catch (error) {
-      console.error('Error creating customer:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Delete a customer (placeholder for future implementation)
-   */
-  static async deleteCustomer(customerId) {
-    try {
-      // For now, just log the deletion
-      // In the future, this would delete from customers collection
-      console.log('Deleting customer:', customerId);
-      return true;
-    } catch (error) {
-      console.error('Error deleting customer:', error);
-      throw error;
-    }
-  }
-}
-
-export default BookingService;
+};

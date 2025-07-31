@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { db } from '../firebase/init';
 import { doc, getDoc, addDoc, collection, getDocs } from 'firebase/firestore';
 import { getFunctions, httpsCallable } from 'firebase/functions';
+import { createLeadFromBooking } from '../crm/services/leadService';
 import { 
   Card, 
   Button, 
@@ -570,7 +571,42 @@ const CustomerInfoStep = ({ onBack, formData, setFormData, companyId, totalPrice
 
     if (safePaymentConfig.mode === 'manual') {
       try {
+        // Create booking in Firestore
         await addDoc(collection(db, `companies/${companyId}/bookings`), bookingData);
+        
+        // Create lead in CRM from booking submission
+        const leadData = {
+          customerInfo: {
+            name: formData.customerName,
+            email: formData.customerEmail,
+            phone: formData.customerPhone,
+            address: formData.customerAddress,
+            personnummer: formData.personalNumber || '',
+            useRut: rutApplied
+          },
+          serviceInfo: {
+            serviceId: formData.selectedService,
+            serviceName: formData.selectedServiceName || 'Cleaning Service',
+            serviceType: 'cleaning'
+          },
+          pricingInfo: {
+            originalPrice: formData.originalPrice || totalPrice,
+            finalPrice: totalPrice,
+            rutDiscount: rutApplied ? (formData.originalPrice - totalPrice) : 0,
+            totalPrice: totalPrice
+          },
+          area: formData.area || '',
+          rooms: formData.rooms || '',
+          frequency: formData.frequency || 'one-time',
+          zipCode: formData.zip || '',
+          addOns: formData.addOns || [],
+          windowTypes: formData.windowTypes || {},
+          timePreference: formData.customerTime || '',
+          specialInstructions: formData.specialInstructions || ''
+        };
+        
+        await createLeadFromBooking(companyId, leadData);
+        
         toast.success('Bokning skickad! Företaget kommer att kontakta dig för betalning.');
       } catch (err) {
         console.error("Error creating booking:", err);
@@ -581,6 +617,39 @@ const CustomerInfoStep = ({ onBack, formData, setFormData, companyId, totalPrice
       }
     } else { // Online payment
       try {
+        // Create lead in CRM from booking submission (before payment)
+        const leadData = {
+          customerInfo: {
+            name: formData.customerName,
+            email: formData.customerEmail,
+            phone: formData.customerPhone,
+            address: formData.customerAddress,
+            personnummer: formData.personalNumber || '',
+            useRut: rutApplied
+          },
+          serviceInfo: {
+            serviceId: formData.selectedService,
+            serviceName: formData.selectedServiceName || 'Cleaning Service',
+            serviceType: 'cleaning'
+          },
+          pricingInfo: {
+            originalPrice: formData.originalPrice || totalPrice,
+            finalPrice: totalPrice,
+            rutDiscount: rutApplied ? (formData.originalPrice - totalPrice) : 0,
+            totalPrice: totalPrice
+          },
+          area: formData.area || '',
+          rooms: formData.rooms || '',
+          frequency: formData.frequency || 'one-time',
+          zipCode: formData.zip || '',
+          addOns: formData.addOns || [],
+          windowTypes: formData.windowTypes || {},
+          timePreference: formData.customerTime || '',
+          specialInstructions: formData.specialInstructions || ''
+        };
+        
+        await createLeadFromBooking(companyId, leadData);
+        
         const functions = getFunctions();
         const createBookingPaymentIntent = httpsCallable(functions, 'createBookingPaymentIntent');
         const result = await createBookingPaymentIntent({
