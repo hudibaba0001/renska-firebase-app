@@ -24,7 +24,7 @@ import {
 import toast from 'react-hot-toast';
 
 import BookingTable from '../components/BookingTablePremium';
-import BookingService from '../services/bookingService';
+import { getBookings, getBookingStats, updateBooking, exportBookingsToCSV } from '../services/bookingService';
 
 const BookingManagementPage = () => {
   const { companyId } = useParams();
@@ -51,13 +51,13 @@ const BookingManagementPage = () => {
     setError(null);
     
     try {
-      const result = await BookingService.getBookingsForCompany(companyId);
+      const result = await getBookings(companyId);
       console.log('Loaded bookings:', result.bookings);
       setBookings(result.bookings);
       setFilteredBookings(result.bookings);
       
       // Load stats
-      const statsData = await BookingService.getBookingStats(companyId);
+      const statsData = await getBookingStats(companyId);
       console.log('Loaded stats:', statsData);
       setStats(statsData);
       
@@ -139,10 +139,10 @@ const BookingManagementPage = () => {
       ));
       
       // Persist changes to Firestore database
-      await BookingService.updateBooking(companyId, bookingId, updates);
+      await updateBooking(companyId, bookingId, updates);
       
       // Reload stats to reflect changes
-      const newStats = await BookingService.getBookingStats(companyId);
+      const newStats = await getBookingStats(companyId);
       setStats(newStats);
       
       console.log('✅ Booking updated successfully and persisted to database');
@@ -163,7 +163,7 @@ const BookingManagementPage = () => {
       return;
     }
     
-    BookingService.exportBookingsToCSV(filteredBookings);
+    exportBookingsToCSV(filteredBookings);
   };
 
   // Effects

@@ -3,7 +3,12 @@ import { useCalculator } from '../../context/calculatorContext';
 import { TextInput, NumberInput, Select, CheckboxGroup } from '../ui/FormFields';
 import { getStepByIndex, isLastStep, isFirstStep } from './calculatorSteps';
 
-const StepRenderer = ({ config, onSubmit }) => {
+const StepRenderer = ({ 
+  config, 
+  onSubmit,
+  isSubmitting = false,
+  fieldErrors = {}
+}) => {
   const { state, updateField, nextStep, prevStep } = useCalculator();
   const { currentStep, formData } = state;
   
@@ -146,8 +151,18 @@ const StepRenderer = ({ config, onSubmit }) => {
         
         <button
           type="submit"
-          className="ml-auto px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          disabled={isSubmitting}
+          className={`
+            ml-auto px-4 py-2 rounded-md
+            ${isSubmitting 
+              ? 'bg-gray-400 cursor-not-allowed' 
+              : 'bg-blue-600 hover:bg-blue-700'}
+            text-white flex items-center gap-2
+          `}
         >
+          {isSubmitting && (
+            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          )}
           {isLastStep(currentStep) ? 'Bekräfta bokning' : 'Nästa'}
         </button>
       </div>

@@ -3,6 +3,10 @@ import { useParams } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../firebase/init';
 import { createBooking } from '../../services/bookingService';
+import { createLeadFromBooking } from '../../crm/services/bookingLeadService';
+import { toast } from 'react-hot-toast';
+import { useSubmit } from '../../hooks/useSubmit';
+import LoadingOverlay from '../ui/LoadingOverlay';
 import { CalculatorProvider } from '../../context/calculatorContext';
 import StepRenderer from './StepRenderer';
 import PriceCard from './PriceCard';
@@ -52,45 +56,68 @@ const BookingCalculator = ({ config: propConfig, companyId: propCompanyId, isEmb
     fetchConfig();
   }, [propConfig, companyId]);
   
-  const handleSubmit = async (formData) => {
-    try {
-      // Create booking data structure
-      const bookingData = {
-        ...formData,
-        companyId,
-        status: 'pending',
-        createdAt: new Date(),
-      };
+  // Handle form submission
+  const { 
+    submit: handleSubmit,
+    isSubmitting,
+    error: submitError,
+    fieldErrors
+  } = useSubmit(async (formData) => {
+    // Prepare booking data
+    const bookingData = {
+      // Customer information
+      customerName: formData.name,
+      customerEmail: formData.email,
+      customerPhone: formData.phone,
+      customerAddress: formData.address,
+      personnummer: formData.personnummer,
+      useRut: formData.useRut,
       
-      // Create booking
-      const bookingData = {
-        customerName: formData.name,
-        customerEmail: formData.email,
-        customerPhone: formData.phone,
-        customerAddress: formData.address,
-        personnummer: formData.personnummer,
-        useRut: formData.useRut,
-        
-        serviceId: formData.serviceId,
-        serviceName: config.services.find(s => s.id === formData.serviceId)?.name,
-        
-        originalPrice: formData.originalPrice,
-        finalPrice: formData.finalPrice,
-        rutDiscount: formData.useRut ? (formData.originalPrice - formData.finalPrice) : 0,
-        
-        area: formData.area,
-        rooms: formData.rooms,
-        frequency: formData.frequency,
-        zipCode: formData.zipCode,
-        addOns: formData.addOns,
-        timePreference: formData.timePreference,
-        specialInstructions: formData.specialInstructions,
-        
-        date: formData.date,
-        time: formData.time
-      };
+      // Service details
+      serviceId: formData.serviceId,
+      serviceName: config.services.find(s => s.id === formData.serviceId)?.name,
+      area: formData.area,
+      rooms: formData.rooms,
+      frequency: formData.frequency,
       
-      await createBooking(companyId, bookingData);
+      // Add-ons and customization
+      addOns: formData.addOns,
+      windowTypes: formData.windowTypes,
+      customFees: formData.customFees,
+      
+      // Pricing
+      originalPrice: formData.originalPrice,
+      finalPrice: formData.finalPrice,
+      rutDiscount: formData.useRut ? (formData.originalPrice - formData.finalPrice) : 0,
+      
+      // Scheduling
+      date: formData.date,
+      time: formData.time,
+      specialInstructions: formData.specialInstructions,
+      
+      // Metadata
+      zipCode: formData.zipCode,
+      calculatorVersion: '2.0',
+      submittedAt: new Date().toISOString()
+    };
+    
+    // Create lead and follow-up task in CRM
+    const { lead, task } = await createLeadFromBooking(companyId, bookingData);
+    
+    // Create booking record
+    const booking = await createBooking(companyId, {
+      ...bookingData,
+      leadId: lead.id,
+      status: 'pending',
+      createdAt: new Date()
+    });
+    
+    return { lead, task, booking };
+  }, {
+    successMessage: 'Booking submitted! We will contact you shortly.',
+    errorMessage: 'Could not submit booking. Please try again.',
+    resetOnSuccess: true
+  });
       
       // Handle payment based on configuration
       if (config.paymentConfig.mode === 'manual') {
@@ -138,7 +165,20 @@ const BookingCalculator = ({ config: propConfig, companyId: propCompanyId, isEmb
   
   return (
     <CalculatorProvider>
-      <div className="max-w-3xl mx-auto">
+      <div className="max-w-3xl mx-auto relative">
+        {/* Loading overlay */}
+        <LoadingOverlay 
+          isLoading={isSubmitting} 
+          message="Submitting your booking..." 
+        />
+        
+        {/* Error message */}
+        {submitError && (
+          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-red-700">{submitError}</p>
+          </div>
+        )}
+        
         <ProgressBar steps={getTotalSteps()} />
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -147,6 +187,8 @@ const BookingCalculator = ({ config: propConfig, companyId: propCompanyId, isEmb
             <StepRenderer
               config={config}
               onSubmit={handleSubmit}
+              isSubmitting={isSubmitting}
+              fieldErrors={fieldErrors}
             />
           </div>
           

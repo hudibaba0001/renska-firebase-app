@@ -313,81 +313,41 @@ export const convertLeadToCustomer = async (companyId, leadId, customerData) => 
   }
 };
 
+import { mapBookingToLead, validateMappedLead } from './bookingMapper';
+
 // Create lead from booking calculator submission
 export const createLeadFromBooking = async (companyId, bookingData) => {
   try {
     checkRateLimit();
     
-    // Extract customer information from booking data
-    const customerInfo = bookingData.customerInfo || {};
-    const serviceInfo = bookingData.serviceInfo || {};
-    const pricingInfo = bookingData.pricingInfo || {};
+    // Map booking data to lead format
+    const mappedLead = mapBookingToLead(bookingData);
     
-    // Validate required fields
-    if (!customerInfo.name?.trim()) {
-      throw new Error('Customer name is required');
+    // Validate mapped data
+    const { isValid, errors } = validateMappedLead(mappedLead);
+    if (!isValid) {
+      throw new Error(`Invalid booking data: ${errors.join(', ')}`);
     }
-    
-    if (!customerInfo.email?.trim()) {
-      throw new Error('Customer email is required');
-    }
-    
-    // Create lead data structure
-    const leadData = {
-      name: customerInfo.name.trim(),
-      email: customerInfo.email.trim(),
-      phone: customerInfo.phone?.trim() || '',
-      address: customerInfo.address?.trim() || '',
-      personnummer: customerInfo.personnummer?.trim() || '',
-      useRut: !!customerInfo.useRut,
-      
-      // Booking-specific information
-      source: 'booking-calculator',
-      status: 'new',
-      value: pricingInfo.finalPrice || pricingInfo.totalPrice || 0,
-      
-      // Service details
-      serviceId: serviceInfo.serviceId || '',
-      serviceName: serviceInfo.serviceName || '',
-      serviceType: serviceInfo.serviceType || '',
-      
-      // Booking configuration
-      area: bookingData.area || '',
-      rooms: bookingData.rooms || '',
-      frequency: bookingData.frequency || 'one-time',
-      zipCode: bookingData.zipCode || '',
-      
-      // Pricing breakdown
-      originalPrice: pricingInfo.originalPrice || 0,
-      finalPrice: pricingInfo.finalPrice || 0,
-      rutDiscount: pricingInfo.rutDiscount || 0,
-      customFees: pricingInfo.customFees || [],
-      addOns: bookingData.addOns || [],
-      
-      // Additional metadata
-      bookingConfig: {
-        area: bookingData.area,
-        rooms: bookingData.rooms,
-        frequency: bookingData.frequency,
-        zipCode: bookingData.zipCode,
-        windowTypes: bookingData.windowTypes || {},
-        timePreference: bookingData.timePreference || '',
-        specialInstructions: bookingData.specialInstructions || ''
-      },
-      
-      // Internal notes for sales team
-      internal_notes: `Booking calculator submission. Original price: ${pricingInfo.originalPrice}, Final price: ${pricingInfo.finalPrice}. RUT applied: ${customerInfo.useRut ? 'Yes' : 'No'}`,
-      
-      // Timestamps
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      submittedAt: new Date().toISOString()
-    };
     
     // Create the lead
-    const lead = await createLead(companyId, leadData);
+    const lead = await createLead(companyId, mappedLead);
     
-    console.log('✅ Lead created from booking submission:', lead.id);
+    // Create associated task for sales team
+    await createFollowUpTask(companyId, lead.id, {
+      title: 'Follow up on new booking lead',
+      description: `New booking submission from ${mappedLead.name}.\n\n` +
+        `Service: ${mappedLead.serviceConfig.serviceName}\n` +
+        `Value: ${mappedLead.value} SEK\n` +
+        `Preferred Date: ${mappedLead.schedulingPreferences.preferredDate || 'Not specified'}\n\n` +
+        'Action items:\n' +
+        '1. Review booking details\n' +
+        '2. Contact customer to confirm requirements\n' +
+        '3. Schedule service or propose alternative dates',
+      priority: 'high',
+      dueDate: new Date(Date.now() + 24 * 60 * 60 * 1000) // Due in 24 hours
+    });
+    
+    console.log('✅ Lead and follow-up task created from booking:', lead.id);
     return lead;
     
   } catch (error) {
