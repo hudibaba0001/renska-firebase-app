@@ -35,7 +35,7 @@ const ENABLE_CONSOLE_LOGS = import.meta.env.VITE_ENABLE_CONSOLE_LOGS === 'true' 
  * @param {any} data - Data to sanitize
  * @returns {any} - Sanitized data
  */
-function sanitizeData(data) {
+export function sanitizeData(data) {
   if (data === null || data === undefined) {
     return data;
   }

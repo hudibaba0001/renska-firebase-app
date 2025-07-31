@@ -12,7 +12,7 @@ import {
   ArrowRightIcon
 } from '@heroicons/react/24/outline';
 import { getLeads, getLeadStats, getBookingLeads } from '../services/leadService';
-import { getCustomersForCompany } from '../services/customerService';
+import { getCustomers } from '../services/customerService';
 import { getDeals } from '../services/dealService';
 import { getTasks } from '../services/taskService';
 import toast from 'react-hot-toast';
@@ -48,7 +48,7 @@ export default function CRMDashboard() {
         getLeadStats(companyId),
         getLeads(companyId, { pageSize: 5 }),
         getBookingLeads(companyId),
-        getCustomersForCompany(companyId, { limit: 5 }),
+        getCustomers(companyId, { limit: 5 }),
         getDeals(companyId, { pageSize: 5 }),
         getTasks(companyId, { pageSize: 5 })
       ]);

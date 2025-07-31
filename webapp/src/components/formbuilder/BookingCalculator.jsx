@@ -12,6 +12,8 @@ import StepRenderer from './StepRenderer';
 import PriceCard from './PriceCard';
 import ProgressBar from './ProgressBar';
 import { getTotalSteps } from './calculatorSteps';
+import ResumeBanner from './ResumeBanner';
+import { loadFormState, clearFormState } from '../../utils/storage';
 
 const BookingCalculator = ({ config: propConfig, companyId: propCompanyId, isEmbedded = false }) => {
   const { companyId: paramCompanyId } = useParams();
@@ -20,7 +22,20 @@ const BookingCalculator = ({ config: propConfig, companyId: propCompanyId, isEmb
   const [config, setConfig] = useState(propConfig);
   const [loading, setLoading] = useState(!propConfig);
   const [error, setError] = useState('');
+  const [showResumeBanner, setShowResumeBanner] = useState(false);
+  const [savedState, setSavedState] = useState(null);
   
+  // Check for saved state
+  useEffect(() => {
+    if (!companyId) return;
+
+    const saved = loadFormState(companyId);
+    if (saved) {
+      setSavedState(saved);
+      setShowResumeBanner(true);
+    }
+  }, [companyId]);
+
   // Fetch company configuration if not provided
   useEffect(() => {
     if (propConfig) {
@@ -163,9 +178,27 @@ const BookingCalculator = ({ config: propConfig, companyId: propCompanyId, isEmb
     );
   }
   
+  const handleResume = () => {
+    setShowResumeBanner(false);
+  };
+
+  const handleDecline = () => {
+    if (companyId) {
+      clearFormState(companyId);
+    }
+    setSavedState(null);
+    setShowResumeBanner(false);
+  };
+
   return (
-    <CalculatorProvider>
+    <CalculatorProvider companyId={companyId} initialState={savedState}>
       <div className="max-w-3xl mx-auto relative">
+        {showResumeBanner && (
+          <ResumeBanner
+            onResume={handleResume}
+            onDecline={handleDecline}
+          />
+        )
         {/* Loading overlay */}
         <LoadingOverlay 
           isLoading={isSubmitting} 

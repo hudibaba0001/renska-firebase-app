@@ -1,6 +1,7 @@
 import React from 'react';
 import { useCalculator } from '../../context/calculatorContext';
 import { TextInput, NumberInput, Select, CheckboxGroup } from '../ui/FormFields';
+import toast from 'react-hot-toast';
 import { getStepByIndex, isLastStep, isFirstStep } from './calculatorSteps';
 
 const StepRenderer = ({ 
@@ -29,10 +30,11 @@ const StepRenderer = ({
       // Validate current step
       await step.validation.validate(formData, { abortEarly: false });
       
+      // If validation passes, proceed
       if (isLastStep(currentStep)) {
-        onSubmit(formData);
+        await onSubmit(formData);
       } else {
-        nextStep();
+        await nextStep();
       }
     } catch (err) {
       // Handle validation errors
@@ -40,8 +42,10 @@ const StepRenderer = ({
       err.inner.forEach(error => {
         errors[error.path] = error.message;
       });
-      // TODO: Show validation errors in UI
-      console.error('Validation errors:', errors);
+      // Show validation errors in UI
+      Object.entries(errors).forEach(([field, message]) => {
+        toast.error(message);
+      });
     }
   };
   

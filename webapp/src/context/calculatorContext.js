@@ -1,5 +1,7 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useState } from 'react';
 import { stepOrder, stepSchema } from '../components/formbuilder/calculatorSteps';
+import { loadFormState, debouncedSave, clearFormState } from '../utils/storage';
+import SaveIndicator from '../components/ui/SaveIndicator';
 
 // Action types
 const ACTIONS = {
@@ -143,35 +145,51 @@ function calculatorReducer(state, action) {
 const CalculatorContext = createContext();
 
 // Provider component
-export function CalculatorProvider({ children }) {
-  const [state, dispatch] = useReducer(calculatorReducer, initialState);
+export function CalculatorProvider({ children, companyId, initialState = null }) {
+  const [showSaveIndicator, setShowSaveIndicator] = useState(false);
+  const [state, dispatch] = useReducer(calculatorReducer, initialState || {
+    ...initialState,
+    currentStep: 0,
+    formData: {},
+    errors: {},
+    loading: false,
+    isValid: false,
+    isDirty: false,
+    visitedSteps: new Set([0])
+  });
   
   // Load saved state from localStorage on mount
   useEffect(() => {
-    const savedState = localStorage.getItem('calculatorState');
+    if (!companyId) return;
+    
+    const savedState = loadFormState(companyId);
     if (savedState) {
-      try {
-        const parsedState = JSON.parse(savedState);
-        dispatch({
-          type: ACTIONS.LOAD_SAVED_STATE,
-          payload: { state: parsedState }
-        });
-      } catch (error) {
-        console.error('Error loading saved calculator state:', error);
-      }
+      dispatch({
+        type: ACTIONS.LOAD_SAVED_STATE,
+        payload: { state: savedState }
+      });
     }
-  }, []);
+  }, [companyId]);
   
   // Save state to localStorage when it changes
   useEffect(() => {
-    if (state.isDirty) {
-      localStorage.setItem('calculatorState', JSON.stringify({
+    if (!companyId || !state.isDirty) return;
+    
+    const saveState = () => {
+      const success = debouncedSave(companyId, {
         formData: state.formData,
         currentStep: state.currentStep,
         visitedSteps: Array.from(state.visitedSteps)
-      }));
-    }
-  }, [state]);
+      });
+      
+      if (success) {
+        setShowSaveIndicator(true);
+        setTimeout(() => setShowSaveIndicator(false), 2000);
+      }
+    };
+    
+    saveState();
+  }, [state, companyId]);
   
   // Helper to check if a step should be skipped
   const shouldSkipStep = (stepIndex) => {
@@ -199,7 +217,12 @@ export function CalculatorProvider({ children }) {
   };
   
   // Navigate to next non-skipped step
-  const nextStep = () => {
+  const nextStep = async () => {
+    // Validate current step before proceeding
+    if (!(await isCurrentStepValid())) {
+      return false;
+    }
+
     let nextStepIndex = state.currentStep + 1;
     while (nextStepIndex < stepOrder.length && shouldSkipStep(nextStepIndex)) {
       nextStepIndex++;
@@ -207,7 +230,9 @@ export function CalculatorProvider({ children }) {
     
     if (nextStepIndex < stepOrder.length) {
       dispatch({ type: ACTIONS.SET_STEP, payload: { step: nextStepIndex } });
+      return true;
     }
+    return false;
   };
   
   // Navigate to previous non-skipped step
@@ -244,7 +269,9 @@ export function CalculatorProvider({ children }) {
   
   // Reset calculator
   const reset = () => {
-    localStorage.removeItem('calculatorState');
+    if (companyId) {
+      clearFormState(companyId);
+    }
     dispatch({ type: ACTIONS.RESET });
   };
   
@@ -291,6 +318,7 @@ export function CalculatorProvider({ children }) {
   return (
     <CalculatorContext.Provider value={value}>
       {children}
+      <SaveIndicator show={showSaveIndicator} />
     </CalculatorContext.Provider>
   );
 }

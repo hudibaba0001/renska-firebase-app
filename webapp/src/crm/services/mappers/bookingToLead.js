@@ -1,6 +1,7 @@
 /**
  * Maps booking calculator data to CRM lead format
  */
+import { sanitizeData } from '../../../utils/secureLogger';
 
 // Map customer information to lead contact details
 const mapCustomerInfo = (bookingData) => ({
@@ -87,6 +88,9 @@ export const validateMappedLead = (leadData) => {
  * Maps booking calculator data to CRM lead format
  */
 export const mapBookingToLead = (bookingData) => {
+  // Sanitize incoming data
+  const sanitizedData = sanitizeData(bookingData);
+
   const leadData = {
     // Basic lead information
     source: 'booking-calculator',
@@ -94,16 +98,16 @@ export const mapBookingToLead = (bookingData) => {
     type: 'service-booking',
     
     // Map all sections
-    ...mapCustomerInfo(bookingData),
-    ...mapServiceDetails(bookingData),
-    ...mapPricingInfo(bookingData),
-    ...mapSchedulingInfo(bookingData),
+    ...mapCustomerInfo(sanitizedData),
+    ...mapServiceDetails(sanitizedData),
+    ...mapPricingInfo(sanitizedData),
+    ...mapSchedulingInfo(sanitizedData),
     
     // Metadata
     metadata: {
       submittedAt: new Date().toISOString(),
       calculatorVersion: '2.0',
-      originalBookingData: bookingData // Store original data for reference
+      originalBookingData: sanitizedData // Store sanitized data for reference
     }
   };
 

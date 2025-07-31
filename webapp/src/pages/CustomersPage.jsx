@@ -15,7 +15,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../hooks/useAuth';
 import CustomerService from '../services/customerService';
-import BookingService from '../services/bookingService';
+import { getBookingsForCustomer } from '../services/bookingService';
 import CustomersTable from '../components/CustomersTable';
 import { AddCustomerModal, ViewCustomerModal } from '../components/CustomerModals';
 
@@ -324,7 +324,7 @@ const CustomersPage = () => {
       setSelectedCustomer(customer);
       
       // Load customer bookings
-      const bookings = await BookingService.getBookingsForCustomer(customer.email);
+      const bookings = await getBookingsForCustomer(customer.email);
       setCustomerBookings(bookings || []);
       
       setShowViewModal(true);

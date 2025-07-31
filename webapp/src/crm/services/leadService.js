@@ -313,7 +313,8 @@ export const convertLeadToCustomer = async (companyId, leadId, customerData) => 
   }
 };
 
-import { mapBookingToLead, validateMappedLead } from './bookingMapper';
+import { mapBookingToLead, validateMappedLead } from './mappers/bookingToLead';
+import { createFollowUpTaskForBookingLead } from './templates/bookingTasks';
 
 // Create lead from booking calculator submission
 export const createLeadFromBooking = async (companyId, bookingData) => {
@@ -333,16 +334,7 @@ export const createLeadFromBooking = async (companyId, bookingData) => {
     const lead = await createLead(companyId, mappedLead);
     
     // Create associated task for sales team
-    await createFollowUpTask(companyId, lead.id, {
-      title: 'Follow up on new booking lead',
-      description: `New booking submission from ${mappedLead.name}.\n\n` +
-        `Service: ${mappedLead.serviceConfig.serviceName}\n` +
-        `Value: ${mappedLead.value} SEK\n` +
-        `Preferred Date: ${mappedLead.schedulingPreferences.preferredDate || 'Not specified'}\n\n` +
-        'Action items:\n' +
-        '1. Review booking details\n' +
-        '2. Contact customer to confirm requirements\n' +
-        '3. Schedule service or propose alternative dates',
+    await createFollowUpTaskForBookingLead(companyId, lead.id, mappedLead, {
       priority: 'high',
       dueDate: new Date(Date.now() + 24 * 60 * 60 * 1000) // Due in 24 hours
     });

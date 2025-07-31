@@ -219,3 +219,128 @@ export const getBookingStats = async (companyId) => {
     throw error;
   }
 };
+
+/**
+ * Get all bookings for a specific customer by email
+ * @param {string} customerEmail - Customer's email address
+ * @returns {Promise<Array>} Array of bookings
+ */
+export const getBookingsForCustomer = async (customerEmail) => {
+  try {
+    if (!customerEmail) {
+      throw new Error('Customer email is required');
+    }
+
+    const q = query(
+      collection(db, 'bookings'),
+      where('customerEmail', '==', customerEmail.toLowerCase()),
+      where('deleted', '==', false),
+      orderBy('createdAt', 'desc')
+    );
+
+    const snapshot = await getDocs(q);
+    const bookings = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      createdAt: doc.data().createdAt?.toDate(),
+      updatedAt: doc.data().updatedAt?.toDate()
+    }));
+
+    return bookings;
+  } catch (error) {
+    console.error('Error fetching customer bookings:', error);
+    toast.error('Failed to load customer bookings');
+    throw error;
+  }
+};
+
+/**
+ * Export bookings to CSV format
+ * @param {string} companyId - Company ID
+ * @param {Object} options - Filter options (status, date range, etc.)
+ * @returns {Promise<string>} CSV content
+ */
+export const exportBookingsToCSV = async (companyId, options = {}) => {
+  try {
+    // Get all bookings without pagination
+    const allBookings = [];
+    let lastDoc = null;
+    
+    do {
+      const { bookings, lastDoc: newLastDoc } = await getBookings(companyId, {
+        ...options,
+        pageSize: 100,
+        lastDoc
+      });
+      
+      allBookings.push(...bookings);
+      lastDoc = newLastDoc;
+    } while (lastDoc);
+
+    // Define CSV headers
+    const headers = [
+      'Booking ID',
+      'Status',
+      'Customer Name',
+      'Customer Email',
+      'Customer Phone',
+      'Customer Address',
+      'Service',
+      'Date',
+      'Time',
+      'Area (m²)',
+      'Rooms',
+      'Original Price (SEK)',
+      'Final Price (SEK)',
+      'RUT Discount (SEK)',
+      'Uses RUT',
+      'Personnummer',
+      'Special Instructions',
+      'Created At'
+    ];
+
+    // Convert bookings to CSV rows
+    const rows = allBookings.map(booking => [
+      booking.id,
+      booking.status,
+      booking.customerName,
+      booking.customerEmail,
+      booking.customerPhone,
+      booking.customerAddress,
+      booking.serviceName,
+      booking.date,
+      booking.time,
+      booking.area,
+      booking.rooms,
+      booking.originalPrice,
+      booking.finalPrice,
+      booking.rutDiscount,
+      booking.useRut ? 'Yes' : 'No',
+      booking.personnummer,
+      booking.specialInstructions,
+      new Date(booking.createdAt?.seconds * 1000).toLocaleString()
+    ]);
+
+    // Combine headers and rows
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => 
+        row.map(cell => {
+          // Handle cells that might contain commas or quotes
+          if (cell === null || cell === undefined) return '';
+          const cellStr = String(cell);
+          if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')) {
+            return `"${cellStr.replace(/"/g, '""')}"`;
+          }
+          return cellStr;
+        }).join(',')
+      )
+    ].join('\n');
+
+    return csvContent;
+  } catch (error) {
+    console.error('Error exporting bookings to CSV:', error);
+    toast.error('Failed to export bookings');
+    throw error;
+  }
+};
