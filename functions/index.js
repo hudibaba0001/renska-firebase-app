@@ -6,6 +6,7 @@ const cascadeDelete = require('./cascadeDelete');
 const stats = require('./routes/stats');
 const bookings = require('./routes/bookings');
 const users = require('./routes/users');
+const deals = require('./routes/deals');
 
 // Export cascade delete functions
 exports.cascadeSoftDeleteCompanyData = cascadeDelete.cascadeSoftDeleteCompanyData;
@@ -42,3 +43,6 @@ exports.cleanupUserDocument = auth.cleanupUserDocument;
 const companies = require('./routes/companies');
 exports.createCompany = companies.createCompany;
 exports.updateCompanyPublicStatus = companies.updateCompanyPublicStatus;
+
+// Export deal-to-job conversion function
+exports.onDealStatusChange = deals.onDealStatusChange;
