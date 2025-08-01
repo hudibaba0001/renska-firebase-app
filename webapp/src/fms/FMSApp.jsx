@@ -21,6 +21,8 @@ export default function FMSApp() {
     return <Navigate to="/login" replace />;
   }
 
+  const { companyId } = useParams();
+
   return (
     <div className="container mx-auto px-4 py-8">
       <Routes>
@@ -29,6 +31,7 @@ export default function FMSApp() {
         <Route path="/jobs/:jobId" element={<JobDetail />} />
         <Route path="/crews" element={<CrewsDashboard />} />
         <Route path="/schedule" element={<ScheduleCalendar />} />
+        <Route path="*" element={<Navigate to="jobs" replace />} />
       </Routes>
     </div>
   );

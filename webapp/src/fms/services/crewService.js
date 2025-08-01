@@ -17,7 +17,11 @@ export const crewService = {
   async fetchCrews(companyId, options = {}) {
     try {
       const crewsRef = collection(db, `companies/${companyId}/crews`);
-      let q = query(crewsRef, orderBy('name'));
+      let q = query(
+        crewsRef,
+        where('deleted', '==', false),
+        orderBy('name')
+      );
 
       // Apply filters if provided
       if (options.active !== undefined) {
@@ -61,7 +65,8 @@ export const crewService = {
         ...crewData,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
-        active: crewData.active ?? true
+        active: crewData.active ?? true,
+        deleted: false
       });
 
       return {
@@ -95,7 +100,10 @@ export const crewService = {
   async deleteCrew(companyId, crewId) {
     try {
       const crewRef = doc(db, `companies/${companyId}/crews/${crewId}`);
-      await deleteDoc(crewRef);
+      await updateDoc(crewRef, {
+        deleted: true,
+        updatedAt: serverTimestamp()
+      });
       return true;
     } catch (error) {
       console.error('Error deleting crew:', error);

@@ -5,8 +5,7 @@ import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { crewService } from '../services/crewService';
 import toast from 'react-hot-toast';
 
-export default function CrewForm({ isOpen, onClose, initialData = null }) {
-  const { companyId } = useParams();
+export default function CrewForm({ isOpen, onClose, initialData = null, companyId }) {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',

@@ -2,13 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import JobForm from '../components/JobForm';
 import { Card, Button, Badge, Spinner } from 'flowbite-react';
-import { PlusIcon, ClockIcon, UserGroupIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, ClockIcon, UserGroupIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { jobService } from '../services/jobService';
+import toast from 'react-hot-toast';
 
 export default function JobsDashboard() {
   const { companyId } = useParams();
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [showJobForm, setShowJobForm] = useState(false);
 
   useEffect(() => {
@@ -18,10 +20,13 @@ export default function JobsDashboard() {
   async function loadJobs() {
     try {
       setLoading(true);
+      setError(null);
       const fetchedJobs = await jobService.fetchJobs(companyId);
       setJobs(fetchedJobs);
     } catch (error) {
       console.error('Error loading jobs:', error);
+      setError('Failed to load jobs. Please try again.');
+      toast.error('Failed to load jobs');
     } finally {
       setLoading(false);
     }
@@ -30,7 +35,26 @@ export default function JobsDashboard() {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <Spinner size="xl" />
+        <div className="text-center">
+          <Spinner size="xl" className="mb-4" />
+          <p className="text-gray-600">Loading jobs...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-12 bg-red-50 rounded-lg">
+        <div className="mx-auto w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mb-4">
+          <ExclamationTriangleIcon className="h-12 w-12 text-red-400" />
+        </div>
+        <h3 className="text-lg font-medium text-red-900 mb-2">
+          {error}
+        </h3>
+        <Button color="failure" onClick={loadJobs}>
+          Try Again
+        </Button>
       </div>
     );
   }
@@ -46,11 +70,11 @@ export default function JobsDashboard() {
           </p>
         </div>
         <div className="flex items-center space-x-4">
-          <Button as={Link} to="schedule" color="gray">
+          <Button as={Link} to={`/admin/${companyId}/fms/schedule`} color="gray">
             <ClockIcon className="h-5 w-5 mr-2" />
             Schedule View
           </Button>
-          <Button as={Link} to="crews" color="gray">
+          <Button as={Link} to={`/admin/${companyId}/fms/crews`} color="gray">
             <UserGroupIcon className="h-5 w-5 mr-2" />
             Manage Crews
           </Button>
@@ -64,7 +88,8 @@ export default function JobsDashboard() {
             onClose={() => {
               setShowJobForm(false);
               loadJobs(); // Refresh the list after adding
-            }} 
+            }}
+            companyId={companyId}
           />
         </div>
       </div>
@@ -102,7 +127,7 @@ export default function JobsDashboard() {
               <div className="mt-4">
                 <Button
                   as={Link}
-                  to={`/jobs/${job.id}`}
+                  to={`/admin/${companyId}/fms/jobs/${job.id}`}
                   color="gray"
                   className="w-full"
                 >

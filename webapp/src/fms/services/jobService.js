@@ -17,7 +17,11 @@ export const jobService = {
   async fetchJobs(companyId, options = {}) {
     try {
       const jobsRef = collection(db, `companies/${companyId}/jobs`);
-      let q = query(jobsRef, orderBy('scheduledAt', 'desc'));
+      let q = query(
+        jobsRef,
+        where('deleted', '==', false),
+        orderBy('scheduledAt', 'desc')
+      );
 
       // Apply filters if provided
       if (options.status) {
@@ -64,7 +68,8 @@ export const jobService = {
         ...jobData,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
-        status: jobData.status || 'pending'
+        status: jobData.status || 'pending',
+        deleted: false
       });
 
       return {
@@ -98,7 +103,10 @@ export const jobService = {
   async deleteJob(companyId, jobId) {
     try {
       const jobRef = doc(db, `companies/${companyId}/jobs/${jobId}`);
-      await deleteDoc(jobRef);
+      await updateDoc(jobRef, {
+        deleted: true,
+        updatedAt: serverTimestamp()
+      });
       return true;
     } catch (error) {
       console.error('Error deleting job:', error);

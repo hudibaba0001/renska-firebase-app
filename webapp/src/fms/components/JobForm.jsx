@@ -5,8 +5,7 @@ import { jobService } from '../services/jobService';
 import { crewService } from '../services/crewService';
 import toast from 'react-hot-toast';
 
-export default function JobForm({ isOpen, onClose, initialData = null }) {
-  const { companyId } = useParams();
+export default function JobForm({ isOpen, onClose, initialData = null, companyId }) {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [crews, setCrews] = useState([]);

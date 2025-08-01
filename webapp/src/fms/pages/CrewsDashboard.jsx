@@ -8,14 +8,17 @@ import {
   PhoneIcon,
   EnvelopeIcon,
   PencilIcon,
-  TrashIcon
+  TrashIcon,
+  ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
 import { crewService } from '../services/crewService';
+import toast from 'react-hot-toast';
 
 export default function CrewsDashboard() {
   const { companyId } = useParams();
   const [crews, setCrews] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [showCrewForm, setShowCrewForm] = useState(false);
 
   useEffect(() => {
@@ -25,10 +28,13 @@ export default function CrewsDashboard() {
   async function loadCrews() {
     try {
       setLoading(true);
+      setError(null);
       const fetchedCrews = await crewService.fetchCrews(companyId);
       setCrews(fetchedCrews);
     } catch (error) {
       console.error('Error loading crews:', error);
+      setError('Failed to load crews. Please try again.');
+      toast.error('Failed to load crews');
     } finally {
       setLoading(false);
     }
@@ -37,7 +43,26 @@ export default function CrewsDashboard() {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <Spinner size="xl" />
+        <div className="text-center">
+          <Spinner size="xl" className="mb-4" />
+          <p className="text-gray-600">Loading crews...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-12 bg-red-50 rounded-lg">
+        <div className="mx-auto w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mb-4">
+          <ExclamationTriangleIcon className="h-12 w-12 text-red-400" />
+        </div>
+        <h3 className="text-lg font-medium text-red-900 mb-2">
+          {error}
+        </h3>
+        <Button color="failure" onClick={loadCrews}>
+          Try Again
+        </Button>
       </div>
     );
   }
@@ -62,7 +87,8 @@ export default function CrewsDashboard() {
           onClose={() => {
             setShowCrewForm(false);
             loadCrews(); // Refresh the list after adding
-          }} 
+          }}
+          companyId={companyId}
         />
       </div>
 
