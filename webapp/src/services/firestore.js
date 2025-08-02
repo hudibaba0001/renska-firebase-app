@@ -9,8 +9,7 @@ import CryptoJS from 'crypto-js';
 // Note: Offline persistence is now configured in firebase/init.js using the new FirestoreSettings.cache API
 
 // Cache for frequently accessed data
-const serviceCache = new Map();
-const customerCache = new Map();
+2const customerCache = new Map();
 const bookingCache = new Map();
 const CACHE_DURATION = 300000; // 5 minutes
 

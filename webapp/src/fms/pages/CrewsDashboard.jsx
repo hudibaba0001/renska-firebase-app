@@ -20,6 +20,7 @@ export default function CrewsDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showCrewForm, setShowCrewForm] = useState(false);
+  const [initialData, setInitialData] = useState(null);
 
   useEffect(() => {
     loadCrews();
@@ -86,8 +87,10 @@ export default function CrewsDashboard() {
           isOpen={showCrewForm} 
           onClose={() => {
             setShowCrewForm(false);
+            setInitialData(null);
             loadCrews(); // Refresh the list after adding
           }}
+          initialData={initialData}
           companyId={companyId}
         />
       </div>
@@ -140,11 +143,33 @@ export default function CrewsDashboard() {
               )}
 
               <div className="mt-4 flex space-x-2">
-                <Button color="gray" className="flex-1">
+                <Button 
+                  color="gray" 
+                  className="flex-1"
+                  onClick={() => {
+                    setInitialData(crew);
+                    setShowCrewForm(true);
+                  }}
+                >
                   <PencilIcon className="h-4 w-4 mr-2" />
                   Edit
                 </Button>
-                <Button color="failure" className="flex-1">
+                <Button 
+                  color="failure" 
+                  className="flex-1"
+                  onClick={async () => {
+                    if (window.confirm('Are you sure you want to delete this crew?')) {
+                      try {
+                        await crewService.deleteCrew(companyId, crew.id);
+                        toast.success('Crew deleted successfully');
+                        loadCrews();
+                      } catch (error) {
+                        console.error('Error deleting crew:', error);
+                        toast.error('Failed to delete crew');
+                      }
+                    }
+                  }}
+                >
                   <TrashIcon className="h-4 w-4 mr-2" />
                   Delete
                 </Button>

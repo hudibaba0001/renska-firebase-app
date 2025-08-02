@@ -46,7 +46,7 @@ export default function JobDetail() {
     return (
       <div className="text-center py-12">
         <h2 className="text-2xl font-bold text-gray-900">Job not found</h2>
-        <Button onClick={() => navigate('/fms/jobs')} color="gray" className="mt-4">
+        <Button onClick={() => navigate(`/admin/${companyId}/fms/jobs`)} color="gray" className="mt-4">
           Back to Jobs
         </Button>
       </div>

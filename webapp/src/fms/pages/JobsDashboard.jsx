@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import JobForm from '../components/JobForm';
 import { Card, Button, Badge, Spinner } from 'flowbite-react';
-import { PlusIcon, ClockIcon, UserGroupIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, ClockIcon, UserGroupIcon, ExclamationTriangleIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { jobService } from '../services/jobService';
 import toast from 'react-hot-toast';
 
@@ -12,6 +12,7 @@ export default function JobsDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showJobForm, setShowJobForm] = useState(false);
+  const [initialData, setInitialData] = useState(null);
 
   useEffect(() => {
     loadJobs();
@@ -87,8 +88,10 @@ export default function JobsDashboard() {
             isOpen={showJobForm} 
             onClose={() => {
               setShowJobForm(false);
+              setInitialData(null);
               loadJobs(); // Refresh the list after adding
             }}
+            initialData={initialData}
             companyId={companyId}
           />
         </div>
@@ -124,7 +127,7 @@ export default function JobsDashboard() {
                 )}
               </div>
 
-              <div className="mt-4">
+              <div className="mt-4 space-y-2">
                 <Button
                   as={Link}
                   to={`/admin/${companyId}/fms/jobs/${job.id}`}
@@ -133,6 +136,38 @@ export default function JobsDashboard() {
                 >
                   View Details
                 </Button>
+                <div className="flex space-x-2">
+                  <Button 
+                    color="gray" 
+                    className="flex-1"
+                    onClick={() => {
+                      setInitialData(job);
+                      setShowJobForm(true);
+                    }}
+                  >
+                    <PencilIcon className="h-4 w-4 mr-2" />
+                    Edit
+                  </Button>
+                  <Button 
+                    color="failure" 
+                    className="flex-1"
+                    onClick={async () => {
+                      if (window.confirm('Are you sure you want to delete this job?')) {
+                        try {
+                          await jobService.deleteJob(companyId, job.id);
+                          toast.success('Job deleted successfully');
+                          loadJobs();
+                        } catch (error) {
+                          console.error('Error deleting job:', error);
+                          toast.error('Failed to delete job');
+                        }
+                      }
+                    }}
+                  >
+                    <TrashIcon className="h-4 w-4 mr-2" />
+                    Delete
+                  </Button>
+                </div>
               </div>
             </Card>
           ))
