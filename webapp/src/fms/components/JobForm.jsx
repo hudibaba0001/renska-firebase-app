@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
 import { Modal, Button, Label, TextInput, Textarea, Select } from 'flowbite-react';
 import { jobService } from '../services/jobService';
 import { crewService } from '../services/crewService';
 import toast from 'react-hot-toast';
 
-export default function JobForm({ isOpen, onClose, initialData = null, companyId }) {
-  const navigate = useNavigate();
+const JobForm = ({ isOpen, onClose, initialData = null, companyId }) => {
   const [loading, setLoading] = useState(false);
   const [crews, setCrews] = useState([]);
   const [formData, setFormData] = useState({
@@ -25,6 +23,35 @@ export default function JobForm({ isOpen, onClose, initialData = null, companyId
     status: 'pending',
     ...initialData
   });
+
+  // Format scheduledAt for datetime-local input if it exists
+  useEffect(() => {
+    if (initialData?.scheduledAt) {
+      const date = new Date(initialData.scheduledAt);
+      const formattedDate = date.toISOString().slice(0, 16); // Format for datetime-local
+      setFormData(prev => ({
+        ...prev,
+        scheduledAt: formattedDate
+      }));
+    } else if (initialData === null) {
+      // Reset form when creating new job
+      setFormData({
+        customerName: '',
+        serviceName: '',
+        address: '',
+        scheduledAt: '',
+        crewId: '',
+        crewName: '',
+        contactPhone: '',
+        contactEmail: '',
+        notes: '',
+        estimatedDuration: '',
+        price: '',
+        currency: 'SEK',
+        status: 'pending'
+      });
+    }
+  }, [initialData]);
 
   useEffect(() => {
     loadCrews();
@@ -62,13 +89,19 @@ export default function JobForm({ isOpen, onClose, initialData = null, companyId
     setLoading(true);
 
     try {
+      // Convert scheduledAt to proper Date object if it's a string
+      const jobData = {
+        ...formData,
+        scheduledAt: formData.scheduledAt ? new Date(formData.scheduledAt) : null
+      };
+
       if (initialData?.id) {
-        await jobService.updateJob(companyId, initialData.id, formData);
+        await jobService.updateJob(companyId, initialData.id, jobData);
         toast.success('Job updated successfully');
       } else {
-        const newJob = await jobService.createJob(companyId, formData);
+        await jobService.createJob(companyId, jobData);
         toast.success('Job created successfully');
-        navigate(`/admin/${companyId}/fms/jobs/${newJob.id}`);
+        // Don't navigate away when creating from modal, just close it
       }
       onClose();
     } catch (error) {
@@ -223,4 +256,6 @@ export default function JobForm({ isOpen, onClose, initialData = null, companyId
       </Modal.Footer>
     </Modal>
   );
-}
+};
+
+export default JobForm;

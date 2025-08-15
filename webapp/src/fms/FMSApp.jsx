@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import JobsDashboard from './pages/JobsDashboard';
 import JobDetail from './pages/JobDetail';

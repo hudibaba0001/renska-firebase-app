@@ -2,14 +2,17 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import {
   // Import the full suite of tenant service functions.
   // This replaces all direct 'firebase/firestore' imports.
   getAllTenants,
   deleteTenant,
-  updateTenant,
-  createTenant
+  updateTenant
 } from '../services/firestore';
+
+// Use Cloud Function for tenant creation
+const createTenant = httpsCallable(getFunctions(), 'createTenant');
 import {
   Button,
   Badge,
@@ -166,13 +169,15 @@ export default function TenantListPage() {
   const createTestData = useCallback(async () => {
     setCreatingTestData(true);
     try {
-      // Test data is now created using the same `createTenant` function as the real form.
-      // Note: `createTenant` doesn't support all these fields, so we map them.
+      // Test data is now created using the Cloud Function
       const testTenantPromises = [
         { name: 'Städproffs Stockholm AB', slug: 'stadproffs-stockholm', plan: 'premium', trialDays: 0, contactName: 'Anna Andersson', contactEmail: 'admin@stadproffs.se' },
         { name: 'Rengöring Plus Göteborg', slug: 'rengoring-plus-gbg', plan: 'standard', trialDays: 14, contactName: 'Erik Eriksson', contactEmail: 'kontakt@rengoring-plus.se' },
         { name: 'Hemstäd Malmö (Suspended)', slug: 'hemstad-malmo', plan: 'basic', trialDays: 0, contactName: 'Maria Svensson', contactEmail: 'info@hemstad-malmo.se' },
-      ].map(tenantData => createTenant(tenantData));
+      ].map(async (tenantData) => {
+        const result = await createTenant(tenantData);
+        return result.data;
+      });
       
       await Promise.all(testTenantPromises);
 
