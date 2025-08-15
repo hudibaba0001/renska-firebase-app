@@ -69,8 +69,14 @@ service cloud.firestore {
       
       // Bookings subcollection
       match /bookings/{bookingId} {
-        // Anyone can create bookings (for public forms)
-        allow create: if true;
+        // Allow public booking creation with validation
+        allow create: if request.resource.data.keys().hasAll(['service', 'sqm', 'total', 'customerInfo', 'created'])
+                      && request.resource.data.customerInfo.keys().hasAll(['name', 'email', 'phone'])
+                      && request.resource.data.sqm > 0
+                      && request.resource.data.total >= 0
+                      && request.resource.data.customerInfo.name is string
+                      && request.resource.data.customerInfo.email is string
+                      && request.resource.data.customerInfo.phone is string;
         
         // Company admins can read/write their bookings
         allow read, write: if request.auth != null && 

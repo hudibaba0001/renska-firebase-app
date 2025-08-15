@@ -32,8 +32,8 @@ import toast from 'react-hot-toast'
 import { motion } from 'framer-motion';
 import { logger } from '../utils/logger';
 
-export default function BookingForm({ config = {} }) {
-  logger.debug('BookingForm', 'BookingForm config received');
+export default function BookingForm({ config = {}, companyId }) {
+  logger.debug('BookingForm', 'BookingForm config received for companyId:', companyId);
   
   // Default values if config is empty
   const defaultServices = [
@@ -176,14 +176,13 @@ export default function BookingForm({ config = {} }) {
         useRut,
         total: totalPrice,
         customerInfo,
-        companyId: config.slug || 'unknown',
         created: Timestamp.now()
       };
 
-      logger.info('BookingForm', 'Submitting booking for customer');
+      logger.info('BookingForm', 'Submitting booking for customer to company:', companyId);
 
       // In a real app, this would go to the company's bookings subcollection
-      await addDoc(collection(db, 'bookings'), bookingData);
+      await addDoc(collection(db, 'companies', companyId, 'bookings'), bookingData);
       
       setSubmitMessage('Booking submitted successfully!');
       toast.success('Booking submitted successfully!');

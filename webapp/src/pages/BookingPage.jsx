@@ -96,7 +96,7 @@ export default function BookingPage() {
           {config?.formMode ? (config.name || 'Booking Calculator') : `Booking for: ${companyId}`}
         </h1>
         {config?.formMode ? (
-          <BookingForm config={config} />
+          <BookingForm config={config} companyId={companyId} />
         ) : (
           <BookingCalculator />
         )}
@@ -120,9 +120,9 @@ export function AdminDashboard() {
       setLoading(true)
       setError('')
       try {
+        const bookingsRef = collection(db, 'companies', companyId, 'bookings')
         const q = query(
-          collection(db, 'bookings'),
-          where('service', '!=', ''),
+          bookingsRef,
           orderBy('created', 'desc')
         )
         const snap = await getDocs(q)
