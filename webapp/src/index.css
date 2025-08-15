@@ -1,8 +1,96 @@
 @import "@fontsource/ubuntu-mono/index.css";
-@import 'flowbite';
+@import 'flowbite/dist/flowbite.css';
+/* SwedPrime Design System */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Inter+Display:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+/* Design System Imports */
+@import './styles/design-tokens.css';
+@import './styles/components.css';
+@import './styles/layout.css';
+
+/* Tailwind CSS */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Base Styles */
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+  
+  html {
+    font-family: var(--font-primary);
+    line-height: var(--leading-normal);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  
+  body {
+    margin: 0;
+    padding: 0;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: var(--text-base);
+    line-height: var(--leading-normal);
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    margin: 0;
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--leading-tight);
+    color: var(--text-primary);
+  }
+  
+  h1 { font-size: var(--text-4xl); }
+  h2 { font-size: var(--text-3xl); }
+  h3 { font-size: var(--text-2xl); }
+  h4 { font-size: var(--text-xl); }
+  h5 { font-size: var(--text-lg); }
+  h6 { font-size: var(--text-base); }
+  
+  p {
+    margin: 0 0 var(--space-4) 0;
+    line-height: var(--leading-relaxed);
+  }
+  
+  a {
+    color: var(--interactive-primary);
+    text-decoration: none;
+    transition: color var(--transition-base);
+  }
+  
+  a:hover {
+    color: var(--interactive-primary-hover);
+    text-decoration: underline;
+  }
+  
+  a:focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: 2px;
+    border-radius: var(--radius-base);
+  }
+  
+  button {
+    font-family: inherit;
+  }
+  
+  input, textarea, select {
+    font-family: inherit;
+  }
+  
+  /* Focus styles for better accessibility */
+  :focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: 2px;
+  }
+  
+  /* Remove default focus styles */
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+}
 
 /* Ubuntu Mono Font from @fontsource */
 /* Flowbite Styles - imported above before Tailwind */
@@ -15,10 +103,48 @@
   --flowbite-sidebar-text: #ffffff;
 }
 
+/* Custom company header styling */
+.custom-company-header {
+  background: #005659 !important;
+  background-color: #005659 !important;
+  background-image: none !important;
+}
+
 /* Base font family override */
 @layer base {
-  body {
-    font-family: 'Ubuntu Mono', ui-monospace, Menlo, Consolas, 'Liberation Mono', monospace;
+  html, body, #root {
+    font-family: 'Inter', 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
     background-color: #e6f2f2;
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+  
+  #root {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+/* Embed route overrides - ensure full viewport height */
+@layer utilities {
+  /* When on embed routes, override normal app constraints */
+  html[data-embed="true"], 
+  body[data-embed="true"], 
+  #root[data-embed="true"] {
+    width: 100vw !important;
+    height: 100vh !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    background: white !important;
+  }
+  
+  #root[data-embed="true"] {
+    min-height: 100vh !important;
+    display: block !important;
+    flex-direction: unset !important;
   }
 }

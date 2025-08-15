@@ -1,0 +1,106 @@
+# SwedPrime CRM GraphQL Schema for Firebase Data Connect
+# Generated for PostgreSQL database with companies, users, customers tables
+
+type Company @table {
+  id: ID!
+  name: String!
+  contactEmail: String!
+  address: String
+  areaTag: String
+  subscriptionPlan: String
+  subscriptionActive: Boolean!
+  createdAt: Timestamp!
+  updatedAt: Timestamp!
+  deleted: Boolean!
+  deletedAt: Timestamp
+  deletedBy: User
+  customers: [Customer!]!
+}
+
+type User @table {
+  id: ID!
+  firebaseUid: String!
+  email: String!
+  name: String
+  role: String
+  adminOf: [String!]
+  superAdmin: Boolean!
+  createdAt: Timestamp!
+  updatedAt: Timestamp!
+  deleted: Boolean!
+  deletedAt: Timestamp
+  deletedBy: User
+  companies: [Company!]!
+}
+
+type Customer @table {
+  id: ID!
+  companyId: String!
+  name: String!
+  email: String!
+  phone: String!
+  address: String!
+  multipleAddresses: [String!]
+  rutRotEligible: Boolean!
+  propertyDetails: String
+  internalNotes: String
+  leadSource: String
+  preferredContactMethod: String
+  customerTags: [String!]
+  bookingFrequency: String
+  feedbackRating: Int
+  isCompany: Boolean!
+  contactPerson: String
+  secondaryPhone: String
+  secondaryEmail: String
+  companySize: String
+  branchCount: Int
+  consentGiven: Boolean!
+  consentTimestamp: Timestamp
+  consentDetails: String
+  areaTag: String
+  personnummer: String
+  createdAt: Timestamp!
+  updatedAt: Timestamp!
+  deleted: Boolean!
+  deletedAt: Timestamp
+  deletedBy: User
+  company: Company!
+}
+
+# Query examples for testing:
+# 
+# Get all companies:
+# query {
+#   companies {
+#     id
+#     name
+#     contactEmail
+#     customers {
+#       id
+#       name
+#       email
+#     }
+#   }
+# }
+#
+# Get customers for a specific company:
+# query {
+#   customers(where: { companyId: { eq: "company-uuid" } }) {
+#     id
+#     name
+#     email
+#     phone
+#     rutRotEligible
+#   }
+# }
+#
+# Get RUT/ROT eligible customers:
+# query {
+#   customers(where: { rutRotEligible: { eq: true } }) {
+#     id
+#     name
+#     email
+#     personnummer
+#   }
+# } 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { signInWithEmailAndPassword } from 'firebase/auth'
 import { auth } from '../firebase/init'
 
@@ -18,36 +18,45 @@ export default function LoginPage() {
     setError('')
     setLoading(true)
     try {
+      // Sign in with Firebase Authentication
       const userCred = await signInWithEmailAndPassword(auth, email, password)
+      
+      // Force refresh the token to get latest custom claims
+      await userCred.user.getIdToken(true)
       const idTokenResult = await userCred.user.getIdTokenResult()
       const claims = idTokenResult.claims || {}
 
-      // Priority: 1) Preserve original redirect, 2) Super Admin, 3) Company Admin, 4) Fallback dashboard
+      console.log('🔑 User claims after login:', claims)
+
+      // Determine redirect target based on custom claims
       let target = from
 
       if (!location.state?.from) {
         if (claims.superAdmin) {
           target = '/super-admin'
+        } else if (claims.adminOf && claims.adminOf.length > 0) {
+          // User is admin of a company, redirect to company dashboard
+          target = `/admin/${claims.adminOf[0]}`
         } else {
-          // Check Firestore for super admin status (fallback for development)
-          const { doc, getDoc, getFirestore } = await import('firebase/firestore')
-          const db = getFirestore()
-          const superAdminDoc = await getDoc(doc(db, 'superAdminUsers', userCred.user.uid))
-          
-          if (superAdminDoc.exists() && superAdminDoc.data().isSuperAdmin) {
-            target = '/super-admin'
-          } else if (claims.adminOf) {
-            target = `/admin/${claims.adminOf}`
-          } else {
-            target = '/admin/companies'
-          }
+          // Fallback to companies page
+          target = '/admin/companies'
         }
       }
 
+      console.log('🚀 Redirecting to:', target)
       navigate(target, { replace: true })
     } catch (e) {
       console.error('Login error:', e)
-      setError('Invalid email or password.')
+      
+      // Provide more specific error messages
+      if (e.code === 'auth/user-not-found' || e.code === 'auth/wrong-password') {
+        setError('Invalid email or password.')
+      } else if (e.code === 'auth/too-many-requests') {
+        setError('Too many failed login attempts. Please try again later.')
+      } else {
+        setError(`Login failed: ${e.message}`)
+      }
+      
       setLoading(false)
     }
   }
@@ -86,6 +95,10 @@ export default function LoginPage() {
         >
           {loading ? 'Signing in…' : 'Sign In'}
         </button>
+        <div className="mt-4 text-center text-sm">
+          Don't have an account?{' '}
+          <Link to="/pricing" className="text-blue-600 hover:underline">Sign Up</Link>
+        </div>
       </form>
     </div>
   )

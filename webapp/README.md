@@ -88,3 +88,31 @@ npm run dev
 - Firebase hosting setup
 - Automated deployment pipeline
 - Production environment
+
+## Validation Steps
+
+- Test CRUD operations in the UI and verify in Firestore (`companies/{companyId}/services`).
+- Check browser console logs for fetched services after each operation.
+- Ensure no "No document to update" errors appear.
+
+## Booking Form Builder Flow
+
+### Steps
+1. **Create Calculator**: Enter calculator name and URL slug. Basic validation only.
+2. **Define Services**: Select which services (from company settings) will be available in the booking form. At least one required. No pricing/add-on editing here.
+3. **Custom Form**: Build the booking form UI. Enable/disable fields (ZIP, name, email, phone, address, personal number, date/time pickers, RUT, GDPR consent). For each selected service, dynamic fields and add-ons are shown automatically. Real-time price card updates as user selects options. Frequency checkbox only if supported by the service.
+
+### Setup
+- All service configuration (pricing, add-ons, frequency, custom fees) is managed in Settings, not in the form builder.
+- The form builder only lets the user select which services to show and build the booking form UI.
+- All input is sanitized, and Firestore rules enforce tenant isolation.
+- Accessibility and localization are maintained.
+
+### Firestore Indexes
+- `/companies/{companyId}/services` (indexed on companyId, serviceId)
+- `/companies/{companyId}/calculators` (indexed on companyId)
+
+### Roadmap
+- Add recurring bookings and advanced scheduling.
+- Add customer reviews and feedback fields.
+- Add more dynamic field types and validation options.

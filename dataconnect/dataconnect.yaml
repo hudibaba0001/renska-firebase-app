@@ -1,0 +1,12 @@
+specVersion: "v1"
+serviceId: "swed-de2a3-service"
+location: "europe-west1"
+schema:
+  source: "./schema"
+  datasource:
+    postgresql:
+      database: "sandhucrm"
+      cloudSql:
+        instanceId: "sandhu-crm-db"
+      # schemaValidation: "COMPATIBLE"
+connectorDirs: ["./connector"]

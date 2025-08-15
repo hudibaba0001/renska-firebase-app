@@ -6,8 +6,13 @@ import { AuthProvider } from './context/AuthContext'
 import App from './App'
 import './index.css'
 import './theme.css'
+import 'regenerator-runtime/runtime';
+// import { app } from './firebase/init.js';
+// import { getAnalytics } from "firebase/analytics";
 
 console.log('🔧 main.jsx is executing')
+
+// getAnalytics(app);
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

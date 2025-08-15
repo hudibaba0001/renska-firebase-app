@@ -1,128 +1,202 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // --- Helper functions for common checks ---
     
-    // =============================================================================
-    // SUPER-ADMIN RULES
-    // =============================================================================
-    
-    // Super-admin users can access everything
-    match /tenants/{tenantId} {
-      // Super-admin can read/write all tenant data
-      allow read, write: if request.auth != null && request.auth.token.superAdmin == true;
-      
-      // Tenant admins can read/write their own tenant data
-      allow read, write: if request.auth != null && 
-        request.auth.token.adminOf != null && 
-        request.auth.token.adminOf == tenantId;
-      
-      // All subcollections under tenants
-      match /{subcollection=**} {
-        allow read, write: if request.auth != null && request.auth.token.superAdmin == true;
-        allow read, write: if request.auth != null && 
-          request.auth.token.adminOf != null && 
-          request.auth.token.adminOf == tenantId;
-      }
+    function isSignedIn() {
+      return request.auth != null;
     }
-    
-    // Global configuration (super-admin only)
-    match /globalConfig/{document} {
-      allow read, write: if request.auth != null && request.auth.token.superAdmin == true;
+
+    function isNotDeleted() {
+      // For read operations, only allow if the document is not soft-deleted
+      // Also handles documents that might not yet have the 'deleted' field (old data migrated to false)
+      return resource.data.deleted == false || !('deleted' in resource.data);
     }
-    
-    // Plans and billing configuration (super-admin only)
-    match /plans/{planId} {
-      allow read: if request.auth != null; // All authenticated users can read plans
-      allow write: if request.auth != null && request.auth.token.superAdmin == true;
+
+    // Function to check if the requesting user is an admin of the specified company
+    // Assumes custom claim 'adminOf' is an array of company IDs the user is an admin for.
+    function isCompanyAdmin(companyId) {
+      return isSignedIn() &&
+             request.auth.token.adminOf is list && // Ensure it's a list
+             request.auth.token.adminOf.hasAny([companyId]); // User is admin of this company
     }
-    
-    // Audit logs (super-admin read-only)
-    match /auditLogs/{logId} {
-      allow read: if request.auth != null && request.auth.token.superAdmin == true;
-      allow write: if false; // Only server-side writes
+
+    // Function to check if the requesting user is a super admin
+    // Assumes custom claim 'superAdmin' is set to true.
+    function isSuperAdmin() {
+      return isSignedIn() && request.auth.token.superAdmin == true;
     }
-    
-    // User management (super-admin only)
-    match /superAdminUsers/{userId} {
-      allow read, write: if request.auth != null && request.auth.token.superAdmin == true;
+
+    // Function to check if the requesting user is the owner of the document
+    function isOwner(userId) {
+        return isSignedIn() && request.auth.uid == userId;
     }
-    
-    // =============================================================================
-    // EXISTING COMPANY RULES (BACKWARD COMPATIBILITY)
-    // =============================================================================
-    
-    // Companies collection - for backward compatibility and existing functionality
-    match /companies/{companyId} {
-      // SECURE: Only allow reading public data or authorized access
-      allow read: if resource.data.isPublic == true || 
-                     (request.auth != null && 
-                      (request.auth.token.superAdmin == true || 
-                       request.auth.token.adminOf == companyId));
-      
-      // Super-admins can do everything (create, read, write, update, delete)
-      allow read, write, create, update, delete: if request.auth != null && request.auth.token.superAdmin == true;
-      
-      // Only admins of the specific company can write (but not create new companies)
-      allow write, update: if request.auth != null && 
-        request.auth.token.adminOf != null && 
-        request.auth.token.adminOf == companyId;
-      
-      // Bookings subcollection
-      match /bookings/{bookingId} {
-        // Anyone can create bookings (for public forms)
-        allow create: if true;
-        
-        // Company admins can read/write their bookings
-        allow read, write: if request.auth != null && 
-          request.auth.token.adminOf != null && 
-          request.auth.token.adminOf == companyId;
-        
-        // Super-admins can read/write all bookings
-        allow read, write: if request.auth != null && request.auth.token.superAdmin == true;
-      }
-      
-      // Analytics and reports
-      match /analytics/{analyticsId} {
-        allow read, write: if request.auth != null && 
-          request.auth.token.adminOf != null && 
-          request.auth.token.adminOf == companyId;
-        allow read, write: if request.auth != null && request.auth.token.superAdmin == true;
-      }
+
+    // Helper for personnummer validation (basic format check)
+    // TODO: Add Cloud Function for full personnummer validation (including checksum like Luhn algorithm) before write.
+    function isValidPersonnummerFormat(personnummer) {
+      return personnummer is string && personnummer.matches('^[0-9]{8}-[0-9]{4}$');
     }
-    
-    // =============================================================================
-    // USER AUTHENTICATION & PROFILES
-    // =============================================================================
-    
-    // User profiles
+
+    // --- /users/{userId} Collection ---
+    // Users can only read/write their own profile (if not deleted), super admins can manage all user profiles.
     match /users/{userId} {
-      // Users can read/write their own profile
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-      
-      // Super-admins can read all user profiles
-      allow read: if request.auth != null && request.auth.token.superAdmin == true;
+      allow read: if isOwner(userId) && isNotDeleted() || isSuperAdmin();
+      allow create: if isSignedIn() && isOwner(userId); // Allow signed-in user to create their own user document
+      allow update: if isOwner(userId) && isNotDeleted() || isSuperAdmin(); // Owner or super admin can update
+      // Soft-delete is handled by setting 'deleted: true' in app logic
+      allow delete: if false; // Disallow direct hard deletes via client for safety
     }
-    
-    // =============================================================================
-    // SYSTEM DATA
-    // =============================================================================
-    
-    // Feature flags (super-admin write, everyone read)
-    match /featureFlags/{flagId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.token.superAdmin == true;
+
+    // --- /customers/{customerId} Collection ---
+    // Allow users to create their own customer document during signup
+    match /customers/{customerId} {
+      allow read: if isOwner(customerId) || isSuperAdmin();
+      allow create: if isSignedIn() && isOwner(customerId);
+      allow update: if isOwner(customerId) || isSuperAdmin();
+      allow delete: if false;
     }
-    
-    // RUT/ZIP codes (super-admin write, everyone read)
-    match /rutZipCodes/{zipCode} {
-      allow read: if true; // Public data for pricing calculations
-      allow write: if request.auth != null && request.auth.token.superAdmin == true;
+
+    // --- /companies/{companyId} Collection (Tenants) ---
+    match /companies/{companyId} {
+      // Allow signed-in users to create companies during signup
+      // The user must be the adminUid specified in the company document
+      allow create: if isSignedIn() && 
+                       request.resource.data.adminUid == request.auth.uid;
+
+      // Company admins can read their own company's data if not deleted. Super admins can read all.
+      // Also allow public read access if company has isPublic flag set to true
+      allow read: if (isCompanyAdmin(companyId) || isSuperAdmin() || 
+                       (resource.data.isPublic == true)) && isNotDeleted();
+
+      // Company admins can update their company's details, if not deleted. Super admins can update all.
+      // IMPORTANT: Stricter update rule to prevent arbitrary changes to 'deleted' field
+      allow update: if (isCompanyAdmin(companyId) || isSuperAdmin()) && isNotDeleted() && (
+        // Allow all updates if 'deleted' field is NOT being changed, OR
+        // if 'deleted' field IS being changed, ensure it's only from false to true.
+        // This rule covers the 'deleted: true' soft-delete operation!
+        !('deleted' in request.resource.data) || // If 'deleted' field is not part of the update payload
+        (request.resource.data.deleted == true && resource.data.deleted == false) // OR if it's changing from false to true
+      );
+
+      // Disallow direct hard deletes via client. Soft-delete is managed by setting 'deleted: true' via app logic/Cloud Function.
+      allow delete: if false;
     }
-    
-    // Service catalog templates (super-admin write, everyone read)
-    match /serviceCatalog/{serviceId} {
-      allow read: if true; // Public templates for new tenants
-      allow write: if request.auth != null && request.auth.token.superAdmin == true;
+
+    // --- Subcollections within /companies/{companyId} ---
+
+    // /companies/{companyId}/services/{serviceId}
+    match /companies/{companyId}/services/{serviceId} {
+      allow read: if (isCompanyAdmin(companyId) || isSuperAdmin()) && isNotDeleted();
+      // For creation, consent is required.
+      allow create: if (isCompanyAdmin(companyId) || isSuperAdmin()) && 
+                       request.resource.data.get('consent', false) == true;
+      // Allow updates for company admins and super admins (including soft-deletes)
+      allow update: if (isCompanyAdmin(companyId) || isSuperAdmin());
+      allow delete: if false; // Disallow direct hard deletes via client (use soft-delete)
+    }
+
+    // /companies/{companyId}/customers/{customerId}
+    match /companies/{companyId}/customers/{customerId} {
+      allow read: if (isCompanyAdmin(companyId) || isSuperAdmin()) && isNotDeleted();
+      // For creation, consent is required. If personnummer is provided, ensure basic format and RUTEligible is true.
+      allow create: if (isCompanyAdmin(companyId) || isSuperAdmin()) &&
+                       request.resource.data.get('consent', false) == true &&
+                       (!('personnummer' in request.resource.data) || 
+                        (isValidPersonnummerFormat(request.resource.data.personnummer) && 
+                         request.resource.data.get('RUTEligible', false) == true));
+      allow update: if (isCompanyAdmin(companyId) || isSuperAdmin()) && isNotDeleted();
+      allow delete: if false; // Disallow direct hard deletes via client (use soft-delete)
+    }
+
+    // /companies/{companyId}/bookings/{bookingId}
+    match /companies/{companyId}/bookings/{bookingId} {
+      allow read: if (isCompanyAdmin(companyId) || isSuperAdmin()) && isNotDeleted();
+      // For creation, consent is required. If personnummer is provided, ensure basic format and RUTEligible is true.
+      allow create: if (isCompanyAdmin(companyId) || isSuperAdmin()) &&
+                       request.resource.data.get('consent', false) == true &&
+                       (!('personnummer' in request.resource.data) || 
+                        (isValidPersonnummerFormat(request.resource.data.personnummer) && 
+                         request.resource.data.get('RUTEligible', false) == true));
+      allow update: if (isCompanyAdmin(companyId) || isSuperAdmin()) && isNotDeleted();
+      allow delete: if false; // Disallow direct hard deletes via client (use soft-delete)
+    }
+
+    // /companies/{companyId}/coupons/{couponId}
+    match /companies/{companyId}/coupons/{couponId} {
+      allow read: if (isCompanyAdmin(companyId) || isSuperAdmin()) && isNotDeleted();
+      allow create: if (isCompanyAdmin(companyId) || isSuperAdmin());
+      allow update: if (isCompanyAdmin(companyId) || isSuperAdmin()) && isNotDeleted();
+      allow delete: if false; // Disallow direct hard deletes via client (use soft-delete)
+    }
+
+    // /companies/{companyId}/calculators/{calculatorId}
+    match /companies/{companyId}/calculators/{calculatorId} {
+      allow read: if (isCompanyAdmin(companyId) || isSuperAdmin()) && isNotDeleted();
+      allow create: if (isCompanyAdmin(companyId) || isSuperAdmin());
+      allow update: if (isCompanyAdmin(companyId) || isSuperAdmin()) && isNotDeleted();
+      allow delete: if false; // Disallow direct hard deletes via client (use soft-delete)
+    }
+
+    // /companies/{companyId}/leads/{leadId}
+    match /companies/{companyId}/leads/{leadId} {
+      allow read: if (isCompanyAdmin(companyId) || isSuperAdmin()) && isNotDeleted();
+      allow create: if (isCompanyAdmin(companyId) || isSuperAdmin());
+      allow update: if (isCompanyAdmin(companyId) || isSuperAdmin()) && isNotDeleted();
+      allow delete: if false; // Disallow direct hard deletes via client (use soft-delete)
+    }
+
+    // /companies/{companyId}/deals/{dealId}
+    match /companies/{companyId}/deals/{dealId} {
+      allow read: if (isCompanyAdmin(companyId) || isSuperAdmin()) && isNotDeleted();
+      allow create: if (isCompanyAdmin(companyId) || isSuperAdmin());
+      allow update: if (isCompanyAdmin(companyId) || isSuperAdmin()) && isNotDeleted();
+      allow delete: if false; // Disallow direct hard deletes via client (use soft-delete)
+    }
+
+    // /companies/{companyId}/tasks/{taskId}
+    match /companies/{companyId}/tasks/{taskId} {
+      allow read: if (isCompanyAdmin(companyId) || isSuperAdmin()) && isNotDeleted();
+      allow create: if (isCompanyAdmin(companyId) || isSuperAdmin());
+      allow update: if (isCompanyAdmin(companyId) || isSuperAdmin()) && isNotDeleted();
+      allow delete: if false; // Disallow direct hard deletes via client (use soft-delete)
+    }
+
+    // /companies/{companyId}/jobs/{jobId}
+    match /companies/{companyId}/jobs/{jobId} {
+      allow read: if (isCompanyAdmin(companyId) || isSuperAdmin()) && isNotDeleted();
+      allow create: if (isCompanyAdmin(companyId) || isSuperAdmin());
+      allow update: if (isCompanyAdmin(companyId) || isSuperAdmin()) && isNotDeleted();
+      allow delete: if false; // Disallow direct hard deletes via client (use soft-delete)
+    }
+
+    // /companies/{companyId}/crews/{crewId}
+    match /companies/{companyId}/crews/{crewId} {
+      allow read: if (isCompanyAdmin(companyId) || isSuperAdmin()) && isNotDeleted();
+      allow create: if (isCompanyAdmin(companyId) || isSuperAdmin());
+      allow update: if (isCompanyAdmin(companyId) || isSuperAdmin()) && isNotDeleted();
+      allow delete: if false; // Disallow direct hard deletes via client (use soft-delete)
+    }
+
+    // --- API Versioning Support ---
+    // TODO: Implement version-specific rules as the API evolves
+    match /v1/{document=**} {
+      // For now, delegate to existing rules structure
+      // In the future, this can contain version-specific security logic
+      allow read, write: if false; // Placeholder - implement version-specific rules here
+    }
+
+    match /v2/{document=**} {
+      // Future API version support
+      allow read, write: if false; // Placeholder for future versions
+    }
+
+    // --- Default deny for all other paths ---
+    // This is important to ensure only explicitly allowed paths are accessible.
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
-} 
+}

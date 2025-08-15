@@ -7,13 +7,55 @@ export const STRIPE_CONFIG = {
   
   // Pricing plans configuration
   plans: {
-    basic: {
-      id: 'basic',
-      name: 'Basic',
-      price: 99,
+    enterprise: {
+      id: 'enterprise',
+      name: 'Enterprise',
+      priceId: 'price_1RjpglRmgE0PBjX9Nl1Y1dE0',
+      price: 2000,
       currency: 'SEK',
-      interval: 'month',
-      priceId: import.meta.env.VITE_STRIPE_BASIC_PRICE_ID || 'price_basic_test',
+      features: [
+        'Unlimited Booking Forms',
+        'Custom Pricing Calculator',
+        'Advanced Notifications',
+        'Unlimited bookings',
+        'Dedicated Support',
+        'Custom Integrations',
+        'Advanced Analytics',
+        'API Access'
+      ],
+      limits: {
+        forms: -1, // unlimited
+        bookings: -1, // unlimited
+        customization: 'full'
+      }
+    },
+    vaxt: {
+      id: 'vaxt',
+      name: 'Växt',
+      priceId: 'price_1RjpgIRmgE0PBjX9UJ2FFfUL',
+      price: 799,
+      currency: 'SEK',
+      features: [
+        '3 Booking Forms',
+        'Advanced Pricing Calculator',
+        'SMS & Email Notifications',
+        'Up to 200 bookings/month',
+        'Priority Support',
+        'Custom Branding',
+        'Analytics Dashboard'
+      ],
+      limits: {
+        forms: 3,
+        bookings: 200,
+        customization: 'advanced'
+      }
+    },
+    starter: {
+      id: 'starter',
+      name: 'Starter',
+      priceId: 'price_1RjpfoRmgE0PBjX9y8iPKKoC',
+      price: 349,
+      currency: 'SEK',
       features: [
         '1 Booking Form',
         'Basic Pricing Calculator',
@@ -26,72 +68,27 @@ export const STRIPE_CONFIG = {
         bookings: 50,
         customization: 'basic'
       }
-    },
-    standard: {
-      id: 'standard',
-      name: 'Standard',
-      price: 199,
-      currency: 'SEK',
-      interval: 'month',
-      priceId: import.meta.env.VITE_STRIPE_STANDARD_PRICE_ID || 'price_standard_test',
-      features: [
-        '3 Booking Forms',
-        'Advanced Pricing Models',
-        'Custom Branding',
-        'Up to 200 bookings/month',
-        'Priority Support',
-        'Analytics Dashboard'
-      ],
-      limits: {
-        forms: 3,
-        bookings: 200,
-        customization: 'advanced'
-      },
-      popular: true
-    },
-    premium: {
-      id: 'premium',
-      name: 'Premium',
-      price: 399,
-      currency: 'SEK',
-      interval: 'month',
-      priceId: import.meta.env.VITE_STRIPE_PREMIUM_PRICE_ID || 'price_premium_test',
-      features: [
-        'Unlimited Booking Forms',
-        'Custom Pricing Logic',
-        'White-label Solution',
-        'Unlimited bookings',
-        'Dedicated Support',
-        'Advanced Analytics',
-        'API Access',
-        'Custom Integrations'
-      ],
-      limits: {
-        forms: 'unlimited',
-        bookings: 'unlimited',
-        customization: 'full'
-      }
     }
   }
 }
 
-// Initialize Stripe
-let stripePromise
-export const getStripe = () => {
-  if (!stripePromise) {
-    stripePromise = loadStripe(STRIPE_CONFIG.publishableKey)
-  }
-  return stripePromise
-}
-
-// Utility functions
-export const formatPrice = (price, currency = 'SEK') => {
+// Format price with currency
+export function formatPrice(price, currency = 'SEK') {
   return new Intl.NumberFormat('sv-SE', {
     style: 'currency',
     currency: currency,
-    minimumFractionDigits: 0,
-  }).format(price)
+    minimumFractionDigits: 0
+  }).format(price);
 }
+
+// Initialize Stripe
+let stripePromise;
+export const getStripe = () => {
+  if (!stripePromise) {
+    stripePromise = loadStripe(STRIPE_CONFIG.publishableKey);
+  }
+  return stripePromise;
+};
 
 export const getPlanByPriceId = (priceId) => {
   return Object.values(STRIPE_CONFIG.plans).find(plan => plan.priceId === priceId)

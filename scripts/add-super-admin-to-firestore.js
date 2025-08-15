@@ -33,7 +33,7 @@ const SUPER_ADMIN_EMAIL = 'admin@swedprime.com';
 
 async function addSuperAdminToFirestore() {
   try {
-    if (USER_UID === 'REPLACE_WITH_ACTUAL_UID') {
+    if (USER_UID === 'M5G147J4H4Of4csSOvfCh3bh6tQ2') {
       console.log('❌ Please update USER_UID in the script with the actual UID from Firebase Console');
       console.log('');
       console.log('Steps:');
@@ -57,8 +57,8 @@ async function addSuperAdminToFirestore() {
     });
     
     console.log('✅ Super admin status added to Firestore!');
-    console.log('📧 Email: admin@swedprime.com');
-    console.log('🔐 Password: superadmin123');
+    console.log('📧 Email: lovesandhu3221@gmail.com');
+    console.log('🔐 Password: #S@ndhulove193#');
     console.log('🌐 Login at: https://swed-de2a3.web.app/login');
     console.log('🚀 Should redirect to: /super-admin');
     

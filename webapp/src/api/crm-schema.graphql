@@ -1,0 +1,197 @@
+# SwedPrime CRM GraphQL Schema
+# Generated manually based on PostgreSQL schema
+
+type Company {
+  id: ID!
+  name: String!
+  contactEmail: String!
+  address: String
+  areaTag: String
+  subscriptionPlan: String
+  subscriptionActive: Boolean
+  createdAt: String!
+  updatedAt: String!
+  deleted: Boolean
+  deletedAt: String
+  deletedBy: User
+  customers: [Customer!]!
+}
+
+type User {
+  id: ID!
+  firebaseUid: String!
+  email: String!
+  name: String
+  role: String
+  adminOf: [String!]
+  superAdmin: Boolean
+  createdAt: String!
+  updatedAt: String!
+  deleted: Boolean
+  deletedAt: String
+  deletedBy: User
+  companies: [Company!]!
+}
+
+type Customer {
+  id: ID!
+  companyId: String!
+  name: String!
+  email: String!
+  phone: String!
+  address: String!
+  multipleAddresses: [String!]
+  rutRotEligible: Boolean
+  propertyDetails: String
+  internalNotes: String
+  leadSource: String
+  preferredContactMethod: String
+  customerTags: [String!]
+  bookingFrequency: String
+  feedbackRating: Int
+  isCompany: Boolean
+  contactPerson: String
+  secondaryPhone: String
+  secondaryEmail: String
+  companySize: String
+  branchCount: Int
+  consentGiven: Boolean
+  consentTimestamp: String
+  consentDetails: String
+  areaTag: String
+  personnummer: String
+  createdAt: String!
+  updatedAt: String!
+  deleted: Boolean
+  deletedAt: String
+  deletedBy: User
+  company: Company!
+}
+
+# Query types
+type Query {
+  # Company queries
+  companies: [Company!]!
+  company(id: ID!): Company
+  
+  # User queries
+  users: [User!]!
+  user(id: ID!): User
+  currentUser: User
+  
+  # Customer queries
+  customers: [Customer!]!
+  customer(id: ID!): Customer
+  customersByCompany(companyId: ID!): [Customer!]!
+  customersByArea(areaTag: String!): [Customer!]!
+  customersByRutRotEligible(rutRotEligible: Boolean!): [Customer!]!
+}
+
+# Mutation types
+type Mutation {
+  # Company mutations
+  createCompany(input: CreateCompanyInput!): Company!
+  updateCompany(id: ID!, input: UpdateCompanyInput!): Company!
+  deleteCompany(id: ID!): Boolean!
+  
+  # User mutations
+  createUser(input: CreateUserInput!): User!
+  updateUser(id: ID!, input: UpdateUserInput!): User!
+  deleteUser(id: ID!): Boolean!
+  
+  # Customer mutations
+  createCustomer(input: CreateCustomerInput!): Customer!
+  updateCustomer(id: ID!, input: UpdateCustomerInput!): Customer!
+  deleteCustomer(id: ID!): Boolean!
+}
+
+# Input types for mutations
+input CreateCompanyInput {
+  name: String!
+  contactEmail: String!
+  address: String
+  areaTag: String
+  subscriptionPlan: String
+  subscriptionActive: Boolean
+}
+
+input UpdateCompanyInput {
+  name: String
+  contactEmail: String
+  address: String
+  areaTag: String
+  subscriptionPlan: String
+  subscriptionActive: Boolean
+}
+
+input CreateUserInput {
+  firebaseUid: String!
+  email: String!
+  name: String
+  role: String
+  adminOf: [String!]
+  superAdmin: Boolean
+}
+
+input UpdateUserInput {
+  email: String
+  name: String
+  role: String
+  adminOf: [String!]
+  superAdmin: Boolean
+}
+
+input CreateCustomerInput {
+  companyId: String!
+  name: String!
+  email: String!
+  phone: String!
+  address: String!
+  multipleAddresses: [String!]
+  rutRotEligible: Boolean
+  propertyDetails: String
+  internalNotes: String
+  leadSource: String
+  preferredContactMethod: String
+  customerTags: [String!]
+  bookingFrequency: String
+  feedbackRating: Int
+  isCompany: Boolean
+  contactPerson: String
+  secondaryPhone: String
+  secondaryEmail: String
+  companySize: String
+  branchCount: Int
+  consentGiven: Boolean
+  consentTimestamp: String
+  consentDetails: String
+  areaTag: String
+  personnummer: String
+}
+
+input UpdateCustomerInput {
+  name: String
+  email: String
+  phone: String
+  address: String
+  multipleAddresses: [String!]
+  rutRotEligible: Boolean
+  propertyDetails: String
+  internalNotes: String
+  leadSource: String
+  preferredContactMethod: String
+  customerTags: [String!]
+  bookingFrequency: String
+  feedbackRating: Int
+  isCompany: Boolean
+  contactPerson: String
+  secondaryPhone: String
+  secondaryEmail: String
+  companySize: String
+  branchCount: Int
+  consentGiven: Boolean
+  consentTimestamp: String
+  consentDetails: String
+  areaTag: String
+  personnummer: String
+} 

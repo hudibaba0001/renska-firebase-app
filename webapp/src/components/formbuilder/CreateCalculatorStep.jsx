@@ -62,7 +62,7 @@ export default function CreateCalculatorStep({ config, updateConfig, onNext }) {
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-3xl mx-auto">
       <div className="bg-white shadow rounded-lg p-6">
         <h2 className="text-xl font-semibold mb-6">Create New Calculator</h2>
         

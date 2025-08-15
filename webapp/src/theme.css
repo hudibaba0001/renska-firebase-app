@@ -131,8 +131,8 @@
   --radius-full: 9999px;
   
   /* Typography */
-  --font-family-sans: 'Inter', system-ui, -apple-system, sans-serif;
-  --font-family-heading: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-family-sans: 'Times New Roman', Times, serif;
+  --font-family-heading: 'Times New Roman', Times, serif;
   --font-family-mono: 'JetBrains Mono', 'Consolas', monospace;
   
   /* Transitions */
@@ -232,3 +232,42 @@
   0%, 100% { opacity: 1; }
   50% { opacity: 0.8; }
 } 
+
+html, body {
+  font-size: 16px;
+  color: #000000;
+  font-family: var(--font-family-sans);
+}
+
+/* Force all elements to Times New Roman and text black */
+* {
+  color: #000000 !important;
+  font-family: "Times New Roman", Times, serif !important;
+}
+
+/* Preserve link hover underline color but keep text black */
+* {
+  color: #000000 !important;
+}
+
+/* Preserve link hover underline color but keep text black */
+a {
+  color: #000000 !important;
+}
+
+.text-base {
+  font-size: 16px !important;
+  color: var(--text-primary) !important;
+}
+.text-heading {
+  font-size: 1.25rem !important;
+  font-weight: 700;
+  color: var(--text-primary) !important;
+}
+.text-main {
+  color: var(--text-primary) !important;
+}
+.text-subtle {
+  color: var(--text-secondary) !important;
+}
+ 

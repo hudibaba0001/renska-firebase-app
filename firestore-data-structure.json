@@ -1,0 +1,244 @@
+{
+  "companies": {
+    "r7kAsnh-r1": {
+      "name": "Acme Cleaning",
+      "logo": "https://example.com/logo.png",
+      "colors": {
+        "primary": "#123456",
+        "secondary": "#abcdef",
+        "accent": "#ffcc00",
+        "background": "#f8f8f8"
+      },
+      "isPublic": true,
+      "rutEnabled": true,
+      "rutPercentage": 0.5,
+      "zipAreas": ["41107", "41121", "41254", "41318", "41503"],
+      "vatRate": 25,
+      "addOns": {
+        "oven": 500,
+        "fridge": 500,
+        "balcony": 300
+      },
+      "windowCleaningPrices": {
+        "small": 90,
+        "medium": 120,
+        "large": 150
+      },
+      "frequencyMultiplier": {
+        "weekly": 1,
+        "biweekly": 1.15,
+        "monthly": 1.4
+      },
+      "created": "2024-07-10T09:00:00.000Z",
+      "updated": "2024-07-10T10:00:00.000Z",
+      "status": "active",
+      "subscription": {
+        "plan": "pro",
+        "renewalDate": "2024-08-10T00:00:00.000Z",
+        "paymentMethod": "stripe",
+        "active": true
+      },
+      "contact": {
+        "email": "info@acme.com",
+        "phone": "+46701234567",
+        "address": "Main Street 1, 12345 City"
+      },
+      "crmSettings": {
+        "leadSources": ["web", "phone", "email"],
+        "dealStages": ["new", "contacted", "won", "lost"]
+      },
+      "analytics": {
+        "totalRevenue": 120000,
+        "totalBookings": 350,
+        "conversionRate": 0.18,
+        "abandonmentRate": 0.12
+      },
+      "forms": {
+        "default": {
+          "formName": "Standard Booking",
+          "services": [
+            {
+              "id": "service1",
+              "name": "Window Cleaning",
+              "pricingModel": "fixed-tier",
+              "tiers": [
+                { "min": 1, "max": 50, "price": 3000 },
+                { "min": 51, "max": 100, "price": 5000 }
+              ],
+              "universalRate": 50,
+              "windowTypes": [
+                { "name": "Typ 1", "price": 60 },
+                { "name": "Typ 2", "price": 80 }
+              ],
+              "hourlyTiers": [
+                { "min": 1, "max": 50, "hours": 3 }
+              ],
+              "hourlyRate": 400,
+              "perRoomRates": [
+                { "type": "room", "price": 300 },
+                { "type": "bathroom", "price": 150 }
+              ],
+              "minPrice": 700,
+              "vatRate": 25,
+              "addOns": [
+                { "name": "Oven", "price": 500, "rutEligible": true },
+                { "name": "Fridge", "price": 500, "rutEligible": false }
+              ],
+              "frequencyMultipliers": [
+                { "label": "Weekly", "multiplier": 1 },
+                { "label": "Monthly", "multiplier": 1.4 }
+              ],
+              "frequencyEnabled": true,
+              "rutEligible": true,
+              "customFees": [
+                { "label": "Travel", "amount": 100, "rutEligible": false },
+                { "label": "Key Pickup", "amount": 50, "rutEligible": false }
+              ],
+              "status": "published"
+            }
+          ],
+          "addOns": {
+            "oven": 500,
+            "fridge": 500
+          },
+          "windowCleaningPrices": {
+            "small": 90,
+            "medium": 120
+          },
+          "zipAreas": ["41107", "41121"],
+          "rutEnabled": true,
+          "rutPercentage": 0.5,
+          "vatRate": 25,
+          "formFields": [
+            { "type": "text", "label": "Name", "required": true },
+            { "type": "email", "label": "Email", "required": true },
+            { "type": "phone", "label": "Phone", "required": false }
+          ],
+          "confirmationMessage": "Thank you for your booking!",
+          "termsUrl": "https://example.com/terms",
+          "privacyUrl": "https://example.com/privacy"
+        }
+      },
+      "services": {
+        "service1": {
+          "name": "Window Cleaning",
+          "pricingModel": "fixed-tier",
+          "tiers": [
+            { "min": 1, "max": 50, "price": 3000 }
+          ],
+          "universalRate": 50,
+          "windowTypes": [
+            { "name": "Typ 1", "price": 60 }
+          ],
+          "hourlyTiers": [
+            { "min": 1, "max": 50, "hours": 3 }
+          ],
+          "hourlyRate": 400,
+          "perRoomRates": [
+            { "type": "room", "price": 300 }
+          ],
+          "minPrice": 700,
+          "vatRate": 25,
+          "addOns": [
+            { "name": "Oven", "price": 500, "rutEligible": true }
+          ],
+          "frequencyMultipliers": [
+            { "label": "Weekly", "multiplier": 1 }
+          ],
+          "frequencyEnabled": true,
+          "rutEligible": true,
+          "customFees": [
+            { "label": "Travel", "amount": 100, "rutEligible": false }
+          ],
+          "status": "published"
+        }
+      },
+      "bookings": {
+        "booking1": {
+          "companyId": "r7kAsnh-r1",
+          "serviceId": "service1",
+          "formId": "default",
+          "customer": {
+            "name": "John Doe",
+            "email": "john@example.com",
+            "phone": "+46701234567",
+            "address": "Customer Street 2, 12345 City"
+          },
+          "date": "2024-07-10T10:00:00.000Z",
+          "amount": 1200,
+          "status": "confirmed",
+          "created": "2024-07-09T15:00:00.000Z",
+          "updated": "2024-07-10T10:00:00.000Z",
+          "notes": "Customer requested early morning.",
+          "payment": {
+            "method": "stripe",
+            "transactionId": "txn_123456",
+            "paid": true
+          },
+          "discounts": [
+            { "type": "coupon", "code": "SUMMER2024", "amount": 100 }
+          ],
+          "customFields": {
+            "entryCode": "1234",
+            "pet": "dog"
+          }
+        }
+      },
+      "crm": {
+        "leads": {
+          "lead1": {
+            "name": "Jane Smith",
+            "email": "jane@lead.com",
+            "source": "web",
+            "status": "new",
+            "created": "2024-07-08T12:00:00.000Z"
+          }
+        },
+        "deals": {
+          "deal1": {
+            "leadId": "lead1",
+            "amount": 2000,
+            "stage": "contacted",
+            "created": "2024-07-09T09:00:00.000Z"
+          }
+        },
+        "tasks": {
+          "task1": {
+            "title": "Call Jane",
+            "dueDate": "2024-07-11T09:00:00.000Z",
+            "completed": false
+          }
+        }
+      },
+      "analytics": {
+        "daily": [
+          { "date": "2024-07-09", "bookings": 5, "revenue": 2000 },
+          { "date": "2024-07-10", "bookings": 7, "revenue": 3200 }
+        ],
+        "monthly": [
+          { "month": "2024-07", "bookings": 50, "revenue": 20000 }
+        ]
+      }
+    }
+  },
+  "users": {
+    "user1": {
+      "email": "admin@acme.com",
+      "name": "Admin User",
+      "role": "companyadmin",
+      "companyId": "r7kAsnh-r1",
+      "created": "2024-07-01T08:00:00.000Z",
+      "lastLogin": "2024-07-10T09:30:00.000Z",
+      "permissions": ["manage_services", "view_analytics", "edit_forms"]
+    },
+    "user2": {
+      "email": "superadmin@platform.com",
+      "name": "Super Admin",
+      "role": "superadmin",
+      "companyId": null,
+      "created": "2024-06-01T08:00:00.000Z",
+      "lastLogin": "2024-07-10T09:30:00.000Z",
+      "permissions": ["all"]
+    }
+  }
+} 
