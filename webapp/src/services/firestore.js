@@ -3,7 +3,7 @@ import { db } from "../firebase/init";
 import DOMPurify from 'dompurify';
 import { getAuth } from "firebase/auth"; // For client-side auth checks (UX/UI)
 import toast from 'react-hot-toast';
-import CryptoJS from 'crypto-js';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 
 
 // Note: Offline persistence is now configured in firebase/init.js using the new FirestoreSettings.cache API
@@ -14,41 +14,31 @@ const bookingCache = new Map();
 const serviceCache = new Map();
 const CACHE_DURATION = 300000; // 5 minutes
 
-// Encryption utilities for sensitive data (personnummer)
-const ENCRYPTION_KEY = import.meta.env.VITE_ENCRYPTION_KEY;
+// Encryption has been moved to a secure, server-side Cloud Function.
+// The client will now call this function instead of handling encryption directly.
+const functions = getFunctions();
+const encryptData = httpsCallable(functions, 'encryptData');
+const decryptData = httpsCallable(functions, 'decryptData');
 
-// Validate encryption key on startup
-if (!ENCRYPTION_KEY || ENCRYPTION_KEY.length < 32) {
-  console.error('CRITICAL: VITE_ENCRYPTION_KEY must be set and at least 32 characters long');
-  throw new Error('Invalid or missing encryption key. Please set VITE_ENCRYPTION_KEY environment variable.');
-}
-
-if (ENCRYPTION_KEY === 'swedprime-default-key-change-in-production') {
-  console.error('CRITICAL: Using default encryption key in production is not allowed');
-  throw new Error('Default encryption key detected. Please set a secure VITE_ENCRYPTION_KEY.');
-}
-
-const encryptPersonnummer = (personnummer) => {
+const encryptPersonnummer = async (personnummer) => {
   if (!personnummer || personnummer.trim() === '') return '';
-  
   try {
-    return CryptoJS.AES.encrypt(personnummer.trim(), ENCRYPTION_KEY).toString();
+    const result = await encryptData({ data: personnummer.trim() });
+    return result.data.encryptedData;
   } catch (error) {
-    console.error('Encryption failed for personnummer:', error);
+    console.error('Server-side encryption failed:', error);
     logError('encryptPersonnummer', error);
-    throw new Error('Failed to encrypt sensitive data');
+    throw new Error('Failed to encrypt sensitive data.');
   }
 };
 
-const _decryptPersonnummer = (encryptedPersonnummer) => {
+const _decryptPersonnummer = async (encryptedPersonnummer) => {
   if (!encryptedPersonnummer || encryptedPersonnummer.trim() === '') return '';
-  
   try {
-    const bytes = CryptoJS.AES.decrypt(encryptedPersonnummer, ENCRYPTION_KEY);
-    const decrypted = bytes.toString(CryptoJS.enc.Utf8);
-    return decrypted;
+    const result = await decryptData({ encryptedData: encryptedPersonnummer });
+    return result.data.data;
   } catch (error) {
-    console.error('Decryption failed for personnummer:', error);
+    console.error('Server-side decryption failed:', error);
     logError('decryptPersonnummer', error);
     return ''; // Return empty string on decryption failure
   }
@@ -204,18 +194,7 @@ export const getAllTenants = async (options = {}) => {
     }
 
     const snapshot = await getDocs(q);
-    const tenants = snapshot.docs.map(doc => {
-      const tenantData = { id: doc.id, ...doc.data() };
-      
-      // Defensive fallback for inconsistent subscription data (should be handled on creation)
-      if (!tenantData.subscription || tenantData.subscription.active === undefined) {
-        console.warn(`Tenant ${doc.id} subscription data inconsistent, setting defaults`);
-        tenantData.subscription = { ...(tenantData.subscription || {}), active: true, plan: 'basic' };
-      }
-
-      // Note: Returning full data from Firestore document, as security rules should handle data minimization for read costs.
-      return tenantData;
-    });
+    const tenants = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
     console.log(`Fetched ${tenants.length} tenants from Firestore`);
     return { tenants, lastDoc: snapshot.docs[snapshot.docs.length - 1] || null };
@@ -228,61 +207,11 @@ export const getAllTenants = async (options = {}) => {
   // 'createdAt' and 'deleted: false' for existing company documents lacking them.
 };
 
-// Create a new tenant (company) in the 'companies' collection
-export const createTenant = async (tenantData) => {
-  try {
-    await checkAuthAndRole(null, 'superAdmin'); // Only super admins can create new companies
-    rateLimit(getAuth().currentUser.uid); // Apply client-side rate limit
-
-    // Validation
-    if (!tenantData.name || !sanitizeHtml(tenantData.name).trim()) {
-      throw new Error('Name is required and cannot be empty.');
-    }
-    if (!tenantData.contactEmail || !validateEmail(sanitizeHtml(tenantData.contactEmail))) {
-      throw new Error('Valid contact email is required.');
-    }
-    if (tenantData.RUTEligible !== undefined && typeof tenantData.RUTEligible !== 'boolean') {
-      throw new Error('RUTEligible must be a boolean.');
-    }
-    if (tenantData.consent !== undefined && typeof tenantData.consent !== 'boolean') {
-      throw new Error('Consent must be a boolean.');
-    }
-
-    // Personnummer validation if provided (for RUT deduction eligibility)
-    if (tenantData.personnummer && !validatePersonnummer(sanitizeHtml(tenantData.personnummer))) {
-      throw new Error('Invalid personnummer format (YYYYMMDD-XXXX) if provided.');
-    }
-
-    const sanitizedData = addTimestamps({
-      name: sanitizeHtml(tenantData.name),
-      contactEmail: sanitizeHtml(tenantData.contactEmail),
-      address: sanitizeHtml(tenantData.address || ''),
-      RUTEligible: !!tenantData.RUTEligible,
-      personnummer: sanitizeHtml(tenantData.personnummer || ''), // Store personnummer
-      consent: !!tenantData.consent,
-      consentTimestamp: tenantData.consent ? serverTimestamp() : null,
-      consentDetails: sanitizeHtml(tenantData.consentDetails || ''),
-      subscription: {
-        ...(tenantData.subscription || {}),
-        active: true,
-        status: 'active'
-      }
-      // 'deleted: false' is added by addTimestamps helper for new documents
-    }, true);
-
-    if (!sanitizedData.consent) {
-      throw new Error('Consent required to create tenant (GDPR compliance).');
-    }
-
-    const companiesRef = collection(db, 'companies');
-    const docRef = await addDoc(companiesRef, sanitizedData);
-    
-    logSuccess('Company created successfully!');
-    return { id: docRef.id, ...sanitizedData };
-  } catch (error) {
-    logError('createTenant', error, { tenantData });
-    throw error;
-  }
+// This function is now deprecated. The logic has been moved to a secure Cloud Function.
+// The `createTenant` function in `tenants.js` on the server should be used instead.
+// See `webapp/src/pages/TenantOnboardPage.jsx` for an example of how to call the new function.
+export const createTenant_DEPRECATED = async (tenantData) => {
+  throw new Error("createTenant is deprecated. Use the 'createTenant' callable Cloud Function instead.");
 };
 
 // Update a tenant (company) in the 'companies' collection by ID
@@ -653,113 +582,10 @@ export const createBooking = async (companyId, bookingData) => {
   }
 };
 
-// Create recurring bookings in the 'bookings' subcollection for a specific company
-export const createRecurringBooking = async (companyId, bookingData, frequency, occurrences) => {
-  try {
-    await checkAuthAndRole(companyId, 'adminOf'); // Only admins of this company can create bookings
-    rateLimit(getAuth().currentUser.uid); // Apply client-side rate limit
-
-    // Validation
-    if (!bookingData.customerEmail || !validateEmail(sanitizeHtml(bookingData.customerEmail))) {
-      throw new Error('Valid customer email is required.');
-    }
-    if (bookingData.price !== undefined && (typeof bookingData.price !== 'number' || bookingData.price <= 0)) {
-      throw new Error('Price must be a positive number.');
-    }
-    if (!['weekly', 'monthly'].includes(frequency)) {
-      throw new Error('Frequency must be either "weekly" or "monthly".');
-    }
-    if (!occurrences || occurrences < 1 || occurrences > 52) {
-      throw new Error('Occurrences must be between 1 and 52.');
-    }
-
-    // Personnummer is optional, but if provided, it must be valid
-    if (bookingData.personnummer && !validatePersonnummer(sanitizeHtml(bookingData.personnummer))) {
-      throw new Error('Invalid personnummer format (YYYYMMDD-XXXX) if provided.');
-    }
-    if (!bookingData.customerId || !sanitizeHtml(bookingData.customerId).trim()) {
-      throw new Error('Customer ID is required and cannot be empty.');
-    }
-    if (!bookingData.serviceId || !sanitizeHtml(bookingData.serviceId).trim()) {
-      throw new Error('Service ID is required and cannot be empty.');
-    }
-    if (bookingData.consent !== undefined && typeof bookingData.consent !== 'boolean') {
-      throw new Error('Consent must be a boolean.');
-    }
-
-    const baseData = {
-      companyId: companyId,
-      customerId: sanitizeHtml(bookingData.customerId),
-      serviceId: sanitizeHtml(bookingData.serviceId),
-      personnummer: sanitizeHtml(bookingData.personnummer || ''),
-      consent: !!bookingData.consent,
-      consentTimestamp: bookingData.consent ? serverTimestamp() : null,
-      consentDetails: sanitizeHtml(bookingData.consentDetails || ''),
-      RUTEligible: !!bookingData.RUTEligible,
-      customerEmail: sanitizeHtml(bookingData.customerEmail),
-      price: bookingData.price,
-      isRecurring: true,
-      frequency: frequency,
-      originalDate: bookingData.date
-    };
-
-    if (!baseData.consent) {
-      throw new Error('Consent required to create booking (GDPR compliance).');
-    }
-
-    const bookingsRef = collection(db, 'companies', companyId, 'bookings');
-    const batch = writeBatch(db);
-    
-    let currentDate = new Date(bookingData.date);
-    const bookingIds = [];
-
-    for (let i = 0; i < occurrences; i++) {
-      const docRef = doc(bookingsRef);
-      const bookingWithDate = addTimestamps({
-        ...baseData,
-        date: currentDate,
-        occurrenceNumber: i + 1,
-        totalOccurrences: occurrences
-      }, true);
-
-      batch.set(docRef, bookingWithDate);
-      bookingIds.push(docRef.id);
-
-      // Calculate next occurrence date
-      if (i < occurrences - 1) { // Don't calculate for the last iteration
-        if (frequency === 'weekly') {
-          currentDate = new Date(currentDate);
-          currentDate.setDate(currentDate.getDate() + 7);
-        } else if (frequency === 'monthly') {
-          currentDate = new Date(currentDate);
-          currentDate.setMonth(currentDate.getMonth() + 1);
-          
-          // Handle month-end edge cases (e.g., Jan 31 -> Feb 28)
-          const originalDay = new Date(bookingData.date).getDate();
-          const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
-          currentDate.setDate(Math.min(originalDay, lastDayOfMonth));
-        }
-      }
-    }
-
-    await batch.commit();
-    
-    // Clear relevant caches
-    const cachePattern = `bookings-${companyId}`;
-    for (const [key] of bookingCache) {
-      if (key.startsWith(cachePattern)) {
-        bookingCache.delete(key);
-      }
-    }
-
-    logSuccess(`Created ${occurrences} recurring bookings successfully!`);
-    console.log(`Created ${occurrences} recurring ${frequency} bookings for company ${companyId}`);
-    
-    return { success: true, bookingIds, occurrences };
-  } catch (error) {
-    logError('createRecurringBooking', error, { companyId, bookingData, frequency, occurrences });
-    throw error;
-  }
+// This function is now deprecated. The logic has been moved to a secure Cloud Function.
+// The `createRecurringBookings` function in `functions/bookings.js` should be used instead.
+export const createRecurringBooking_DEPRECATED = async (companyId, bookingData, frequency, occurrences) => {
+  throw new Error("createRecurringBooking is deprecated. Use the 'createRecurringBookings' callable Cloud Function instead.");
 };
 
 // Update a booking in the 'bookings' subcollection for a specific company
@@ -915,7 +741,7 @@ export const createCustomer = async (companyId, customerData) => {
 
     // Encrypt personnummer before storage
     const encryptedPersonnummer = customerData.personnummer ? 
-      encryptPersonnummer(sanitizeHtml(customerData.personnummer)) : '';
+      await encryptPersonnummer(sanitizeHtml(customerData.personnummer)) : '';
 
     const sanitizedData = addTimestamps({
       name: sanitizeHtml(customerData.name),

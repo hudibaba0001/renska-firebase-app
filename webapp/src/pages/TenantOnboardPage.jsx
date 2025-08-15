@@ -3,9 +3,10 @@
 import { useState } from 'react';
 import { Card, Button, TextInput, Label, Select, Alert, Spinner } from 'flowbite-react';
 import { useNavigate } from 'react-router-dom';
-// Import the centralized function for creating tenants from our new service layer.
+import { getFunctions, httpsCallable } from 'firebase/functions';
 // All other direct Firestore imports are no longer needed here.
-import { createTenant } from '../services/firestore'; 
+// We will now call our secure Cloud Function to create the tenant.
+const createTenant = httpsCallable(getFunctions(), 'createTenant'); 
 import PageHeader from '../components/PageHeader';
 import toast from 'react-hot-toast';
 import { BuildingOfficeIcon, CreditCardIcon, UserIcon } from '@heroicons/react/24/outline';
@@ -112,22 +113,27 @@ export default function TenantOnboardPage() {
     setFormError('');
     
     try {
-      // Call the centralized `createTenant` function from the service layer,
-      // passing the entire form state. The service now handles all the complex logic
-      // of validation, sanitization, and database interaction.
-      const newTenantId = await createTenant(form);
+      // Call the secure, server-side `createTenant` Cloud Function,
+      // passing the entire form state. The function now handles all the complex logic
+      // of validation, authorization, and database interaction.
+      const result = await createTenant(form);
 
-      console.log('✅ Tenant created with ID:', newTenantId);
-      toast.success(`🎉 Tenant "${form.name}" created successfully!`);
-      navigate(`/super-admin/tenants`);
+      if (result.data.success) {
+        console.log('✅ Tenant created with ID:', result.data.tenantId);
+        toast.success(`🎉 Tenant "${form.name}" created successfully!`);
+        navigate(`/super-admin/tenants`);
+      } else {
+        // This case should ideally not be reached if the function throws errors as expected
+        throw new Error('Tenant creation failed for an unknown reason.');
+      }
 
     } catch (error) {
-      // The catch block now handles errors thrown from our service function.
+      // The catch block now handles errors thrown from our Cloud Function.
       // This allows us to display specific, user-friendly messages.
       console.error('Error creating tenant:', error);
       
-      // We check for the specific error code we defined in our service for slug conflicts.
-      if (error.code === 'slug-not-available') {
+      // We check for the specific error codes we defined in our function.
+      if (error.code === 'functions/already-exists') {
         setFormError(error.message); // Display the slug error message in the form.
         setStep(1); // Take the user back to the step with the slug field.
       } else {

@@ -46,3 +46,16 @@ exports.updateCompanyPublicStatus = companies.updateCompanyPublicStatus;
 
 // Export deal-to-job conversion function
 exports.onDealStatusChange = deals.onDealStatusChange;
+
+// Import and export secure functions
+const secure = require('./secure');
+exports.encryptData = secure.encryptData;
+exports.decryptData = secure.decryptData;
+
+// Import and export tenant functions
+const tenants = require('./tenants');
+exports.createTenant = tenants.createTenant;
+
+// Import and export booking functions
+const bookings = require('./bookings');
+exports.createRecurringBookings = bookings.createRecurringBookings;
