@@ -32,7 +32,8 @@ import {
   ArrowRightOnRectangleIcon,
   UserIcon,
   BuildingOfficeIcon,
-  QuestionMarkCircleIcon
+  QuestionMarkCircleIcon,
+  TagIcon
 } from '@heroicons/react/24/outline'
 import { motion, AnimatePresence } from 'framer-motion'
 import toast, { Toaster } from 'react-hot-toast'
@@ -222,6 +223,13 @@ export default function AdminDashboardLayout() {
       icon: CreditCardIcon,
       badge: null,
       description: 'Subscription and payments'
+    },
+    {
+      label: 'Promo Codes',
+      href: `/admin/${companyId}/promocodes`,
+      icon: TagIcon,
+      badge: null,
+      description: 'Manage discount codes'
     }
   ]
 

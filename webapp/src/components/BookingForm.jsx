@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react'
 import { db } from '../firebase/init'
-import { collection, addDoc, Timestamp } from 'firebase/firestore'
+import { collection, addDoc, Timestamp, query, where, getDocs } from 'firebase/firestore'
 import { 
   Card, 
   Button, 
@@ -26,7 +26,8 @@ import {
   PhoneIcon,
   CheckCircleIcon,
   ExclamationTriangleIcon,
-  StarIcon
+  StarIcon,
+  TicketIcon
 } from '@heroicons/react/24/outline'
 import toast from 'react-hot-toast'
 import { motion } from 'framer-motion';
@@ -64,9 +65,53 @@ export default function BookingForm({ config = {}, companyId }) {
   // Add GDPR consent state
   const [gdprConsent, setGdprConsent] = useState(false);
   const [gdprError, setGdprError] = useState('');
+  const [promoCode, setPromoCode] = useState('');
+  const [promoCodeError, setPromoCodeError] = useState('');
+  const [appliedDiscount, setAppliedDiscount] = useState(null);
+  const [appliedDiscount, setAppliedDiscount] = useState(null);
 
   // Get current service config
   const currentService = availableServices.find(s => s.id === selectedService) || availableServices[0];
+
+  const handleApplyPromoCode = async () => {
+    if (!promoCode) {
+      setPromoCodeError('Please enter a promo code.');
+      return;
+    }
+    setPromoCodeError('');
+    setAppliedDiscount(null);
+
+    try {
+      const promoCodesRef = collection(db, 'companies', companyId, 'promoCodes');
+      const q = query(promoCodesRef, where('code', '==', promoCode), where('active', '==', true));
+      const querySnapshot = await getDocs(q);
+
+      if (querySnapshot.empty) {
+        setPromoCodeError('Invalid or expired promo code.');
+        return;
+      }
+
+      const promoData = querySnapshot.docs[0].data();
+
+      // Optional: Check validity dates
+      const now = new Date();
+      if (promoData.validFrom && new Date(promoData.validFrom) > now) {
+        setPromoCodeError('Promo code is not yet active.');
+        return;
+      }
+      if (promoData.validUntil && new Date(promoData.validUntil) < now) {
+        setPromoCodeError('Promo code has expired.');
+        return;
+      }
+
+      setAppliedDiscount(promoData);
+      toast.success('Promo code applied!');
+
+    } catch (error) {
+      logger.error('BookingForm', 'Error applying promo code:', error);
+      setPromoCodeError('Could not apply promo code.');
+    }
+  };
   
   // Live price calculation
   const totalPrice = useMemo(() => {
@@ -497,6 +542,22 @@ export default function BookingForm({ config = {}, companyId }) {
                       icon={PhoneIcon}
                     />
                   </div>
+                </div>
+
+                {/* Promo Code */}
+                <div>
+                  <Label htmlFor="promo-code" value="Promo Code (Optional)" />
+                  <div className="flex gap-2">
+                    <TextInput
+                      id="promo-code"
+                      value={promoCode}
+                      onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                      placeholder="Enter code"
+                      className="flex-grow"
+                    />
+                    <Button color="gray">Apply</Button>
+                  </div>
+                  {promoCodeError && <p className="text-sm text-red-600 mt-1">{promoCodeError}</p>}
                 </div>
 
                 <div className="flex items-center space-x-2 mt-4">

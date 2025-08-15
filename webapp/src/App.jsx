@@ -14,6 +14,7 @@ import AdminDashboardLayout from './components/AdminDashboardLayout';
 import SuperAdminLayout from './components/SuperAdminLayout';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 import AdminBillingPage from './pages/AdminBillingPage';
+import AdminPromoCodesPage from './pages/AdminPromoCodesPage';
 import SignupPage from './pages/SignupPage';
 import FormBuilderPage from './pages/FormBuilderPage';
 import SetupPage from './pages/SetupPage';
@@ -67,6 +68,7 @@ export default function App() {
             <Route path="forms/:formId" element={<FormBuilderPage />} />
             <Route path="config" element={<CompanyConfigPage />} />
             <Route path="billing" element={<AdminBillingPage />} />
+            <Route path="promocodes" element={<AdminPromoCodesPage />} />
             <Route path="bookings" element={<AdminBookingsPage />} />
             <Route path="analytics" element={<AdminAnalyticsPage />} />
             <Route path="customers" element={<AdminCustomersPage />} />
